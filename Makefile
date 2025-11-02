@@ -2,6 +2,9 @@ CXX      := clang++
 CXXOPT   := -O1 -g
 CXXFLAGS := -std=c++23 -Wall -Wextra -Iinclude 
 
+RAYLIB_CXXLAGS := $(shell pkg-config --cflags raylib)
+RAYLIB_LDFLAGS  := $(shell pkg-config --libs raylib)
+
 LIB_SRCS   := $(wildcard lib/*.cpp)
 LIB_OBJS   := $(patsubst lib/%.cpp,bin/obj/%.o,$(LIB_SRCS))
 
@@ -21,15 +24,15 @@ tests: $(TEST_BINS)
 
 bin/obj/%.o: lib/%.cpp
 	mkdir -p bin/obj
-	$(CXX) $(CXXFLAGS) $(CXXOPT) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(RAYLIB_CXXFLAGS)  $(CXXOPT) -c $< -o $@
 
 bin/%: apps/%/main.cpp $(LIB_OBJS)
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) $(CXXOPT) $< $(LIB_OBJS) -o $@
+	$(CXX) $(CXXFLAGS) $(RAYLIB_CXXFLAGS) $(CXXOPT) $< $(LIB_OBJS) -o $@ $(RAYLIB_LDFLAGS)
 
 bin/tests/%: tests/%.cpp $(LIB_OBJS)
 	mkdir -p bin/tests
-	$(CXX) $(CXXFLAGS) $(CXXOPT) $< $(LIB_OBJS) -o $@
+	$(CXX) $(CXXFLAGS) $(RAYLIB_CXXFLAGS) $(CXXOPT) $< $(LIB_OBJS) -o $@ $(RAYLIB_LDFLAGS)
 
 clean:
 	rm -rf bin

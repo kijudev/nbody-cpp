@@ -31,6 +31,10 @@
               cppcheck
               bear
               doctest
+              pkg-config
+
+              # Project dependecies
+              raylib
             ];
 
             shellHook = ''
