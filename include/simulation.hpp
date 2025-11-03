@@ -8,5 +8,7 @@ namespace sim {
 class Simulation {
    public:
     std::vector<Body> bodies;
+
+    void update();
 };
 }  // namespace sim

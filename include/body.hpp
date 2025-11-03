@@ -11,5 +11,7 @@ class Body {
     double mass;
 
     Body(Vector2 arg_pos, Vector2 arg_vel, double arg_mass);
+
+    void update(double dt);
 };
 }  // namespace sim
