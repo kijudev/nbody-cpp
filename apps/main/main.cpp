@@ -10,8 +10,9 @@ int main() {
     const int win_height = 600;
     sim::Simulation simulation;
 
-    simulation.bodies.push_back(sim::Body({100, 100}, {0, 0}, 1000.0f));
-    simulation.bodies.push_back(sim::Body({400, 400}, {0, 0}, 2000.0f));
+    simulation.bodies.push_back(sim::Body({100, 100}, {0, 0}, 100000.0f));
+    simulation.bodies.push_back(sim::Body({400, 400}, {0, 0}, 200000.0f));
+    simulation.bodies.push_back(sim::Body({300, 600}, {0, 0}, 300000.0f));
 
     InitWindow(win_width, win_height, "nbody-cpp");
     SetTargetFPS(60);
@@ -23,17 +24,22 @@ int main() {
 
         simulation.update();
 
-        for (auto body : simulation.bodies) {
+        for (auto& body : simulation.bodies) {
             body.update(GetFrameTime());
         }
 
         for (const auto body : simulation.bodies) {
-            std::cout << "body: " << body.pos.x << " " << body.pos.y << "\n";
+            std::cout << "body pos: " << body.pos.x << " " << body.pos.y
+                      << "\n";
+            std::cout << "body vel: " << body.vel.x << " " << body.vel.y
+                      << "\n";
+            std::cout << "body acc: " << body.acc.x << " " << body.acc.y
+                      << "\n";
         }
 
         for (const auto body : simulation.bodies) {
-            DrawCircle((int)body.pos.x, (int)body.pos.y, std::sqrt(body.mass),
-                       WHITE);
+            DrawCircle((int)body.pos.x, (int)body.pos.y,
+                       std::sqrt(std::sqrt(body.mass)), WHITE);
         }
 
         EndDrawing();

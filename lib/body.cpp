@@ -1,4 +1,6 @@
 
+#include <iostream>
+
 #include "body.hpp"
 #include "raylib.h"
 
@@ -11,7 +13,6 @@ void Body::update(double dt) {
     vel.y += acc.y * dt;
     pos.x += vel.x * dt;
     pos.y += vel.y * dt;
-
     acc.x = 0;
     acc.y = 0;
 }
