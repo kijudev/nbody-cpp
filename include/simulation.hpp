@@ -10,5 +10,7 @@ class Simulation {
     std::vector<Body> bodies;
 
     void update();
+    void place_body(Body body);
+    void place_random_body();
 };
 }  // namespace sim
