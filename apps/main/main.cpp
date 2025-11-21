@@ -6,8 +6,8 @@
 int main() {
     nbody::EntityPool pool;
 
-    nbody::Entity a = pool.insert();
-    nbody::Entity b = pool.insert();
+    nbody::Entity a = pool.create();
+    nbody::Entity b = pool.create();
 
     std::cout << pool.debug_format() << "\n";
 
@@ -19,11 +19,11 @@ int main() {
 
     std::cout << pool.debug_format() << "\n";
 
-    pool.insert();
-    pool.insert();
-    pool.insert();
-    pool.insert();
-    pool.insert();
+    pool.create();
+    pool.create();
+    pool.create();
+    pool.create();
+    pool.create();
 
     std::cout << pool.debug_format() << "\n";
 

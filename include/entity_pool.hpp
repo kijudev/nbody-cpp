@@ -13,7 +13,7 @@ class EntityPool {
     EntityIndex m_next_free_index{ENTITY_INDEX_NULL};
 
    public:
-    Entity insert() {
+    Entity create() {
         if (m_next_free_index == ENTITY_INDEX_NULL) {
             Entity entity(static_cast<EntityIndex>(m_pool.size()), 0, 0);
             m_pool.push_back(entity);
@@ -38,13 +38,6 @@ class EntityPool {
             Entity(m_next_free_index, entity.generation(), ENTITY_FLAG_FREE);
 
         m_next_free_index = entity.index();
-    }
-
-    Entity get_by_index(EntityIndex index) const {
-        assert(index != ENTITY_INDEX_NULL);
-        assert(index < m_pool.size());
-
-        return m_pool[index];
     }
 
     bool is_valid(Entity entity) const {
