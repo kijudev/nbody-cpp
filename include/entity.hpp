@@ -19,22 +19,24 @@ constexpr EntityFlags ENTITY_FLAG_FREE = 1;
 // 16b -> flags
 class Entity {
    private:
-    EntityIndex m_index;
-    EntityGeneration m_generation;
-    EntityFlags m_flags;
+    EntityIndex m_index{ENTITY_INDEX_NULL};
+    EntityGeneration m_generation{0};
+    EntityFlags m_flags{ENTITY_FLAG_FREE};
 
    public:
     Entity(EntityIndex index, EntityGeneration generation, EntityFlags flags)
         : m_index(index), m_generation(generation), m_flags(flags) {}
 
-    EntityIndex index() { return m_index; }
-    EntityGeneration generation() { return m_generation; }
-    EntityFlags flags() { return m_flags; }
+    EntityIndex index() const { return m_index; }
+    EntityGeneration generation() const { return m_generation; }
+    EntityFlags flags() const { return m_flags; }
 
-    bool test_flags(EntityFlags flags) { return (m_flags & flags) == flags; }
+    bool test_flags(EntityFlags flags) const {
+        return (m_flags & flags) == flags;
+    }
 
    public:
-    std::string debug_format() {
+    std::string debug_format() const {
         return "(nbody::Entity { index: " + std::to_string(m_index) +
                ", generation: " + std::to_string(m_generation) +
                ", flags: " + std::to_string(m_flags) + " })";

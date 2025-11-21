@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <string>
 #include <vector>
 
 #include "entity.hpp"
@@ -33,33 +34,40 @@ class EntityPool {
         assert(entity.index() != ENTITY_INDEX_NULL);
         assert(entity.index() < m_pool.size());
 
-        Entity destroyed_entity(ENTITY_INDEX_NULL, entity.generation(),
-                                ENTITY_FLAG_FREE);
-
-        if (m_next_free_index != ENTITY_INDEX_NULL) {
-            Entity& free_entity = m_pool[m_next_free_index];
-            free_entity = Entity(entity.index(), free_entity.generation(),
-                                 free_entity.flags());
-        }
+        m_pool[entity.index()] =
+            Entity(m_next_free_index, entity.generation(), ENTITY_FLAG_FREE);
 
         m_next_free_index = entity.index();
-        m_pool[entity.index()] = destroyed_entity;
     }
 
-    Entity get_by_index(EntityIndex index) {
+    Entity get_by_index(EntityIndex index) const {
         assert(index != ENTITY_INDEX_NULL);
         assert(index < m_pool.size());
 
         return m_pool[index];
     }
 
-    bool is_valid(Entity entity) {
+    bool is_valid(Entity entity) const {
         assert(entity.index() != ENTITY_INDEX_NULL);
         assert(entity.index() < m_pool.size());
 
         Entity pool_entity = m_pool[entity.index()];
         return !pool_entity.test_flags(ENTITY_FLAG_FREE) &&
                entity.generation() == pool_entity.generation();
+    }
+
+   public:
+    std::string debug_format() const {
+        std::string result = "(nbody::EntityPool {\n\tnext_free_index: " +
+                             std::to_string(m_next_free_index) +
+                             ",\n\tpool: [\n";
+
+        for (const auto entity : m_pool) {
+            result += "\t\t" + entity.debug_format() + "\n";
+        }
+
+        result += "\t]\n})";
+        return result;
     }
 };
 }  // namespace nbody
