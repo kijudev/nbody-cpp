@@ -18,43 +18,55 @@
       devShells.${system}.default =
         pkgs.mkShell.override
           {
-            stdenv = pkgs.clangStdenv;
+            stdenv = llvm.libcxxStdenv;
           }
           {
             packages = with pkgs; [
-              # Build
-              gnumake
-              bear
-              pkg-config
-
-              # Compilers
-              llvm.lldb
-              llvm.libcxx
-              llvm.libcxxStdenv
-              shaderc
-
-              # Tools
-              valgrind
-              clang-tools
-              cppcheck
-              vulkan-tools
+              # Utilities
               nixd
               nil
               package-version-server
 
-              # Libs
-              doctest
-              nanobench
-              glfw
-              freetype
+              # Cmake
+              gnumake
+              bear
+              pkg-config
+              cmake
+              cmake-format
+              neocmakelsp
+
+              # C++
+              llvm.lldb
+              valgrind
+              clang-tools
+              cppcheck
+
+              # Vulkan
               vulkan-headers
               vulkan-loader
               vulkan-validation-layers
+              vulkan-tools
+
+              # GLFW
+              glfw
+
+              # Shaders
+              shaderc
+
+              # Testing
+              doctest
+
+              # Benchmarking
+              nanobench
+
+              # Fonts
+              freetype
+
+              # Math
+              glm
             ];
 
             shellHook = ''
-              export CXXFLAGS="-stdlib=libc++"
-              export LDFLAGS="-stdlib=libc++ -lc++abi"
               echo "======== C++ DevShell ========"
             '';
           };
