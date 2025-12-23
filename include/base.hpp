@@ -24,9 +24,11 @@ using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
 
-enum class LoggerSeverity : U16 { INFO = 1, WARNING = 1 << 1, ERROR = 1 << 2, FATAL = 1 << 3 };
+enum class LoggerSeverity : U16 { DEBUG = 1, INFO = 1 << 1, WARNING = 1 << 2, ERROR = 1 << 3, FATAL = 1 << 4 };
 
 enum class LoggerLayer : U16 { CORE = 1, RENDERER = 1 << 1, APP = 1 << 2 };
+
+enum class LoggerTarget : U16 { CONSOLE = 1, FILE = 1 << 1 };
 
 class Logger {
     // Type definitions
@@ -37,18 +39,26 @@ class Logger {
    public:
     static void log(LoggerLayer layer, LoggerSeverity severity, const std::string& message);
 
-    static void init();
-    static void init(std::vector<LoggerLayer> enabled_layers, std::vector<LoggerSeverity> enabled_severities);
-    static void init(std::vector<LoggerLayer> enabled_layers, std::vector<LoggerSeverity> enabled_severities,
-                     std::unordered_map<LoggerSeverity, Color>);
+    static void init(const std::vector<LoggerTarget>& targets);
 
-    static std::span<LoggerLayer>    enabled_layers();
-    static std::span<LoggerSeverity> enabled_severities();
+    static void init(const std::vector<LoggerTarget>& targets, const std::vector<LoggerLayer>& enabled_layers,
+                     const std::vector<LoggerSeverity>& enabled_severities);
+
+    static void init(const std::vector<LoggerTarget>& targets, const std::vector<LoggerLayer>& enabled_layers,
+                     const std::vector<LoggerSeverity>&               enabled_severities,
+                     const std::unordered_map<LoggerSeverity, Color>& severity_colors);
+
+    static std::span<LoggerLayer>                          enabled_layers();
+    static std::span<LoggerSeverity>                       enabled_severities();
+    static std::span<LoggerTarget>                         enabled_targets();
+    static const std::unordered_map<LoggerSeverity, Color> severity_colors();
 
     // Note: Overrides layers and severities
     // Unsafe: This operation should only be used in extreme cases where performance is critical
     static void unsafe_set_enabled_layers(const std::vector<LoggerLayer>& enabled_layers);
     static void unsafe_set_enabled_severities(const std::vector<LoggerSeverity>& enabled_severities);
+    static void unsafe_set_enabled_targets(const std::vector<LoggerTarget>& enabled_targets);
+    static void unsafe_set_severity_colors(const std::unordered_map<LoggerSeverity, Color>& severity_colors);
 
     // Constructors, destructors, assignment operators
    private:
@@ -59,10 +69,13 @@ class Logger {
 
     // Member variables
    private:
-    static std::atomic<U16>            m_severity_mask;
-    static std::atomic<U16>            m_layer_mask;
+    static std::atomic<U16> m_severity_mask;
+    static std::atomic<U16> m_layer_mask;
+    static std::atomic<U16> m_target_mask;
+
     static std::vector<LoggerLayer>    m_enabled_layers;
     static std::vector<LoggerSeverity> m_enabled_severities;
+    static std::vector<LoggerTarget>   m_enabled_targets;
 
     // Note: Mutex for thread safety
     static std::mutex m_mutex;
@@ -75,8 +88,8 @@ class Logger {
     static U16 impl_get_severities_mask(const std::vector<LoggerSeverity>& severities);
 
     static std::string impl_get_severity_name(LoggerSeverity severity);
-    static std::string impl_get_layer_name(LoggerSeverity severity);
+    static std::string impl_get_layer_name(LoggerLayer layer);
 
-    static std::string impl_render_terminal_color_text(const std::string& text);
+    static std::string impl_render_terminal_color_text(Color color, const std::string& text);
 };
 }  // namespace nbody
