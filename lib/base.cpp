@@ -1,31 +1,113 @@
 #include "base.hpp"
 
+#include <atomic>
+#include <chrono>
 #include <cstring>
+#include <format>
+#include <mutex>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
-// Include necessary headers for Windows console handling
+// Windows compile-time optimizations
+// Includes only necessary headers
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
 #endif
 #include <windows.h>
 #endif
 
 namespace nbody {
+
+// Static members
+U16 Logger::m_severity_mask{0};
+U16 Logger::m_layer_mask{0};
+U16 Logger::m_target_mask{0};
+
+std::vector<LoggerLayer>    Logger::m_enabled_layers{};
+std::vector<LoggerSeverity> Logger::m_enabled_severities{};
+std::vector<LoggerTarget>   Logger::m_enabled_targets{};
+
+std::mutex Logger::m_mutex;
+
+std::unordered_map<LoggerSeverity, Logger::Color> Logger::m_severity_colors_table = {
+    {LoggerSeverity::DEBUG,   Logger::Color::CYAN  },
+    {LoggerSeverity::INFO,    Logger::Color::GREEN },
+    {LoggerSeverity::WARNING, Logger::Color::YELLOW},
+    {LoggerSeverity::ERROR,   Logger::Color::RED   },
+    {LoggerSeverity::FATAL,   Logger::Color::PURPLE},
+};
+
+// log
 void Logger::log(LoggerLayer layer, LoggerSeverity severity, const std::string& message) {}
 
-U16 Logger::impl_get_layers_mask(const std::vector<LoggerLayer>& layers) {
+std::span<LoggerLayer> Logger::layers() {
+    return std::span<LoggerLayer>(m_enabled_layers.data(), m_enabled_layers.size());
+}
+
+std::span<LoggerSeverity> Logger::severities() {
+    return std::span<LoggerSeverity>(m_enabled_severities.data(), m_enabled_severities.size());
+}
+
+std::span<LoggerTarget> Logger::targets() {
+    return std::span<LoggerTarget>(m_enabled_targets.data(), m_enabled_targets.size());
+}
+
+const std::unordered_map<LoggerSeverity, Logger::Color> Logger::severity_colors() {
+    std::lock_guard<std::mutex> lk(m_mutex);
+    return m_severity_colors_table;
+}
+
+void Logger::set_enabled_layers(const std::vector<LoggerLayer>& enabled_layers) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+
+    m_enabled_layers = enabled_layers;
+    m_layer_mask     = impl_get_layer_mask(m_enabled_layers);
+}
+
+void Logger::set_enabled_severities(const std::vector<LoggerSeverity>& enabled_severities) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+
+    m_enabled_severities = enabled_severities;
+    m_severity_mask      = impl_get_severity_mask(m_enabled_severities);
+}
+
+void Logger::set_enabled_targets(const std::vector<LoggerTarget>& enabled_targets) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+
+    m_enabled_targets = enabled_targets;
+    m_target_mask     = impl_get_target_mask(m_enabled_targets);
+}
+
+void Logger::set_severity_colors(const std::unordered_map<LoggerSeverity, Color>& severity_colors) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+    m_severity_colors_table = severity_colors;
+}
+
+U16 Logger::impl_get_layer_mask(const std::vector<LoggerLayer>& layers) {
     U16 mask = 0;
-    for (LoggerLayer layer : layers) {
-        mask |= static_cast<U16>(layer);
+    for (LoggerLayer l : layers) {
+        mask |= static_cast<U16>(l);
     }
     return mask;
 }
 
-U16 Logger::impl_get_severities_mask(const std::vector<LoggerSeverity>& severities) {
+U16 Logger::impl_get_severity_mask(const std::vector<LoggerSeverity>& severities) {
     U16 mask = 0;
-    for (LoggerSeverity severity : severities) {
-        mask |= static_cast<U16>(severity);
+    for (LoggerSeverity s : severities) {
+        mask |= static_cast<U16>(s);
+    }
+    return mask;
+}
+
+U16 Logger::impl_get_target_mask(const std::vector<LoggerTarget>& targets) {
+    U16 mask = 0;
+    for (LoggerTarget t : targets) {
+        mask |= static_cast<U16>(t);
     }
     return mask;
 }
@@ -48,92 +130,82 @@ std::string Logger::impl_get_severity_name(LoggerSeverity severity) {
 std::string Logger::impl_get_layer_name(LoggerLayer layer) {
     switch (layer) {
         case LoggerLayer::CORE:
-            return "INFO";
-        case LoggerLayer::APP:
-            return "WARNING";
+            return "CORE";
         case LoggerLayer::RENDERER:
-            return "ERROR";
+            return "RENDERER";
+        case LoggerLayer::APP:
+            return "APP";
     }
 }
 
-std::string Logger::impl_render_terminal_color_text(Color color, const std::string& text) {
-    // On POSIX use ANSI escape sequences.
-    // On Windows, attempt to enable Virtual Terminal Processing (VT) so ANSI escapes are interpreted.
+std::string Logger::impl_get_target_name(LoggerTarget target) {
+    switch (target) {
+        case LoggerTarget::CONSOLE:
+            return "CONSOLE";
+        case LoggerTarget::FILE:
+            return "FILE";
+    }
+}
+
+std::string Logger::impl_render_console_color_text(Color color, const std::string& text) {
 #if defined(_WIN32)
-    static bool vt_initialized = false;
-    static bool vt_enabled     = false;
-    if (!vt_initialized) {
-        vt_initialized = true;
-        // Try to enable VT processing on the console output handle.
+    static bool vt_inited = false;
+    static bool vt_ok     = false;
+    if (!vt_inited) {
+        vt_inited   = true;
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (hOut != INVALID_HANDLE_VALUE) {
             DWORD mode = 0;
             if (GetConsoleMode(hOut, &mode)) {
-                // Try to set ENABLE_VIRTUAL_TERMINAL_PROCESSING
                 const DWORD vt_flag = ENABLE_VIRTUAL_TERMINAL_PROCESSING;
                 if ((mode & vt_flag) == 0) {
-                    if (SetConsoleMode(hOut, mode | vt_flag)) {
-                        vt_enabled = true;
-                    } else {
-                        vt_enabled = false;
-                    }
+                    vt_ok = (SetConsoleMode(hOut, mode | vt_flag) != 0);
                 } else {
-                    vt_enabled = true;
+                    vt_ok = true;
                 }
             }
         }
     }
-#endif
-
-    // Map our Color enum to ANSI color codes.
-    const char* prefix = "";
-    const char* suffix = "";
-#if defined(_WIN32)
-    const bool use_ansi = vt_enabled;
+    const bool use_ansi = vt_ok;
 #else
     const bool use_ansi = true;
 #endif
 
-    if (use_ansi) {
-        switch (color) {
-            case Color::RED:
-                prefix = "\x1b[31m";
-                break;
-            case Color::YELLOW:
-                prefix = "\x1b[33m";
-                break;
-            case Color::GREEN:
-                prefix = "\x1b[32m";
-                break;
-            case Color::BLUE:
-                prefix = "\x1b[34m";
-                break;
-            case Color::PURPLE:
-                prefix = "\x1b[35m";
-                break;
-            case Color::CYAN:
-                prefix = "\x1b[36m";
-                break;
-            case Color::WHITE:
-                prefix = "\x1b[37m";
-                break;
-            default:
-                prefix = "\x1b[0m";
-                break;
-        }
-        suffix = "\x1b[0m";
-    }
+    if (!use_ansi) return text;
 
-    if (!use_ansi || prefix[0] == '\0') {
-        return text;
-    }
+    const std::string code  = impl_get_console_color_ansi_code(color);
+    const std::string reset = "\x1b[0m";
 
-    std::string out;
-    out.reserve(std::strlen(prefix) + text.size() + std::strlen(suffix));
-    out += prefix;
-    out += text;
-    out += suffix;
-    return out;
+    return code + text + reset;
+}
+
+std::string Logger::impl_get_console_color_ansi_code(Color color) {
+    switch (color) {
+        case Color::RED:
+            return "\x1b[31m";
+        case Color::YELLOW:
+            return "\x1b[33m";
+        case Color::GREEN:
+            return "\x1b[32m";
+        case Color::BLUE:
+            return "\x1b[34m";
+        case Color::PURPLE:
+            return "\x1b[35m";
+        case Color::CYAN:
+            return "\x1b[36m";
+        case Color::WHITE:
+            return "\x1b[37m";
+        default:
+            return "\x1b[0m";
+    }
+}
+
+std::string Logger::impl_get_current_timestamp() {
+    using namespace std::chrono;
+
+    time_point<system_clock, seconds> const now_sec   = floor<seconds>(system_clock::now());
+    local_time<seconds> const               now_local = current_zone()->to_local(now_sec);
+    return std::format("{:%Y-%m-%d %H:%M:%S}", now_local);
 }
 
 }  // namespace nbody
