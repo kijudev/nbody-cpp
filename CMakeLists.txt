@@ -12,6 +12,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Export compile commands for language tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
 # Options
 option(BUILD_APPS "Build executables found in apps/*" ON)
 option(BUILD_TESTS "Build tests in tests/*" ON)
@@ -19,6 +20,14 @@ option(BUILD_BENCH "Build benchmarks in benchmarks/*" ON)
 option(COMPILE_SHADERS "Compile shaders in shaders/* with glslc/glslang" ON)
 option(COPY_COMPILE_COMMANDS "After generating compile_commands.json, copy it to the source root" OFF)
 option(FAIL_ON_EMPTY_LIB "Fail configure step if there are no sources in lib/" OFF)
+
+# Per-configuration compile options (applied to most targets via target_compile_options)
+# Each generator-expression returns a semicolon-separated list of flags for the given config.
+set(NBODY_COMMON_COMPILE_OPTIONS
+  $<$<CONFIG:Debug>:-g;-O0;-DDEBUG;-Wall;-Wextra>
+  $<$<CONFIG:RelWithDebInfo>:-O2;-g;-DNDEBUG>
+  $<$<CONFIG:Release>:-O3;-DNDEBUG>
+)
 
 # Public include dir
 set(NBODY_PUBLIC_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
@@ -31,8 +40,6 @@ include(FetchContent)
 # -----------------------
 file(GLOB_RECURSE NBODY_LIB_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_SOURCE_DIR}/lib/*.cpp"
-  "${CMAKE_SOURCE_DIR}/lib/*.cc"
-  "${CMAKE_SOURCE_DIR}/lib/*.cxx"
 )
 
 if(NBODY_LIB_SOURCES)
@@ -43,6 +50,8 @@ if(NBODY_LIB_SOURCES)
       $<INSTALL_INTERFACE:include>
   )
     target_compile_features(nbody PUBLIC cxx_std_23)
+    # Apply common per-config compile options to the core library
+    target_compile_options(nbody PRIVATE ${NBODY_COMMON_COMPILE_OPTIONS})
 else()
     if(FAIL_ON_EMPTY_LIB)
         message(FATAL_ERROR "FAIL_ON_EMPTY_LIB is ON and no sources were found in lib/. Aborting configure.")
@@ -169,6 +178,8 @@ if(BUILD_APPS)
         target_include_directories(${DIR} PRIVATE ${NBODY_PUBLIC_INCLUDE_DIR} "${APP_PATH}")
         target_link_libraries(${DIR} PRIVATE nbody)
         target_compile_features(${DIR} PRIVATE cxx_std_23)
+        # Apply common per-config compile options to application targets
+        target_compile_options(${DIR} PRIVATE ${NBODY_COMMON_COMPILE_OPTIONS})
 
         # link optional graphics libs if found
         if(Vulkan_FOUND)
@@ -231,6 +242,8 @@ if(BUILD_TESTS)
         endif()
         target_link_libraries(${TGT} PRIVATE nbody)
         target_compile_features(${TGT} PRIVATE cxx_std_23)
+        # Apply common per-config compile options to test targets
+        target_compile_options(${TGT} PRIVATE ${NBODY_COMMON_COMPILE_OPTIONS})
         add_test(NAME ${TGT} COMMAND ${TGT})
     endforeach()
 endif()
@@ -252,6 +265,8 @@ if(BUILD_BENCH)
             target_link_libraries(${BT} PRIVATE nanobench_headers)
         endif()
         target_compile_features(${BT} PRIVATE cxx_std_23)
+        # Apply common per-config compile options to benchmark targets
+        target_compile_options(${BT} PRIVATE ${NBODY_COMMON_COMPILE_OPTIONS})
     endforeach()
 endif()
 

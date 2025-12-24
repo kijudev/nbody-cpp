@@ -25,8 +25,6 @@ std::string log_layer_to_string(LogLayer layer) {
             return "BASE";
         case LogLayer::RENDERER:
             return "RENDERER";
-        case LogLayer::PHYSICS:
-            return "PHYSICS";
         case LogLayer::APP:
             return "APP";
     }
@@ -34,8 +32,6 @@ std::string log_layer_to_string(LogLayer layer) {
 
 std::string log_severity_to_string(LogSeverity severity) {
     switch (severity) {
-        case LogSeverity::DEBUG:
-            return "DEBUG";
         case LogSeverity::INFO:
             return "INFO";
         case LogSeverity::WARNING:
@@ -49,8 +45,6 @@ std::string log_severity_to_string(LogSeverity severity) {
 
 LogColor log_severity_to_color(LogSeverity severity) {
     switch (severity) {
-        case LogSeverity::DEBUG:
-            return LogColor::WHITE;
         case LogSeverity::INFO:
             return LogColor::GREEN;
         case LogSeverity::WARNING:

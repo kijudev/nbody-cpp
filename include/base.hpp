@@ -25,16 +25,10 @@ using F64   = double;
 
 enum class LogColor { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
 
-enum class LogLayer : U16 { BASE = 1, RENDERER = 1 << 1, PHYSICS = 1 << 2, APP = 1 << 3 };
+enum class LogLayer : U16 { BASE = 1, RENDERER = 1 << 1, APP = 1 << 2 };
 std::string log_layer_to_string(LogLayer layer);
 
-enum class LogSeverity : U16 {
-    DEBUG   = 1,
-    INFO    = 1 << 1,
-    WARNING = 1 << 2,
-    ERROR   = 1 << 3,
-    FATAL   = 1 << 4
-};
+enum class LogSeverity : U16 { INFO = 1, WARNING = 1 << 1, ERROR = 1 << 2, FATAL = 1 << 3 };
 std::string log_severity_to_string(LogSeverity severity);
 LogColor    log_severity_to_color(LogSeverity severity);
 
@@ -84,8 +78,8 @@ class FileLogger : public LoggerInterface {
     void log(LogLayer layer, LogSeverity severity, const std::string& message) override;
 
    private:
-    std::string m_filename{};
-    std::ofstream     m_file{};
+    std::string   m_filename{};
+    std::ofstream m_file{};
 };
 
 class Logger {
@@ -106,3 +100,47 @@ class Logger {
 };
 
 }  // namespace nbody
+
+#ifdef DEBUG
+#define LOG_BASE_INFO(message) \
+    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::INFO, message)
+#define LOG_BASE_WARNING(message) \
+    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::WARNING, message)
+#define LOG_BASE_ERROR(message) \
+    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::ERROR, message)
+#define LOG_BASE_FATAL(message) \
+    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::FATAL, message)
+
+#define LOG_RENDERER_INFO(message) \
+    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::INFO, message)
+#define LOG_RENDERER_WARNING(message) \
+    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::WARNING, message)
+#define LOG_RENDERER_ERROR(message) \
+    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::ERROR, message)
+#define LOG_RENDERER_FATAL(message) \
+    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::FATAL, message)
+
+#define LOG_APP_INFO(message) \
+    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, message)
+#define LOG_APP_WARNING(message) \
+    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::WARNING, message)
+#define LOG_APP_ERROR(message) \
+    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::ERROR, message)
+#define LOG_APP_FATAL(message) \
+    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::FATAL, message)
+#else
+#define LOG_BASE_INFO(message)
+#define LOG_BASE_WARN(message)
+#define LOG_BASE_ERROR(message)
+#define LOG_BASE_FATAL(message)
+
+#define LOG_RENDERER_INFO(message)
+#define LOG_RENDERER_WARN(message)
+#define LOG_RENDERER_ERROR(message)
+#define LOG_RENDERER_FATAL(message)
+
+#define LOG_APP_INFO(message)
+#define LOG_APP_WARN(message)
+#define LOG_APP_ERROR(message)
+#define LOG_APP_FATAL(message)
+#endif
