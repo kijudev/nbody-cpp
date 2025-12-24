@@ -77,13 +77,14 @@ class ConsoleLogger : public LoggerInterface {
 
 class FileLogger : public LoggerInterface {
    public:
+    FileLogger();
     FileLogger(const std::string& filename);
     ~FileLogger();
 
     void log(LogLayer layer, LogSeverity severity, const std::string& message) override;
 
    private:
-    const std::string m_filename{};
+    std::string m_filename{};
     std::ofstream     m_file{};
 };
 

@@ -200,6 +200,23 @@ void ConsoleLogger::log(LogLayer layer, LogSeverity severity, const std::string&
     }
 }
 
+FileLogger::FileLogger() : LoggerInterface() {
+    std::time_t t = std::time(nullptr);
+    std::tm     tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tm);
+
+    std::string filename = "./.logs/log_" + std::string(buf) + ".log";
+
+    m_filename = filename;
+    m_file.open(m_filename, std::ios::out | std::ios::app);
+}
+
 FileLogger::FileLogger(const std::string& filename) : LoggerInterface(), m_filename(filename) {
     m_file.open(m_filename, std::ios::out | std::ios::app);
 }
@@ -217,22 +234,8 @@ std::vector<std::unique_ptr<LoggerInterface>> Logger::m_loggers{};
 std::mutex                                    Logger::m_mutex{};
 
 void Logger::init() {
-    m_loggers.emplace_back(std::make_unique<ConsoleLogger>(true));
-
-    // Note: Ugly, to refactor
-    std::time_t t = std::time(nullptr);
-    std::tm     tm{};
-#if defined(_WIN32)
-    localtime_s(&tm, &t);
-#else
-    localtime_r(&t, &tm);
-#endif
-    char buf[64];
-    std::strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tm);
-
-    std::string log_filename = "./.logs/log_" + std::string(buf) + ".log";
-
-    m_loggers.emplace_back(std::make_unique<FileLogger>(log_filename));
+    m_loggers.emplace_back(std::make_unique<ConsoleLogger>());
+    m_loggers.emplace_back(std::make_unique<FileLogger>());
 }
 
 void Logger::init(std::vector<std::unique_ptr<LoggerInterface>>&& loggers) {
