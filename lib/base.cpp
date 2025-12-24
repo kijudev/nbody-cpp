@@ -1,8 +1,7 @@
 #include "base.hpp"
 
-#include <chrono>
 #include <cstring>
-#include <format>
+#include <ctime>
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -170,11 +169,17 @@ std::string LoggerInterface::impl_get_console_color_ansi_code(LogColor color) {
 }
 
 std::string LoggerInterface::impl_get_current_timestamp() {
-    using namespace std::chrono;
-
-    time_point<system_clock, seconds> const now_sec   = floor<seconds>(system_clock::now());
-    local_time<seconds> const               now_local = current_zone()->to_local(now_sec);
-    return std::format("{:%Y-%m-%d %H:%M:%S}", now_local);
+    // Use C APIs for portability: obtain current time_t and convert to local broken-down time.
+    std::time_t t = std::time(nullptr);
+    std::tm     tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+    return std::string(buf);
 }
 
 ConsoleLogger::ConsoleLogger(bool is_color_enabled)
@@ -187,7 +192,8 @@ void ConsoleLogger::log(LogLayer layer, LogSeverity severity, const std::string&
         std::cout << "[" << impl_get_current_timestamp() << "] [" << log_layer_to_string(layer)
                   << "] [" << log_severity_to_string(severity) << "]: " << message << ";\n";
     } else {
-        std::cout << impl_format_console_color_text(log_severity_to_color(severity),
+        std::cout << "[" << impl_get_current_timestamp() << "] "
+                  << impl_format_console_color_text(log_severity_to_color(severity),
                                                     "[" + log_layer_to_string(layer) + "] [" +
                                                         log_severity_to_string(severity) + "]: ")
                   << message << ";\n";
@@ -210,7 +216,24 @@ void FileLogger::log(LogLayer layer, LogSeverity severity, const std::string& me
 std::vector<std::unique_ptr<LoggerInterface>> Logger::m_loggers{};
 std::mutex                                    Logger::m_mutex{};
 
-void Logger::init() { m_loggers.emplace_back(std::make_unique<ConsoleLogger>(true)); }
+void Logger::init() {
+    m_loggers.emplace_back(std::make_unique<ConsoleLogger>(true));
+
+    // Note: Ugly, to refactor
+    std::time_t t = std::time(nullptr);
+    std::tm     tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tm);
+
+    std::string log_filename = "./.logs/log_" + std::string(buf) + ".log";
+
+    m_loggers.emplace_back(std::make_unique<FileLogger>(log_filename));
+}
 
 void Logger::init(std::vector<std::unique_ptr<LoggerInterface>>&& loggers) {
     for (auto& logger : loggers) {
