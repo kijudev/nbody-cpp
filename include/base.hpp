@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
+#include <memory>
 #include <mutex>
 #include <span>
 #include <string>
@@ -36,11 +37,12 @@ enum class LogSeverity : U16 {
     FATAL   = 1 << 4
 };
 std::string log_severity_to_string(LogSeverity severity);
-LogColor log_severity_to_color(LogSeverity severity);
+LogColor    log_severity_to_color(LogSeverity severity);
 
 class LoggerInterface {
    public:
    public:
+    virtual ~LoggerInterface()                                                         = default;
     virtual void log(LogLayer layer, LogSeverity severity, const std::string& message) = 0;
 
     void enable();
@@ -84,6 +86,23 @@ class FileLogger : public LoggerInterface {
    private:
     const std::string m_filename{};
     std::ofstream     m_file{};
+};
+
+class Logger {
+   public:
+    static void init();
+    static void init(std::vector<std::unique_ptr<LoggerInterface>>&& loggers);
+    static void log(LogLayer layer, LogSeverity severity, const std::string& message);
+
+   private:
+    Logger()                         = default;
+    ~Logger()                        = default;
+    Logger(const Logger&)            = delete;
+    Logger(Logger&&)                 = delete;
+    Logger& operator=(const Logger&) = delete;
+
+    static std::vector<std::unique_ptr<LoggerInterface>> m_loggers;
+    static std::mutex                                    m_mutex;
 };
 
 }  // namespace nbody

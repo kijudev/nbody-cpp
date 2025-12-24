@@ -207,4 +207,23 @@ void FileLogger::log(LogLayer layer, LogSeverity severity, const std::string& me
            << log_severity_to_string(severity) << "]: " << message << ";\n";
 }
 
+std::vector<std::unique_ptr<LoggerInterface>> Logger::m_loggers{};
+std::mutex                                    Logger::m_mutex{};
+
+void Logger::init() { m_loggers.emplace_back(std::make_unique<ConsoleLogger>(true)); }
+
+void Logger::init(std::vector<std::unique_ptr<LoggerInterface>>&& loggers) {
+    for (auto& logger : loggers) {
+        m_loggers.emplace_back(std::move(logger));
+    }
+}
+
+void Logger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+
+    for (auto& logger : m_loggers) {
+        logger->log(layer, severity, message);
+    }
+}
+
 }  // namespace nbody
