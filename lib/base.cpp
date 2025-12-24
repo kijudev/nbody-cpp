@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstring>
 #include <format>
+#include <iostream>
 #include <mutex>
 #include <string>
 
@@ -19,6 +20,19 @@
 #endif
 
 namespace nbody {
+std::string log_layer_to_string(LogLayer layer) {
+    switch (layer) {
+        case LogLayer::BASE:
+            return "BASE";
+        case LogLayer::RENDERER:
+            return "RENDERER";
+        case LogLayer::PHYSICS:
+            return "PHYSICS";
+        case LogLayer::APP:
+            return "APP";
+    }
+}
+
 std::string log_severity_to_string(LogSeverity severity) {
     switch (severity) {
         case LogSeverity::DEBUG:
@@ -34,16 +48,18 @@ std::string log_severity_to_string(LogSeverity severity) {
     }
 }
 
-std::string log_layer_to_string(LogLayer layer) {
-    switch (layer) {
-        case LogLayer::BASE:
-            return "BASE";
-        case LogLayer::RENDERER:
-            return "RENDERER";
-        case LogLayer::PHYSICS:
-            return "PHYSICS";
-        case LogLayer::APP:
-            return "APP";
+LogColor log_severity_to_color(LogSeverity severity) {
+    switch (severity) {
+        case LogSeverity::DEBUG:
+            return LogColor::WHITE;
+        case LogSeverity::INFO:
+            return LogColor::GREEN;
+        case LogSeverity::WARNING:
+            return LogColor::YELLOW;
+        case LogSeverity::ERROR:
+            return LogColor::RED;
+        case LogSeverity::FATAL:
+            return LogColor::PURPLE;
     }
 }
 
@@ -159,6 +175,36 @@ std::string LoggerInterface::impl_get_current_timestamp() {
     time_point<system_clock, seconds> const now_sec   = floor<seconds>(system_clock::now());
     local_time<seconds> const               now_local = current_zone()->to_local(now_sec);
     return std::format("{:%Y-%m-%d %H:%M:%S}", now_local);
+}
+
+ConsoleLogger::ConsoleLogger(bool is_color_enabled)
+    : LoggerInterface(), m_is_color_enabled(is_color_enabled) {}
+
+void ConsoleLogger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+
+    if (!m_is_color_enabled) {
+        std::cout << "[" << impl_get_current_timestamp() << "] [" << log_layer_to_string(layer)
+                  << "] [" << log_severity_to_string(severity) << "]: " << message << ";\n";
+    } else {
+        std::cout << impl_format_console_color_text(log_severity_to_color(severity),
+                                                    "[" + log_layer_to_string(layer) + "] [" +
+                                                        log_severity_to_string(severity) + "]: ")
+                  << message << ";\n";
+    }
+}
+
+FileLogger::FileLogger(const std::string& filename) : LoggerInterface(), m_filename(filename) {
+    m_file.open(m_filename, std::ios::out | std::ios::app);
+}
+
+FileLogger::~FileLogger() { m_file.close(); }
+
+void FileLogger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
+    std::lock_guard<std::mutex> lk(m_mutex);
+
+    m_file << "[" << impl_get_current_timestamp() << "] [" << log_layer_to_string(layer) << "] ["
+           << log_severity_to_string(severity) << "]: " << message << ";\n";
 }
 
 }  // namespace nbody

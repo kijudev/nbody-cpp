@@ -23,6 +23,11 @@ using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
 
+enum class LogColor { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
+
+enum class LogLayer : U16 { BASE = 1, RENDERER = 1 << 1, PHYSICS = 1 << 2, APP = 1 << 3 };
+std::string log_layer_to_string(LogLayer layer);
+
 enum class LogSeverity : U16 {
     DEBUG   = 1,
     INFO    = 1 << 1,
@@ -31,15 +36,10 @@ enum class LogSeverity : U16 {
     FATAL   = 1 << 4
 };
 std::string log_severity_to_string(LogSeverity severity);
-
-enum class LogLayer : U16 { BASE = 1, RENDERER = 1 << 1, PHYSICS = 1 << 2, APP = 1 << 3 };
-std::string log_layer_to_string(LogLayer layer);
-
-enum class LogColor { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
+LogColor log_severity_to_color(LogSeverity severity);
 
 class LoggerInterface {
    public:
-
    public:
     virtual void log(LogLayer layer, LogSeverity severity, const std::string& message) = 0;
 
@@ -52,21 +52,21 @@ class LoggerInterface {
     std::vector<LogLayer>    layers();
     std::vector<LogSeverity> severities();
 
-   private:
+   protected:
     U16        m_layer_mask{0};
     U16        m_severity_mask{0};
     std::mutex m_mutex;
     bool       m_is_enabled{true};
 
-   private:
+   protected:
     static std::string impl_format_console_color_text(LogColor color, const std::string& text);
     static std::string impl_get_console_color_ansi_code(LogColor color);
     static std::string impl_get_current_timestamp();
 };
 
-class ConsoleLogger : private LoggerInterface {
+class ConsoleLogger : public LoggerInterface {
    public:
-    ConsoleLogger();
+    ConsoleLogger(bool is_color_enabled = true);
 
     void log(LogLayer layer, LogSeverity severity, const std::string& message) override;
 
@@ -74,14 +74,16 @@ class ConsoleLogger : private LoggerInterface {
     bool m_is_color_enabled{true};
 };
 
-class FileLogger : private LoggerInterface {
+class FileLogger : public LoggerInterface {
    public:
     FileLogger(const std::string& filename);
+    ~FileLogger();
 
     void log(LogLayer layer, LogSeverity severity, const std::string& message) override;
 
    private:
-    std::ofstream m_file{};
+    const std::string m_filename{};
+    std::ofstream     m_file{};
 };
 
 }  // namespace nbody
