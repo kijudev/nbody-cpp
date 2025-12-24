@@ -3,10 +3,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
 #include <mutex>
 #include <span>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace nbody {
@@ -23,42 +23,65 @@ using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
 
-enum class LoggerSeverity : U16 { DEBUG = 1, INFO = 1 << 1, WARNING = 1 << 2, ERROR = 1 << 3, FATAL = 1 << 4 };
+enum class LogSeverity : U16 {
+    DEBUG   = 1,
+    INFO    = 1 << 1,
+    WARNING = 1 << 2,
+    ERROR   = 1 << 3,
+    FATAL   = 1 << 4
+};
+std::string log_severity_to_string(LogSeverity severity);
 
-enum class LoggerLayer : U16 { CORE = 1, RENDERER = 1 << 1, APP = 1 << 2 };
+enum class LogLayer : U16 { BASE = 1, RENDERER = 1 << 1, PHYSICS = 1 << 2, APP = 1 << 3 };
+std::string log_layer_to_string(LogLayer layer);
 
-enum class LoggerTarget : U16 { CONSOLE = 1, FILE = 1 << 1 };
+enum class LogColor { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
 
 class LoggerInterface {
    public:
-    enum class Color { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
 
    public:
-    static void log(LoggerLayer layer, LoggerSeverity severity, const std::string& message);
+    virtual void log(LogLayer layer, LogSeverity severity, const std::string& message) = 0;
 
-    static std::span<LoggerLayer>    layers();
-    static std::span<LoggerSeverity> severities();
+    void enable();
+    void disable();
 
-    static void set_enabled_layers(const std::vector<LoggerLayer>& enabled_layers);
-    static void set_enabled_severities(const std::vector<LoggerSeverity>& enabled_severities);
+    void set_layers(const std::vector<LogLayer>& enabled_layers);
+    void set_severities(const std::vector<LogSeverity>& enabled_severities);
 
-   private:
-    static U16        m_severity_mask;
-    static U16        m_layer_mask;
-    static std::mutex m_mutex;
+    std::vector<LogLayer>    layers();
+    std::vector<LogSeverity> severities();
 
    private:
-    static void impl_log_console(LoggerLayer layer, LoggerSeverity severity, const std::string& message);
-    static void impl_log_file(LoggerLayer layer, LoggerSeverity severity, const std::string& message);
+    U16        m_layer_mask{0};
+    U16        m_severity_mask{0};
+    std::mutex m_mutex;
+    bool       m_is_enabled{true};
 
-    static std::string impl_render_console_color_text(Color color, const std::string& text);
-    static std::string impl_get_console_color_ansi_code(Color color);
+   private:
+    static std::string impl_format_console_color_text(LogColor color, const std::string& text);
+    static std::string impl_get_console_color_ansi_code(LogColor color);
     static std::string impl_get_current_timestamp();
-
-    static U16 impl_get_layer_mask(const std::vector<LoggerLayer>& layers);
-    static U16 impl_get_severity_mask(const std::vector<LoggerSeverity>& severities);
-
-    static std::string impl_get_severity_name(LoggerSeverity severity);
-    static std::string impl_get_layer_name(LoggerLayer layer);
 };
+
+class ConsoleLogger : private LoggerInterface {
+   public:
+    ConsoleLogger();
+
+    void log(LogLayer layer, LogSeverity severity, const std::string& message) override;
+
+   private:
+    bool m_is_color_enabled{true};
+};
+
+class FileLogger : private LoggerInterface {
+   public:
+    FileLogger(const std::string& filename);
+
+    void log(LogLayer layer, LogSeverity severity, const std::string& message) override;
+
+   private:
+    std::ofstream m_file{};
+};
+
 }  // namespace nbody
