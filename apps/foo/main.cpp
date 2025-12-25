@@ -1,3 +1,5 @@
+// NOTE: This file exists only for testing purposes.
+
 #include "log.hpp"
 
 int main() {

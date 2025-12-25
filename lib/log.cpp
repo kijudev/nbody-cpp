@@ -1,3 +1,5 @@
+// NOTE: A minimal but sufficient logging library.
+
 #include "log.hpp"
 
 #include <cstring>
@@ -7,8 +9,7 @@
 #include <mutex>
 #include <string>
 
-// Windows compile-time optimizations
-// Includes only necessary headers
+// WHY: Windows compile-time optimizations. Includes only necessary headers.
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -20,6 +21,27 @@
 #endif
 
 namespace nbody {
+std::string log_color_ansi_code(LogColor color) {
+    switch (color) {
+        case LogColor::RED:
+            return "\x1b[31m";
+        case LogColor::YELLOW:
+            return "\x1b[33m";
+        case LogColor::GREEN:
+            return "\x1b[32m";
+        case LogColor::BLUE:
+            return "\x1b[34m";
+        case LogColor::PURPLE:
+            return "\x1b[35m";
+        case LogColor::CYAN:
+            return "\x1b[36m";
+        case LogColor::WHITE:
+            return "\x1b[37m";
+        default:
+            return "\x1b[0m";
+    }
+}
+
 std::string log_layer_to_string(LogLayer layer) {
     switch (layer) {
         case LogLayer::BASE:
@@ -111,9 +133,9 @@ std::vector<LogSeverity> LoggerInterface::severities() {
     return severities;
 }
 
-// Windows: Initialize VT mode
 std::string LoggerInterface::impl_format_console_color_text(LogColor           color,
                                                             const std::string& text) {
+// NOTE: Windows; initialize VT mode if supported.
 #if defined(_WIN32)
     static bool vt_inited = false;
     static bool vt_ok     = false;
@@ -137,33 +159,13 @@ std::string LoggerInterface::impl_format_console_color_text(LogColor           c
     const bool use_ansi = true;
 #endif
 
+    // NOTE: Fallback to non-colored output if VT mode is not supported.
     if (!use_ansi) return text;
 
-    const std::string code  = impl_get_console_color_ansi_code(color);
+    const std::string code  = log_color_ansi_code(color);
     const std::string reset = "\x1b[0m";
 
     return code + text + reset;
-}
-
-std::string LoggerInterface::impl_get_console_color_ansi_code(LogColor color) {
-    switch (color) {
-        case LogColor::RED:
-            return "\x1b[31m";
-        case LogColor::YELLOW:
-            return "\x1b[33m";
-        case LogColor::GREEN:
-            return "\x1b[32m";
-        case LogColor::BLUE:
-            return "\x1b[34m";
-        case LogColor::PURPLE:
-            return "\x1b[35m";
-        case LogColor::CYAN:
-            return "\x1b[36m";
-        case LogColor::WHITE:
-            return "\x1b[37m";
-        default:
-            return "\x1b[0m";
-    }
 }
 
 std::string LoggerInterface::impl_get_current_timestamp() {

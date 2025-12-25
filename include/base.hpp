@@ -1,5 +1,7 @@
-// This header contains all of the basic utilities
-// Types, macros, logger etc.
+// NOTE:
+// Contains some of basic utilities:
+// - Type aliases for basic data types conforming with the design principles of the project
+// - Macros for common operations
 
 #pragma once
 
@@ -7,7 +9,8 @@
 #include <cstdint>
 
 namespace nbody {
-// Type aliases for basic data types conforming with the design principles of the project
+// NOTE: Type aliases for basic data types conforming with the design principles of the project.
+// WHY: I am just being pedantic about the naming conventions :)
 using U8    = std::uint8_t;
 using U16   = std::uint16_t;
 using U32   = std::uint32_t;
