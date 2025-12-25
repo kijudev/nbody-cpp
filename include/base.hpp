@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 
@@ -22,4 +23,7 @@ using I32   = std::int32_t;
 using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
+
+template <typename T>
+concept FloatingPointT = std::floating_point<T>;
 }  // namespace nbody
