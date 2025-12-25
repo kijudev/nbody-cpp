@@ -1,4 +1,4 @@
-#include "base.hpp"
+#include "log.hpp"
 
 int main() {
     nbody::Logger::init();
