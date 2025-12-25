@@ -8,6 +8,7 @@
 // TODO: Create a SIMD implementation for Vec types.
 
 #include <cmath>
+#include <format>
 #include <type_traits>
 
 #include "base.hpp"
@@ -107,6 +108,8 @@ struct Vec2T {
                                               T     eps = default_epsilon<T>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps);
     }
+
+    std::string fmt() const { return std::format("({:.16f}, {:.16f})", x, y); }
 };
 
 template <FloatingPointT T>
@@ -209,6 +212,8 @@ struct Vec3T {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps) &&
                (std::fabs(z - other.z) <= eps);
     }
+
+    std::string fmt() const { return std::format("({:.16f}, {:.16f}, {:.16f})", x, y, z); }
 };
 
 template <FloatingPointT T>
@@ -316,6 +321,10 @@ struct Vec4T {
                                               T     eps = default_epsilon<T>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps) &&
                (std::fabs(z - other.z) <= eps) && (std::fabs(w - other.w) <= eps);
+    }
+
+    std::string fmt() const {
+        return std::format("({:.16f}, {:.16f}, {:.16f}, {:.16f})", x, y, z, w);
     }
 };
 
