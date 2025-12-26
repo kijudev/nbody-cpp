@@ -33,7 +33,12 @@ clang++ $FLAGS_VERSION apps/foo/main.cpp -o "$OUT_DIR/foo" $FLAGS_PROFILE
 echo "apps/foo/main.cpp"
 
 echo "--- Building Shaders ---"
+# TODO: Implement shader compilation.
+
 echo "--- Building Tests ---"
+# TODO: Implement test compilation.
+
 echo "--- Building Benchmarks ---"
+# TODO: Implement benchmark compilation.
 
 echo "--- Success ---"
