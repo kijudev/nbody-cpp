@@ -1,7 +1,5 @@
 // NOTE: This file exists only for testing purposes.
 
-// --- Libraries ---
-
 // --- Header Files ---
 #include "base/base.hpp"
 
