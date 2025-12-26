@@ -52,6 +52,8 @@ std::string log_layer_to_string(LogLayer layer) {
             return "RENDERER";
         case LogLayer::APP:
             return "APP";
+        case LogLayer::ASSERT:
+            return "ASSERT";
     }
 }
 
