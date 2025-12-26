@@ -1,10 +1,10 @@
-// NOTE:
-// Contains some of basic utilities:
-// - Type aliases for basic data types conforming with the design principles of the project
-// - Macros for common operations
+// This header contains some of basic utilities:
+// - Type aliases for basic data types conforming with the design principles of the project.
+// - Macros for common operations.
 
 #pragma once
 
+// --- Libraries ---
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -24,6 +24,7 @@ using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
 
+// NOTE: Aliased floating point types.
 template <typename T>
 concept FloatingPointT = std::floating_point<T>;
 }  // namespace nbody

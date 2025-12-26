@@ -1,14 +1,16 @@
-// NOTE: A minimal but sufficient logging library.
+// A minimal but sufficient logging library.
 
 #pragma once
 
+// --- Libraries ---
 #include <fstream>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 
-#include "base.hpp"
+// --- Header Files ---
+#include "base_type.hpp"
 
 namespace nbody {
 
