@@ -1,16 +1,13 @@
-// NOTE: This file exists only for testing purposes.
+// This file exists only for testing purposes.
 
-#include "log.hpp"
+#include "base/base.hpp"
 
 int main() {
     nbody::Logger::init();
 
-    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, "Application started");
+    LOG_APP_INFO("asdasdasd");
 
-    LOG_APP_INFO("Application started");
-    LOG_APP_WARNING("Application started");
-    LOG_APP_ERROR("Application started");
-    LOG_APP_FATAL("Application started");
+    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, "Application started");
 
     return 0;
 }

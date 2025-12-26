@@ -1,17 +1,19 @@
-#pragma once
+// This file contains:
+// - Vector 2D (F32, F64)
+// - Vector 3D (F32, F64)
+// - Vector 4D (F32, F64)
+// Design considerations.
+// - All the types are templated for the use F32 and F64; that's why they are implemented in the
+//   header file directly.
+// - All the Vec types are being passed by value; at least for now.
 
-// NOTE: Basic math types and functions.
-// NOTE: Design considerations.
-// - All the types are templated for the use F32 and F64.
-// - All the Vec types are being passed by value for now.
-//
-// TODO: Create a SIMD implementation for Vec types.
+#pragma once
 
 #include <cmath>
 #include <format>
 #include <type_traits>
 
-#include "base.hpp"
+#include "base_type.hpp"
 
 namespace nbody {
 

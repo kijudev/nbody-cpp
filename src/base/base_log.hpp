@@ -1,4 +1,4 @@
-// NOTE: A minimal but sufficient logging library.
+// A minimal but sufficient logging library.
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "base.hpp"
+#include "base_type.hpp"
 
 namespace nbody {
 
@@ -133,7 +133,7 @@ class Logger {
 }  // namespace nbody
 
 // NOTE: Macros utilizing the global Logger singleton instance.
-#ifdef DEBUG
+#ifndef NDEBUG
 #define LOG_BASE_INFO(message) \
     nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::INFO, message)
 #define LOG_BASE_WARNING(message) \

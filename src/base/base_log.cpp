@@ -1,6 +1,8 @@
-// NOTE: A minimal but sufficient logging library.
+// A minimal but sufficient logging library.
 
-#include "log.hpp"
+#pragma once
+
+#include "base_log.hpp"
 
 #include <cstring>
 #include <ctime>
