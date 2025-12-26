@@ -2,7 +2,7 @@
 // - Vector 2D (F32, F64)
 // - Vector 3D (F32, F64)
 // - Vector 4D (F32, F64)
-// Design considerations.
+// Design considerations:
 // - All the types are templated for the use F32 and F64; that's why they are implemented in the
 //   header file directly.
 // - All the Vec types are being passed by value; at least for now.
