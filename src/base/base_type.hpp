@@ -4,7 +4,6 @@
 
 #pragma once
 
-// --- Libraries ---
 #include <concepts>
 #include <cstddef>
 #include <cstdint>

@@ -1,13 +1,11 @@
-// NOTE: This file exists only for testing purposes.
+// This file exists only for testing purposes.
 
-// --- Header Files ---
 #include "base/base.hpp"
-
-// --- Source Files ---
-#include "base/base.cpp"
 
 int main() {
     nbody::Logger::init();
+
+    LOG_APP_INFO("asdasdasd");
 
     nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, "Application started");
 

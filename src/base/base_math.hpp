@@ -9,12 +9,10 @@
 
 #pragma once
 
-// --- Libraries ---
 #include <cmath>
 #include <format>
 #include <type_traits>
 
-// --- Header Files ---
 #include "base_type.hpp"
 
 namespace nbody {

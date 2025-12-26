@@ -2,16 +2,14 @@
 
 #pragma once
 
-// --- Libraries ---
+#include "base_log.hpp"
+
 #include <cstring>
 #include <ctime>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>
-
-// --- Header Files ---
-#include "base_log.hpp"
 
 // WHY: Windows compile-time optimizations. Includes only necessary headers.
 #if defined(_WIN32)

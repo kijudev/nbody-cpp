@@ -38,7 +38,4 @@ echo "--- Building Shaders ---"
 echo "--- Building Tests ---"
 # TODO: Implement test compilation.
 
-echo "--- Building Benchmarks ---"
-# TODO: Implement benchmark compilation.
-
 echo "--- Success ---"
