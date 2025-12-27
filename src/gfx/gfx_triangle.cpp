@@ -4,6 +4,9 @@
 
 #include <GLFW/glfw3.h>
 
+#include <vulkan/vulkan.hpp>
+
+#include "base/base.hpp"
 #include "vulkan/vulkan.hpp"
 
 namespace nbody {
@@ -45,7 +48,10 @@ void TriangleApplication::init_window() {
 }
 
 void TriangleApplication::init_vulkan() {
-    // Initialize Vulkan
+    create_instance();
+    create_physical_device();
+    create_device();
+    create_queue();
 }
 
 bool TriangleApplication::check_validation_layer_support() const {
@@ -67,5 +73,18 @@ bool TriangleApplication::check_validation_layer_support() const {
     }
 
     return true;
+}
+
+void TriangleApplication::create_instance() {
+    ASSERT(M_ENABLE_VALIDATION_LAYERS && check_validation_layer_support(),
+           "Validation layers requested, but not available.");
+
+    vk::ApplicationInfo app_info{.pApplicationName   = "Triangle Application",
+                                 .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+                                 .pEngineName        = "No Engine",
+                                 .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+                                 .apiVersion         = VK_API_VERSION_1_3};
+
+    (void)app_info;
 }
 }  // namespace nbody

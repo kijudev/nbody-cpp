@@ -1,6 +1,5 @@
 #pragma once
 
-#include "gfx/gfx_impl.hpp"
 #include "vulkan/vulkan.hpp"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -41,9 +40,14 @@ class TriangleApplication {
     vk::UniqueInstance m_instance{};
     vk::PhysicalDevice m_physical_device{};  // NOTE: Not UniqueHandle; Owned by Instance.
     vk::UniqueDevice   m_device{};
-    vk::Queue          m_queue{};
+    vk::Queue          m_queue{};  // NOTE: Not UniqueHandle; Owned by Device.
 
    private:
-    bool                     check_validation_layer_support() const;
+    bool check_validation_layer_support() const;
+
+    void create_instance();
+    void create_physical_device();
+    void create_device();
+    void create_queue();
 };
 }  // namespace nbody
