@@ -8,6 +8,7 @@
 #include <tuple>
 #include <vector>
 
+#include "base/base_log.hpp"
 #include "base_type.hpp"
 
 namespace nbody {
@@ -105,4 +106,4 @@ std::tuple<std::string, std::string> filename_split_by_extension(const std::stri
 
     return std::make_tuple(filename.substr(0, pos), filename.substr(pos + 1));
 }
-}
+}  // namespace nbody
