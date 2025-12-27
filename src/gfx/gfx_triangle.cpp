@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "base/base.hpp"
+#include "base/base_assert.hpp"
 #include "gfx/gfx_impl.cpp"
 #include "gfx/gfx_impl.hpp"
 #include "vulkan/vulkan.hpp"
@@ -121,7 +122,7 @@ void TriangleApplication::create_surface() {
 
     ASSERT(result == VK_SUCCESS, "Failed to create surface.");
 
-    m_surface = vk::UniqueSurfaceKHR(surface_c);
+    m_surface = vk::UniqueSurfaceKHR(surface_c, m_instance.get());
 }
 
 void TriangleApplication::create_physical_device() {
@@ -132,8 +133,8 @@ void TriangleApplication::create_physical_device() {
 
     // TODO: Implement a smarter selection algorithm
     auto it = std::remove_if(physical_devices.begin(), physical_devices.end(),
-                             [](const vk::PhysicalDevice& device) {
-                                 return !impl::is_physical_device_suitable(device);
+                             [&](const vk::PhysicalDevice& device) {
+                                 return !impl::is_physical_device_suitable(device, m_surface.get());
                              });
 
     physical_devices.erase(it, physical_devices.end());
@@ -145,26 +146,47 @@ void TriangleApplication::create_physical_device() {
 void TriangleApplication::create_device() {
     ASSERT(m_physical_device, "Physical device not created.");
 
-    impl::QueueFamilyIndices queue_family_indices =
-        impl::get_queue_family_indices(m_physical_device);
+    // WARNING: Assuming that graphics_family supports presentation (true for 99% of cases).
+    // TODO: Implement a more robust solution for selecting the best queue family.
 
-    F32                       queue_priority = 1.0f;
-    vk::DeviceQueueCreateInfo queue_create_info{
-        .queueFamilyIndex = queue_family_indices.graphics_family.value(),
-        .queueCount       = 1,
-        .pQueuePriorities = &queue_priority,
+    impl::QueueFamilyIndices queue_family_indices =
+        impl::get_queue_family_indices(m_physical_device, m_surface.get());
+
+    auto present_support = m_physical_device.getSurfaceSupportKHR(
+        queue_family_indices.graphics_family.value(), m_surface.get());
+
+    ASSERT(present_support, "Presentation not supported.");
+
+    F32 queue_priority = 1.0f;
+
+    // WARNING Assuming that graphics_family supports presentation (true for 99% of cases).
+    // TODO: Implement a more robust solution.
+    std::array<vk::DeviceQueueCreateInfo, 1> queue_create_infos{
+        vk::DeviceQueueCreateInfo{
+                                  .queueFamilyIndex = queue_family_indices.graphics_family.value(),
+                                  .queueCount       = 1,
+                                  .pQueuePriorities = &queue_priority,
+                                  },
     };
 
+    // NOTE: Fill out if needed.
     vk::PhysicalDeviceFeatures device_features{};
 
+    // NOTE:
+    // - Swapchain extension; crucial for rendering.
+    std::array<const char*, 1> device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
     vk::DeviceCreateInfo device_create_info{
-        .queueCreateInfoCount = 1,
-        .pQueueCreateInfos    = &queue_create_info,
-        .pEnabledFeatures     = &device_features,
+        .queueCreateInfoCount    = static_cast<U32>(queue_create_infos.size()),
+        .pQueueCreateInfos       = queue_create_infos.data(),
+        .enabledExtensionCount   = static_cast<U32>(device_extensions.size()),
+        .ppEnabledExtensionNames = device_extensions.data(),
+        .pEnabledFeatures        = &device_features,
     };
 
     m_device         = m_physical_device.createDeviceUnique(device_create_info);
     m_graphics_queue = m_device->getQueue(queue_family_indices.graphics_family.value(), 0);
+    m_present_queue  = m_device->getQueue(queue_family_indices.present_family.value(), 0);
 }
 
 }  // namespace nbody
