@@ -175,11 +175,17 @@ void TriangleApplication::create_device() {
     // NOTE: Fill out if needed.
     vk::PhysicalDeviceFeatures device_features{};
 
+    // NOTE: Enable Vulkan 1.3 Dynamic Rendering.
+    vk::PhysicalDeviceVulkan13Features device_features_13{
+        .dynamicRendering = true,
+    };
+
     // NOTE:
     // - Swapchain extension; crucial for rendering.
     std::array<const char*, 1> device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     vk::DeviceCreateInfo device_create_info{
+        .pNext                   = &device_features_13,
         .queueCreateInfoCount    = static_cast<U32>(queue_create_infos.size()),
         .pQueueCreateInfos       = queue_create_infos.data(),
         .enabledExtensionCount   = static_cast<U32>(device_extensions.size()),
