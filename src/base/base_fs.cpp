@@ -2,6 +2,7 @@
 
 #include "base_fs.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <vector>
 
@@ -41,4 +42,18 @@ std::optional<std::string> read_file_as_string(const std::string& filename) {
 
     return buffer;
 }
+
+std::vector<std::string> get_file_paths_in_directory(const std::string& directory) {
+    std::vector<std::string> files;
+    std::filesystem::directory_iterator dir(directory);
+
+    for (const std::filesystem::directory_entry& entry : dir) {
+        if (entry.is_regular_file()) {
+            files.push_back(entry.path().string());
+        }
+    }
+
+    return files;
+}
+
 }  // namespace nbody
