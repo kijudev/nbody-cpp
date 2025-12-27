@@ -7,9 +7,9 @@ OUT_DIR="build"
 FLAGS_VERSION="-std=c++23"
 
 FLAGS_DEFINES="-DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS"
-FLAGS_DEBUG="-O1 -g -Wall -Wextra -Werror -Wpedantic -Isrc"
-FLAGS_RELEASE="-O3 -g -Wall -Wextra -Werror -Wpedantic -Isrc"
-FLAGS_DIST="-O3 -Wall -Wextra -Werror -Wpedantic -Isrc"
+FLAGS_DEBUG="-O1 -g -Wall -Wextra -Werror -Wpedantic -Wno-missing-designated-field-initializers -Isrc"
+FLAGS_RELEASE="-O3 -g -Wall -Wextra -Werror -Wpedantic -Wno-missing-designated-field-initializers -Isrc"
+FLAGS_DIST="-O3 -Wall -Wextra -Werror -Wpedantic -Wno-missing-designated-field-initializers -Isrc"
 
 FLAGS_LIB_VULKAN=$(pkg-config --libs vulkan)
 FLAGS_LIB_GLFW=$(pkg-config --libs glfw3)
