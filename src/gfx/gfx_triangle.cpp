@@ -9,8 +9,11 @@
 #include <vulkan/vulkan.hpp>
 
 #include "base/base.hpp"
+#include "base/base_assert.hpp"
+#include "base/base_type.hpp"
 #include "gfx/gfx_impl.cpp"
 #include "gfx/gfx_impl.hpp"
+#include "vulkan/vulkan.hpp"
 
 namespace nbody {
 void TriangleApplication::run() {
@@ -56,6 +59,7 @@ void TriangleApplication::init_vulkan() {
     create_physical_device();
     create_device();
     create_swapchain();
+    create_image_views();
 }
 
 bool TriangleApplication::check_validation_layer_support() const {
@@ -207,7 +211,7 @@ void TriangleApplication::create_swapchain() {
 
     // NOTE: Choose Surface Format (Prefer SRGB).
     vk::SurfaceFormatKHR surface_format = swapchain_support.formats[0];
-    for (const auto& available_format : swapchain_support.formats) {
+    for (const vk::SurfaceFormatKHR& available_format : swapchain_support.formats) {
         if (available_format.format == vk::Format::eB8G8R8A8Srgb &&
             available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
             surface_format = available_format;
@@ -217,7 +221,7 @@ void TriangleApplication::create_swapchain() {
 
     // NOTE: Choose Present Mode; prefer Mailbox/Triple Buffering; fallback to FIFO/VSync.
     vk::PresentModeKHR present_mode = vk::PresentModeKHR::eFifo;
-    for (const auto& available_present_mode : swapchain_support.present_modes) {
+    for (const vk::PresentModeKHR& available_present_mode : swapchain_support.present_modes) {
         if (available_present_mode == vk::PresentModeKHR::eMailbox) {
             present_mode = available_present_mode;
             break;
@@ -289,6 +293,37 @@ void TriangleApplication::create_swapchain() {
     m_swapchain_images       = m_device->getSwapchainImagesKHR(m_swapchain.get());
     m_swapchain_image_format = surface_format.format;
     m_swapchain_extent       = extent;
+}
+
+void TriangleApplication::create_image_views() {
+    ASSERT(m_swapchain_images.size() > 0, "No swapchain images");
+    ASSERT(m_swapchain_image_format != vk::Format::eUndefined, "Undefined swapchain image format");
+
+    m_swapchain_image_views.resize(m_swapchain_images.size());
+
+    for (USize i = 0; i < m_swapchain_images.size(); ++i) {
+        vk::ImageViewCreateInfo create_info{
+            .image    = m_swapchain_images[i],
+            .viewType = vk::ImageViewType::e2D, // NOTE: Standard 2D texture.
+            .format   = m_swapchain_image_format, // NOTE: Must match the swapchain image format
+
+            // NOTE: No component swizzling.
+            .components = {.r = vk::ComponentSwizzle::eIdentity,
+                           .g = vk::ComponentSwizzle::eIdentity,
+                           .b = vk::ComponentSwizzle::eIdentity,
+                           .a = vk::ComponentSwizzle::eIdentity},
+
+            .subresourceRange = {
+                           .aspectMask     = vk::ImageAspectFlagBits::eColor,
+                           .baseMipLevel   = 0,
+                           .levelCount     = 1,  // NOTE: No mipmaps.
+                .baseArrayLayer = 0,
+                           .layerCount     = 1  // NOTE: No VR/Stereo 3D.
+            }
+        };
+
+        m_swapchain_image_views[i] = m_device->createImageViewUnique(create_info);
+    }
 }
 
 }  // namespace nbody
