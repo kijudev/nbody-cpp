@@ -13,7 +13,8 @@ FLAGS_DIST="-O3 -Wall -Wextra -Werror -Wpedantic -Wno-missing-designated-field-i
 
 FLAGS_LIB_VULKAN=$(pkg-config --libs vulkan)
 FLAGS_LIB_GLFW=$(pkg-config --libs glfw3)
-FLAGS_INCLUDE_DIRS=$(pkg-config --cflags vulkan glfw3)
+FLAGS_LIB_SHADERC=$(pkg-config --libs shaderc)
+FLAGS_INCLUDE_DIRS=$(pkg-config --cflags vulkan glfw3 shaderc)
 
 mkdir -p "$OUT_DIR"
 
@@ -33,7 +34,12 @@ else
 fi
 
 echo "--- Building Apps ---"
-clang++ $FLAGS_VERSION $FLAGS_DEFINES $FLAGS_INCLUDE_DIRS apps/triangle/main.cpp -o "$OUT_DIR/triangle" $FLAGS_PROFILE $FLAGS_LIB_GLFW $FLAGS_LIB_VULKAN
-echo "apps/triangle/main.cpp"
+echo "gfx_triangle: Compiling..."
+clang++ $FLAGS_VERSION $FLAGS_DEFINES $FLAGS_INCLUDE_DIRS apps/gfx_triangle/main.cpp -o "$OUT_DIR/gfx_triangle" $FLAGS_PROFILE $FLAGS_LIB_GLFW $FLAGS_LIB_VULKAN
+echo "gfx_triangle: Finished."
+
+echo "gfx_shader_embed: Compiling..."
+clang++ $FLAGS_VERSION $FLAGS_DEFINES $FLAGS_INCLUDE_DIRS apps/gfx_shader_embed/main.cpp -o "$OUT_DIR/gfx_shader_embed" $FLAGS_PROFILE $FLAGS_LIB_SHADERC
+echo "gfx_shader_embed: Finished."
 
 echo "--- Success ---"
