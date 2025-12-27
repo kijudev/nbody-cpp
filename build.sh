@@ -31,6 +31,8 @@ fi
 echo "--- Building Apps ---"
 clang++ $FLAGS_VERSION apps/foo/main.cpp -o "$OUT_DIR/foo" $FLAGS_PROFILE
 echo "apps/foo/main.cpp"
+clang++ $FLAGS_VERSION apps/triangle/main.cpp -o "$OUT_DIR/triangle" $FLAGS_PROFILE
+echo "apps/triangle/main.cpp"
 
 echo "--- Building Shaders ---"
 # TODO: Implement shader compilation.
