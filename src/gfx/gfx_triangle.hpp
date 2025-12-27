@@ -50,6 +50,9 @@ class TriangleApplication {
     vk::Extent2D           m_swapchain_extent{};
     std::vector<vk::UniqueImageView> m_swapchain_image_views{};
 
+    vk::UniquePipelineLayout m_pipeline_layout{};
+    vk::UniquePipeline       m_pipeline{};
+
    private:
     bool check_validation_layer_support() const;
 
@@ -59,5 +62,8 @@ class TriangleApplication {
     void create_device();  // NOTE: Creates a logical device and queues.
     void create_swapchain();
     void create_image_views();
+    void create_pipeline();
+
+    vk::UniqueShaderModule make_shader_module(const std::vector<U32>& bytecode) const;
 };
 }  // namespace nbody

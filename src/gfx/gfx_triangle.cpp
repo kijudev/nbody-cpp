@@ -11,6 +11,8 @@
 #include "base/base.hpp"
 #include "base/base_assert.hpp"
 #include "base/base_type.hpp"
+#include "embeds/triangle_shader_frag.hpp"
+#include "embeds/triangle_shader_vert.hpp"
 #include "gfx/gfx_impl.cpp"
 #include "gfx/gfx_impl.hpp"
 #include "vulkan/vulkan.hpp"
@@ -60,6 +62,7 @@ void TriangleApplication::init_vulkan() {
     create_device();
     create_swapchain();
     create_image_views();
+    create_pipeline();
 }
 
 bool TriangleApplication::check_validation_layer_support() const {
@@ -330,6 +333,100 @@ void TriangleApplication::create_image_views() {
 
         m_swapchain_image_views[i] = m_device->createImageViewUnique(create_info);
     }
+}
+
+void TriangleApplication::create_pipeline() {
+    vk::UniqueShaderModule vert_module = make_shader_module(embeds::triangle_shader_vert);
+    vk::UniqueShaderModule frag_module = make_shader_module(embeds::triangle_shader_frag);
+
+    vk::PipelineShaderStageCreateInfo vert_stage_info{
+        .stage = vk::ShaderStageFlagBits::eVertex, .module = vert_module.get(), .pName = "main"};
+
+    vk::PipelineShaderStageCreateInfo frag_stage_info{
+        .stage = vk::ShaderStageFlagBits::eFragment, .module = frag_module.get(), .pName = "main"};
+
+    vk::PipelineShaderStageCreateInfo shader_stages[] = {vert_stage_info, frag_stage_info};
+
+    vk::PipelineVertexInputStateCreateInfo vertex_input_info{};
+
+    vk::PipelineInputAssemblyStateCreateInfo input_assembly{
+        .topology = vk::PrimitiveTopology::eTriangleList, .primitiveRestartEnable = VK_FALSE};
+
+    vk::PipelineViewportStateCreateInfo viewport_state{.viewportCount = 1, .scissorCount = 1};
+
+    vk::PipelineRasterizationStateCreateInfo rasterizer{
+        .depthClampEnable        = VK_FALSE,
+        .rasterizerDiscardEnable = VK_FALSE,
+        .polygonMode             = vk::PolygonMode::eFill,
+        .cullMode                = vk::CullModeFlagBits::eBack,
+        .frontFace               = vk::FrontFace::eClockwise,
+        .depthBiasEnable         = VK_FALSE,
+        .lineWidth               = 1.0f,
+    };
+
+    vk::PipelineMultisampleStateCreateInfo multisampling{
+        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+        .sampleShadingEnable  = VK_FALSE,
+    };
+
+    vk::PipelineColorBlendAttachmentState color_blend_attachment{
+        .blendEnable    = VK_FALSE,
+        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                          vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+    };
+
+    vk::PipelineColorBlendStateCreateInfo color_blending{
+        .logicOpEnable   = VK_FALSE,
+        .attachmentCount = 1,
+        .pAttachments    = &color_blend_attachment,
+    };
+
+    std::vector<vk::DynamicState> dynamic_states = {vk::DynamicState::eViewport,
+                                                    vk::DynamicState::eScissor};
+
+    vk::PipelineDynamicStateCreateInfo dynamic_state_info{
+        .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+        .pDynamicStates    = dynamic_states.data()};
+
+    vk::PipelineLayoutCreateInfo pipeline_layout_info{.setLayoutCount         = 0,
+                                                      .pushConstantRangeCount = 0};
+
+    m_pipeline_layout = m_device->createPipelineLayoutUnique(pipeline_layout_info);
+
+    vk::PipelineRenderingCreateInfo pipeline_rendering_info{
+        .colorAttachmentCount    = 1,
+        .pColorAttachmentFormats = &m_swapchain_image_format,
+    };
+
+    vk::GraphicsPipelineCreateInfo pipeline_info{
+        .pNext               = &pipeline_rendering_info,
+        .stageCount          = 2,
+        .pStages             = shader_stages,
+        .pVertexInputState   = &vertex_input_info,
+        .pInputAssemblyState = &input_assembly,
+        .pViewportState      = &viewport_state,
+        .pRasterizationState = &rasterizer,
+        .pMultisampleState   = &multisampling,
+        .pColorBlendState    = &color_blending,
+        .pDynamicState       = &dynamic_state_info,
+        .layout              = m_pipeline_layout.get(),
+        .renderPass          = nullptr,
+        .subpass             = 0,
+    };
+
+    auto result = m_device->createGraphicsPipelineUnique(nullptr, pipeline_info);
+    if (result.result != vk::Result::eSuccess) {
+        throw std::runtime_error("Failed to create graphics pipeline");
+    }
+    m_pipeline = std::move(result.value);
+}
+
+vk::UniqueShaderModule TriangleApplication::make_shader_module(
+    const std::vector<U32>& bytecode) const {
+    vk::ShaderModuleCreateInfo create_info{.codeSize = bytecode.size() * sizeof(U32),
+                                           .pCode    = bytecode.data()};
+
+    return m_device->createShaderModuleUnique(create_info);
 }
 
 }  // namespace nbody
