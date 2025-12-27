@@ -29,19 +29,10 @@ else
 fi
 
 echo "--- Building Apps ---"
-# Prefer pkg-config for glfw3 if available, otherwise fall back to -lglfw.
-if pkg-config --exists glfw3; then
-    PKG_CFLAGS="$(pkg-config --cflags glfw3)"
-    PKG_LIBS="$(pkg-config --libs glfw3)"
-else
-    echo "pkg-config for glfw3 not found or glfw3 pc file missing; falling back to -lglfw"
-    PKG_CFLAGS=""
-    PKG_LIBS="$FLAGS_LIB_GLFW"
-fi
 
-clang++ $FLAGS_VERSION $PKG_CFLAGS apps/foo/main.cpp -o "$OUT_DIR/foo" $FLAGS_PROFILE $PKG_LIBS $FLAGS_LIB_VULKAN
+clang++ $FLAGS_VERSION apps/foo/main.cpp -o "$OUT_DIR/foo" $FLAGS_PROFILE
 echo "apps/foo/main.cpp"
-clang++ $FLAGS_VERSION $PKG_CFLAGS apps/triangle/main.cpp -o "$OUT_DIR/triangle" $FLAGS_PROFILE $PKG_LIBS $FLAGS_LIB_VULKAN
+clang++ $FLAGS_VERSION apps/triangle/main.cpp -o "$OUT_DIR/triangle" $FLAGS_PROFILE $FLAGS_LIB_GLFW $FLAGS_LIB_VULKAN
 echo "apps/triangle/main.cpp"
 
 echo "--- Building Shaders ---"
