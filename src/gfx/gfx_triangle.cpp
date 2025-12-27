@@ -9,10 +9,8 @@
 #include <vulkan/vulkan.hpp>
 
 #include "base/base.hpp"
-#include "base/base_assert.hpp"
 #include "gfx/gfx_impl.cpp"
 #include "gfx/gfx_impl.hpp"
-#include "vulkan/vulkan.hpp"
 
 namespace nbody {
 void TriangleApplication::run() {
@@ -57,6 +55,7 @@ void TriangleApplication::init_vulkan() {
     create_surface();
     create_physical_device();
     create_device();
+    create_swapchain();
 }
 
 bool TriangleApplication::check_validation_layer_support() const {
@@ -187,6 +186,109 @@ void TriangleApplication::create_device() {
     m_device         = m_physical_device.createDeviceUnique(device_create_info);
     m_graphics_queue = m_device->getQueue(queue_family_indices.graphics_family.value(), 0);
     m_present_queue  = m_device->getQueue(queue_family_indices.present_family.value(), 0);
+}
+
+void TriangleApplication::create_swapchain() {
+    ASSERT(m_device, "Device not created");
+
+    // NOTE: Swapchain creation stages:
+    // 1. Query surface capabilities.
+    // 2. Choose swap surface format.
+    // 3. Choose swap extent.
+    // 4. Create swapchain.
+    // 5. Create image views.
+
+    // NOTE: Query surface capabilities.
+    impl::SwapchainSupportDetails swapchain_support =
+        impl::get_swapchain_support_details(m_physical_device, m_surface.get());
+
+    ASSERT(swapchain_support.formats.size() > 0, "No swapchain formats available");
+    ASSERT(swapchain_support.present_modes.size() > 0, "No swapchain present modes available");
+
+    // NOTE: Choose Surface Format (Prefer SRGB).
+    vk::SurfaceFormatKHR surface_format = swapchain_support.formats[0];
+    for (const auto& available_format : swapchain_support.formats) {
+        if (available_format.format == vk::Format::eB8G8R8A8Srgb &&
+            available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
+            surface_format = available_format;
+            break;
+        }
+    }
+
+    // NOTE: Choose Present Mode; prefer Mailbox/Triple Buffering; fallback to FIFO/VSync.
+    vk::PresentModeKHR present_mode = vk::PresentModeKHR::eFifo;
+    for (const auto& available_present_mode : swapchain_support.present_modes) {
+        if (available_present_mode == vk::PresentModeKHR::eMailbox) {
+            present_mode = available_present_mode;
+            break;
+        }
+    }
+
+    // NOTE: Choose Extent.
+    vk::Extent2D extent;
+    if (swapchain_support.capabilities.currentExtent.width != std::numeric_limits<U32>::max()) {
+        // NOTE: Use current extent if available.
+        extent = swapchain_support.capabilities.currentExtent;
+    } else {
+        // NOTE: Handle cases where the window manager allows us to pick the resolution.
+        I32 window_width, window_height;
+        glfwGetFramebufferSize(m_window, &window_width, &window_height);
+
+        extent = vk::Extent2D{static_cast<U32>(window_width), static_cast<U32>(window_height)};
+
+        extent.width = std::clamp(extent.width, swapchain_support.capabilities.minImageExtent.width,
+                                  swapchain_support.capabilities.maxImageExtent.width);
+        extent.height =
+            std::clamp(extent.height, swapchain_support.capabilities.minImageExtent.height,
+                       swapchain_support.capabilities.maxImageExtent.height);
+    }
+
+    // NOTE: Decide Image Count; min + 1 to avoid stalling.
+    U32 image_count = swapchain_support.capabilities.minImageCount + 1;
+    if (swapchain_support.capabilities.maxImageCount > 0 &&
+        image_count > swapchain_support.capabilities.maxImageCount) {
+        image_count = swapchain_support.capabilities.maxImageCount;
+    }
+
+    // NOTE: Create the Swapchain.
+    vk::SwapchainCreateInfoKHR create_info{
+        .surface          = m_surface.get(),
+        .minImageCount    = image_count,
+        .imageFormat      = surface_format.format,
+        .imageColorSpace  = surface_format.colorSpace,
+        .imageExtent      = extent,
+        .imageArrayLayers = 1,
+        .imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
+    };
+
+    // NOTE: Handle Queue Families.
+    impl::QueueFamilyIndices indices =
+        impl::get_queue_family_indices(m_physical_device, m_surface.get());
+
+    // WARNING: Assume graphics and present families are the same.
+    // TODO: Handle different graphics and present families.
+    std::array<U32, 2> queue_family_indices = {indices.graphics_family.value(),
+                                               indices.graphics_family.value()};
+
+    // WHY: queue_family_indices are not used if they were to be the same.
+    (void)queue_family_indices;
+
+    // WARNING: Assume graphics and present families are the same; this is the use of
+    // vk::SharingMode::eExclusive. If they were different, we would need to use
+    // vk::SharingMode::eConcurrent and specify the queue family indices.
+    // TODO: Handle different graphics and present families.
+    create_info.imageSharingMode = vk::SharingMode::eExclusive;
+    create_info.preTransform     = swapchain_support.capabilities.currentTransform;
+    create_info.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+    create_info.presentMode      = present_mode;
+    create_info.clipped          = VK_TRUE;
+    create_info.oldSwapchain     = nullptr;
+
+    m_swapchain = m_device->createSwapchainKHRUnique(create_info);
+
+    m_swapchain_images       = m_device->getSwapchainImagesKHR(m_swapchain.get());
+    m_swapchain_image_format = surface_format.format;
+    m_swapchain_extent       = extent;
 }
 
 }  // namespace nbody

@@ -55,9 +55,11 @@ cmake --build build
 - `// WHY:` reasons for certain design choices or implementation decisions
 
 ## Git
+
 All the git commit messages must follow the convention: `<type>(<scope>): <subject>`.
 
 ### Commit types
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes

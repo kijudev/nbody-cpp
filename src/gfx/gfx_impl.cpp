@@ -41,5 +41,14 @@ bool is_physical_device_suitable(const vk::PhysicalDevice& device, const vk::Sur
     QueueFamilyIndices indices = get_queue_family_indices(device, surface);
     return indices.is_complete();
 }
+
+SwapchainSupportDetails get_swapchain_support_details(const vk::PhysicalDevice& device,
+                                                      const vk::SurfaceKHR      surface) {
+    SwapchainSupportDetails details;
+    details.capabilities  = device.getSurfaceCapabilitiesKHR(surface);
+    details.formats       = device.getSurfaceFormatsKHR(surface);
+    details.present_modes = device.getSurfacePresentModesKHR(surface);
+    return details;
+}
 }  // namespace impl
 }  // namespace nbody
