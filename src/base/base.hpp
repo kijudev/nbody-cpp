@@ -4,10 +4,12 @@
 
 // --- Header Files ---
 #include "base_assert.hpp"  // IWYU pragma: export
+#include "base_fs.hpp"      // IWYU pragma: export
 #include "base_log.hpp"     // IWYU pragma: export
 #include "base_type.hpp"    // IWYU pragma: export
 #include "base_vec.hpp"     // IWYU pragma: export
 
 // --- Source Files ---
 #include "base_assert.cpp"  // IWYU pragma: export
+#include "base_fs.cpp"      // IWYU pragma: export
 #include "base_log.cpp"     // IWYU pragma: export
