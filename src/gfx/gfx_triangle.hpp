@@ -37,22 +37,21 @@ class TriangleApplication {
 #endif
 
     // NOTE: vk::UniqueHandles are released automatically when the destructor is called.
-    vk::UniqueInstance m_instance{};
-    vk::PhysicalDevice m_physical_device{};  // NOTE: Not UniqueHandle; Owned by Instance.
-    vk::UniqueDevice   m_device{};
-    vk::Queue          m_graphics_queue{};  // NOTE: Not UniqueHandle; Owned by Device.
-    vk::Queue          m_present_queue{};   // NOTE: Not UniqueHandle; Owned by Device.
-
+    vk::UniqueInstance   m_instance{};
     vk::UniqueSurfaceKHR m_surface{};
+    vk::PhysicalDevice   m_physical_device{};  // NOTE: Not UniqueHandle; Owned by Instance.
+    vk::UniqueDevice     m_device{};
+    vk::Queue            m_graphics_queue{};  // NOTE: Not UniqueHandle; Owned by Device.
+    vk::Queue            m_present_queue{};   // NOTE: Not UniqueHandle; Owned by Device.
 
    private:
     bool check_validation_layer_support() const;
 
     void create_instance();
+    void create_surface();
     void create_physical_device();
 
     // NOTE: Creates a logical device and queues.
     void create_device();
-    void create_surface();
 };
 }  // namespace nbody

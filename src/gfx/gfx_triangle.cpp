@@ -3,6 +3,7 @@
 #include "gfx_triangle.hpp"
 
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 
 #include <algorithm>
 #include <vulkan/vulkan.hpp>
@@ -52,6 +53,7 @@ void TriangleApplication::init_window() {
 
 void TriangleApplication::init_vulkan() {
     create_instance();
+    create_surface();
     create_physical_device();
     create_device();
 }
@@ -87,9 +89,20 @@ void TriangleApplication::create_instance() {
                                          .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
                                          .apiVersion         = VK_API_VERSION_1_3};
 
+    U32          glfw_extension_count = 0;
+    const char** glfw_extensions      = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+
+    std::vector<const char*> instance_extensions(glfw_extensions,
+                                                 glfw_extensions + glfw_extension_count);
+
+    if (M_ENABLE_VALIDATION_LAYERS) {
+        instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
     vk::InstanceCreateInfo instance_create_info{
-        .pApplicationInfo = &application_info,
-    };
+        .pApplicationInfo        = &application_info,
+        .enabledExtensionCount   = static_cast<U32>(instance_extensions.size()),
+        .ppEnabledExtensionNames = instance_extensions.data()};
 
     if (M_ENABLE_VALIDATION_LAYERS) {
         instance_create_info.enabledLayerCount   = static_cast<U32>(m_validation_layers.size());
@@ -99,8 +112,20 @@ void TriangleApplication::create_instance() {
     m_instance = vk::createInstanceUnique(instance_create_info);
 }
 
-void TriangleApplication::create_physical_device() {
+void TriangleApplication::create_surface() {
     ASSERT(m_instance, "Instance not created.");
+    ASSERT(m_window, "Window not created.");
+
+    VkSurfaceKHR surface_c;
+    VkResult     result = glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, &surface_c);
+
+    ASSERT(result == VK_SUCCESS, "Failed to create surface.");
+
+    m_surface = vk::UniqueSurfaceKHR(surface_c);
+}
+
+void TriangleApplication::create_physical_device() {
+    ASSERT(m_surface, "Surface not created.");
 
     std::vector<vk::PhysicalDevice> physical_devices = m_instance->enumeratePhysicalDevices();
     ASSERT(!physical_devices.empty(), "No physical devices found.");
@@ -138,8 +163,8 @@ void TriangleApplication::create_device() {
         .pEnabledFeatures     = &device_features,
     };
 
-    m_device = m_physical_device.createDeviceUnique(device_create_info);
-    m_graphics_queue  = m_device->getQueue(queue_family_indices.graphics_family.value(), 0);
+    m_device         = m_physical_device.createDeviceUnique(device_create_info);
+    m_graphics_queue = m_device->getQueue(queue_family_indices.graphics_family.value(), 0);
 }
 
 }  // namespace nbody
