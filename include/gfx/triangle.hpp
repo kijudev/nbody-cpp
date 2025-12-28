@@ -7,7 +7,7 @@
 #include <array>
 #include <vulkan/vulkan.hpp>
 
-#include "base/base.hpp"
+#include "base/type.hpp"
 
 namespace nbody {
 class TriangleApplication {

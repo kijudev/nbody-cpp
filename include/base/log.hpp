@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "base_type.hpp"
+#include "type.hpp"
 
 namespace nbody {
 
@@ -17,7 +17,7 @@ enum class LogColor { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
 std::string log_color_ansi_code(LogColor color);
 
 // NOTE: Layers correspond to the different components of the application.
-enum class LogLayer : U16 { BASE = 1, RENDERER = 1 << 1, APP = 1 << 2, ASSERT = 1 << 3 };
+enum class LogLayer : U16 { LIB = 1, GFX = 1 << 1, APP = 1 << 2, ASSERT = 1 << 3 };
 std::string log_layer_to_string(LogLayer layer);
 
 // NOTE: Severities correspond to the different levels of logging.

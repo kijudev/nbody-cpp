@@ -4,8 +4,10 @@
 
 #include <shaderc/shaderc.hpp>
 #include <vector>
-
-#include "base/base.hpp"
+#include "base/assert.hpp"
+#include "base/fs.hpp"
+#include "base/log.hpp"
+#include "base/type.hpp"
 
 struct ShaderInfo {
     std::string           name;
@@ -18,7 +20,7 @@ struct ShaderInfo {
 };
 
 // NOTE: Panics if compilation fails.
-std::vector<nbody::U32> compile_glsl(const std::string& name, shaderc_shader_kind kind,
+std::vector<U32> compile_glsl(const std::string& name, shaderc_shader_kind kind,
                                      const std::string& source) {
     shaderc::Compiler       compiler;
     shaderc::CompileOptions options;

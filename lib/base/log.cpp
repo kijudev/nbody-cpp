@@ -1,8 +1,6 @@
 // A minimal but sufficient logging library.
 
-#pragma once
-
-#include "base_log.hpp"
+#include "base/log.hpp"
 
 #include <cstring>
 #include <ctime>
@@ -10,6 +8,8 @@
 #include <memory>
 #include <mutex>
 #include <string>
+
+#include "base/type.hpp"
 
 // WHY: Windows compile-time optimizations. Includes only necessary headers.
 #if defined(_WIN32)
@@ -46,10 +46,10 @@ std::string log_color_ansi_code(LogColor color) {
 
 std::string log_layer_to_string(LogLayer layer) {
     switch (layer) {
-        case LogLayer::BASE:
-            return "BASE";
-        case LogLayer::RENDERER:
-            return "RENDERER";
+        case LogLayer::LIB:
+            return "LIB";
+        case LogLayer::GFX:
+            return "GFX";
         case LogLayer::APP:
             return "APP";
         case LogLayer::ASSERT:

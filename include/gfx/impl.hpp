@@ -3,7 +3,7 @@
 #include <optional>
 #include <vulkan/vulkan.hpp>
 
-#include "base/base.hpp"
+#include "base/type.hpp"
 
 namespace nbody {
 namespace impl {
@@ -29,7 +29,7 @@ bool is_physical_device_suitable(const vk::PhysicalDevice& device, const vk::Sur
 
 // NOTE: vk::SurfaceKHR is a handle, so no need to pass it by reference.
 SwapchainSupportDetails get_swapchain_support_details(const vk::PhysicalDevice& device,
-                                              const vk::SurfaceKHR      surface);
+                                                      const vk::SurfaceKHR      surface);
 
 }  // namespace impl
 }  // namespace nbody

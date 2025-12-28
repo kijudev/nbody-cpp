@@ -22,10 +22,26 @@ git clone https://github.com/username/nbody-cpp.git
 
 ## Build the project
 
+Debug; default.
+
 ```bash
-cd nbody-cpp
-cmake -B build
-cmake --build build
+cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++
+ln -sf build/debug/compile_commands.json compile_commands.json # For Clangd
+cmake --build build/debug
+```
+
+Production; optimized with debug information.
+
+```bash
+cmake -B build/prod -DCMAKE_BUILD_TYPE=Production -DCMAKE_CXX_COMPILER=clang++
+cmake --build build/prod
+```
+
+Dist; small size, optimized for distribution, stripped.
+
+```bash
+cmake -B build/dist -DCMAKE_BUILD_TYPE=Dist -DCMAKE_CXX_COMPILER=clang++
+cmake --build build/dist
 ```
 
 ## Run the simulation

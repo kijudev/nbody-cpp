@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace nbody {
 // NOTE: Type aliases for basic data types conforming with the design principles of the project.
 // WHY: I am just being pedantic about the naming conventions :)
 using U8    = std::uint8_t;
@@ -26,4 +25,3 @@ using F64   = double;
 // NOTE: Aliased floating point types.
 template <typename T>
 concept FloatingPointT = std::floating_point<T>;
-}  // namespace nbody

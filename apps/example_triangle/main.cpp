@@ -1,5 +1,5 @@
-#include "base/base.hpp"
-#include "gfx/gfx.hpp"
+#include "base/log.hpp"
+#include "gfx/triangle.hpp"
 
 int main() {
     nbody::Logger::init();

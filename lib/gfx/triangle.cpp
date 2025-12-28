@@ -1,6 +1,4 @@
-#pragma once
-
-#include "gfx_triangle.hpp"
+#include "gfx/triangle.hpp"
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
@@ -8,14 +6,11 @@
 #include <algorithm>
 #include <vulkan/vulkan.hpp>
 
-#include "base/base.hpp"
-#include "base/base_assert.hpp"
-#include "base/base_type.hpp"
+#include "base/assert.hpp"
+#include "base/type.hpp"
 #include "embeds/triangle_shader_frag.hpp"
 #include "embeds/triangle_shader_vert.hpp"
-#include "gfx/gfx_impl.cpp"
-#include "gfx/gfx_impl.hpp"
-#include "vulkan/vulkan.hpp"
+#include "gfx/impl.hpp"
 
 namespace nbody {
 void TriangleApplication::run() {

@@ -7,6 +7,8 @@
 #include <string>
 #include <string_view>
 
+#include "log.hpp" // IWYU pragma: export
+
 namespace nbody {
 namespace impl {
 std::string assert_format_message(std::string_view message, const char* file, int line);
