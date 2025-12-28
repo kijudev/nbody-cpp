@@ -1,4 +1,7 @@
-#include "base_assert.hpp"
+#include "base/assert.hpp"
+
+#include <string>
+#include <string_view>
 
 namespace nbody {
 namespace impl {

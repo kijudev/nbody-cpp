@@ -1,0 +1,11 @@
+file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+
+foreach(child ${children})
+    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${child}/main.cpp)
+            add_executable(${child} ${child}/main.cpp)
+            target_link_libraries(${child} PRIVATE nbody_lib)
+            message(STATUS "Registered App: ${child}")
+        endif()
+    endif()
+endforeach()

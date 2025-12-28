@@ -1,10 +1,8 @@
-#pragma once
-
-#include "gfx_impl.hpp"
+#include "gfx/impl.hpp"
 
 #include <vulkan/vulkan.hpp>
 
-#include "base/base.hpp"
+#include "base/type.hpp"
 
 namespace nbody {
 namespace impl {

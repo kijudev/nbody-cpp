@@ -1,6 +1,4 @@
-#pragma once
-
-#include "base_fs.hpp"
+#include "base/fs.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -8,8 +6,7 @@
 #include <tuple>
 #include <vector>
 
-#include "base/base_log.hpp"
-#include "base_type.hpp"
+#include "base/type.hpp"
 
 namespace nbody {
 std::optional<std::vector<char>> file_read_as_chars(const std::string& filename) {

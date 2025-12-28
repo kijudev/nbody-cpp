@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "base/base.hpp"
+#include "base/type.hpp"
 
 namespace nbody {
 namespace embeds {
