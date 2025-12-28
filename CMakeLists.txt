@@ -38,13 +38,16 @@ add_compile_options($<$<CONFIG:Production>:-flto=thin>)
 # NOTE: Dist Flags
 add_compile_options($<$<CONFIG:Dist>:-flto=thin>)
 
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_link_options(-fsanitize=address,undefined)
 endif()
 
 # NOTE: Global Dependencies.
+find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
+pkg_check_modules(SHADERC REQUIRED)
 
 add_subdirectory(lib)
 add_subdirectory(apps)
