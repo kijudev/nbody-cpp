@@ -77,7 +77,7 @@ std::string generate_code(const ShaderBytecodeInfo& info) {
     s += "\n";
     s += "namespace nbody {\n";
     s += "namespace embed {\n";
-    s += "static constexpr Bytecode " + bytecode_symbol + " = {" + bytecode_string + "};";
+    s += "static const Bytecode " + bytecode_symbol + " = {" + bytecode_string + "};\n";
     s += "} // namespace embed\n";
     s += "} // namespace nbody\n";
 
@@ -90,8 +90,8 @@ int main() {
     const std::string output_dir_path = "include/embed/";
 
     std::vector<ShaderInputInfo> input_infos = {
-        {"triangle_shader", shaderc_vertex_shader,   "shaders/triangle_shader.vert"},
-        {"triangle_shader", shaderc_fragment_shader, "shaders/triangle_shader.frag"}
+        {"vk_vert_triangle", shaderc_vertex_shader,   "shaders/triangle.vert"},
+        {"vk_frag_triangle", shaderc_fragment_shader, "shaders/triangle.frag"}
     };
 
     LOG_APP_INFO("Output directory: " + output_dir_path);
@@ -101,10 +101,9 @@ int main() {
     bytecode_infos.reserve(input_infos.size());
 
     for (const ShaderInputInfo& input_info : input_infos) {
-        std::optional<std::string> source_result =
-            nbody::file_read_as_string(input_info.path).value();
+        std::optional<std::string> source_result = nbody::file_read_as_string(input_info.path);
 
-        ASSERT(!source_result.has_value(), "Failed to read shader source");
+        ASSERT(source_result.has_value(), "Failed to read shader source -> " + input_info.path);
 
         LOG_APP_INFO("Compiling shader: " + input_info.name);
         std::optional<ShaderBytecodeInfo> bytecode_result = compile({
@@ -121,7 +120,7 @@ int main() {
     ASSERT(bytecode_infos.size() == input_infos.size(), "Bytecode count mismatch");
 
     for (const ShaderBytecodeInfo& bytecode_info : bytecode_infos) {
-        std::string output_file_path = output_dir_path + bytecode_info.name + "_shader.hpp";
+        std::string output_file_path = output_dir_path + bytecode_info.name + ".hpp";
         std::string code             = generate_code(bytecode_info);
 
         LOG_APP_INFO("Writing shader: " + bytecode_info.name);
