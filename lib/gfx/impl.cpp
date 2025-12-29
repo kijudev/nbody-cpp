@@ -1,5 +1,7 @@
 #include "gfx/impl.hpp"
 
+#include <vulkan/vulkan_core.h>
+
 #include <vulkan/vulkan.hpp>
 
 #include "base/type.hpp"
@@ -48,5 +50,6 @@ SwapchainSupportDetails get_swapchain_support_details(const vk::PhysicalDevice& 
     details.present_modes = device.getSurfacePresentModesKHR(surface);
     return details;
 }
+
 }  // namespace impl
 }  // namespace nbody

@@ -5,6 +5,8 @@ int main() {
     nbody::Logger::init();
     nbody::TriangleApplication app;
 
+    LOG_APP_INFO("APP");
+
     try {
         app.run();
     } catch (const std::exception& e) {

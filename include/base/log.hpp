@@ -134,23 +134,23 @@ class Logger {
 
 // NOTE: Macros utilizing the global Logger singleton instance.
 #ifndef NDEBUG
-#define LOG_BASE_INFO(message) \
-    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::INFO, message)
-#define LOG_BASE_WARNING(message) \
-    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::WARNING, message)
-#define LOG_BASE_ERROR(message) \
-    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::ERROR, message)
-#define LOG_BASE_FATAL(message) \
-    nbody::Logger::log(nbody::LogLayer::BASE, nbody::LogSeverity::FATAL, message)
+#define LOG_LIB_INFO(message) \
+    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::INFO, message)
+#define LOG_LIB_WARNING(message) \
+    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::WARNING, message)
+#define LOG_LIB_ERROR(message) \
+    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::ERROR, message)
+#define LOG_LIB_FATAL(message) \
+    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::FATAL, message)
 
-#define LOG_RENDERER_INFO(message) \
-    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::INFO, message)
-#define LOG_RENDERER_WARNING(message) \
-    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::WARNING, message)
-#define LOG_RENDERER_ERROR(message) \
-    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::ERROR, message)
-#define LOG_RENDERER_FATAL(message) \
-    nbody::Logger::log(nbody::LogLayer::RENDERER, nbody::LogSeverity::FATAL, message)
+#define LOG_GFX_INFO(message) \
+    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::INFO, message)
+#define LOG_GFX_WARNING(message) \
+    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::WARNING, message)
+#define LOG_GFX_ERROR(message) \
+    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::ERROR, message)
+#define LOG_GFX_FATAL(message) \
+    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::FATAL, message)
 
 #define LOG_APP_INFO(message) \
     nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, message)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vulkan/vk_platform.h>
+
 #include <optional>
 #include <vulkan/vulkan.hpp>
 
