@@ -13,7 +13,48 @@
 namespace nbody {
 
 // NOTE: Colors correspond to ANSI escape codes.
-enum class LogColor { RED, YELLOW, GREEN, BLUE, PURPLE, CYAN, WHITE };
+// Undefine possible conflicting color macros (commonly defined by raylib and other libs).
+#ifdef RED
+#undef RED
+#endif
+#ifdef YELLOW
+#undef YELLOW
+#endif
+#ifdef GREEN
+#undef GREEN
+#endif
+#ifdef BLUE
+#undef BLUE
+#endif
+#ifdef PURPLE
+#undef PURPLE
+#endif
+#ifdef CYAN
+#undef CYAN
+#endif
+#ifdef WHITE
+#undef WHITE
+#endif
+
+enum class LogColor {
+    // Prefixed enumerators to avoid macro collisions.
+    LC_RED,
+    LC_YELLOW,
+    LC_GREEN,
+    LC_BLUE,
+    LC_PURPLE,
+    LC_CYAN,
+    LC_WHITE,
+
+    // Backwards-compatible enumerator names mapped to the prefixed ones.
+    RED = LC_RED,
+    YELLOW = LC_YELLOW,
+    GREEN = LC_GREEN,
+    BLUE = LC_BLUE,
+    PURPLE = LC_PURPLE,
+    CYAN = LC_CYAN,
+    WHITE = LC_WHITE
+};
 std::string log_color_ansi_code(LogColor color);
 
 // NOTE: Layers correspond to the different components of the application.

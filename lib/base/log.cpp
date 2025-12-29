@@ -25,19 +25,19 @@
 namespace nbody {
 std::string log_color_ansi_code(LogColor color) {
     switch (color) {
-        case LogColor::RED:
+        case LogColor::LC_RED:
             return "\x1b[31m";
-        case LogColor::YELLOW:
+        case LogColor::LC_YELLOW:
             return "\x1b[33m";
-        case LogColor::GREEN:
+        case LogColor::LC_GREEN:
             return "\x1b[32m";
-        case LogColor::BLUE:
+        case LogColor::LC_BLUE:
             return "\x1b[34m";
-        case LogColor::PURPLE:
+        case LogColor::LC_PURPLE:
             return "\x1b[35m";
-        case LogColor::CYAN:
+        case LogColor::LC_CYAN:
             return "\x1b[36m";
-        case LogColor::WHITE:
+        case LogColor::LC_WHITE:
             return "\x1b[37m";
         default:
             return "\x1b[0m";
@@ -75,15 +75,15 @@ std::string log_severity_to_string(LogSeverity severity) {
 LogColor log_severity_to_color(LogSeverity severity) {
     switch (severity) {
         case nbody::LogSeverity::DEBUG:
-            return LogColor::CYAN;
+            return LogColor::LC_CYAN;
         case LogSeverity::INFO:
-            return LogColor::GREEN;
+            return LogColor::LC_GREEN;
         case LogSeverity::WARNING:
-            return LogColor::YELLOW;
+            return LogColor::LC_YELLOW;
         case LogSeverity::ERROR:
-            return LogColor::RED;
+            return LogColor::LC_RED;
         case LogSeverity::FATAL:
-            return LogColor::PURPLE;
+            return LogColor::LC_PURPLE;
     }
 }
 
