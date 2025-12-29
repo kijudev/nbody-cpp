@@ -7,6 +7,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 // NOTE: Type aliases for basic data types conforming with the design principles of the project.
 // WHY: I am just being pedantic about the naming conventions :)
@@ -21,6 +22,8 @@ using I32   = std::int32_t;
 using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
+
+using Bytecode = std::vector<U8>;
 
 // NOTE: Aliased floating point types.
 template <typename T>

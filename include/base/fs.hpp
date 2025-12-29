@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include "base/type.hpp"
 
 namespace nbody {
 // NOTE: Reads the content of the file as a vector of characters. If the file does not exist,
@@ -12,6 +13,8 @@ std::optional<std::vector<char>> file_read_as_chars(const std::string& filename)
 
 // NOTE: Reads the content of the file as a string. If the file does not exist, returns nullopt.
 std::optional<std::string> file_read_as_string(const std::string& filename);
+
+std::optional<Bytecode> file_read_as_bytecode(const std::string& filename);
 
 // NOTE: Writes the content to the file. If the file already exists, it will be overwritten.
 // WARNING: If operation fails, returns silently.

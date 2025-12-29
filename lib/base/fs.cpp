@@ -43,6 +43,25 @@ std::optional<std::string> file_read_as_string(const std::string& filename) {
     return buffer;
 }
 
+std::optional<Bytecode> file_read_as_bytecode(const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate);
+
+    if (!file.is_open()) {
+        return std::nullopt;
+    }
+
+    USize    size = file.tellg();
+    Bytecode buffer(size);
+
+    file.seekg(0, std::ios::beg);
+
+    // NOTE: This operation is safe because Bytecode is a vector of bytes.
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    file.close();
+
+    return buffer;
+}
+
 void file_write(const std::string& filename, const std::string& content) {
     std::ofstream file(filename);
 
