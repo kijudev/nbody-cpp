@@ -27,4 +27,4 @@ using Bytecode = std::vector<U8>;
 
 // NOTE: Aliased floating point types.
 template <typename T>
-concept FloatingPointT = std::floating_point<T>;
+concept FloatT = std::floating_point<T>;

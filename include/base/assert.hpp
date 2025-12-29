@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include "log.hpp" // IWYU pragma: export
+#include "log.hpp"  // IWYU pragma: export
 
 namespace nbody {
 namespace impl {
@@ -26,6 +26,14 @@ std::string assert_format_message(std::string_view message, const char* file, in
             std::abort();                                                          \
         }                                                                          \
     } while (false)
+#define PANIC(message)                                                                           \
+    do {                                                                                         \
+        std::string _nbody_panic_msg =                                                           \
+            nbody::impl::assert_format_message((message), __FILE__, __LINE__);                   \
+        nbody::Logger::log(nbody::LogLayer::PANIC, nbody::LogSeverity::FATAL, _nbody_panic_msg); \
+        std::abort();                                                                            \
+    } while (false)
 #else
 #define ASSERT(condition, message) ((void)0)
+#define PANIC(message)             ((void)0)
 #endif

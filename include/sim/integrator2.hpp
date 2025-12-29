@@ -6,16 +6,16 @@
 #include "body2.hpp"
 
 namespace nbody {
-template <typename Float, typename Fn>
-concept Integrate2FnT = FloatingPointT<Float> && requires(Fn&& fn, Body2T<Float>& body, Float dt) {
+template <typename F, typename Fn>
+concept Integrate2FnT = FloatT<F> && requires(Fn&& fn, Body2T<F>& body, F dt) {
     { fn(body, dt) } -> std::same_as<void>;
 };
 
 template <typename Float>
-    requires FloatingPointT<Float>
+    requires FloatT<Float>
 void integrate2_euler(Body2T<Float>& body, Float dt) {
-    body.vel.mut_add(body.acc.scale(dt));
-    body.pos.mut_add(body.vel.scale(dt));
+    body.vel = body.vel.add(body.acc.scale(dt));
+    body.pos = body.pos.add(body.vel.scale(dt));
 }
 
 }  // namespace nbody

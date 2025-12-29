@@ -7,17 +7,17 @@
 #include "sim/integrator2.hpp"
 
 namespace nbody {
-template <typename Float, typename IntegrateFn>
-    requires FloatingPointT<Float> && Integrate2FnT<Float, IntegrateFn>
+template <typename F, typename IntegrateFn>
+    requires FloatT<F> && Integrate2FnT<F, IntegrateFn>
 class Sim2LinearDirect {
    public:
-    using Vec2 = Vec2T<Float>;
-    using Body = Body2T<Float>;
+    using Vec2 = Vec2T<F>;
+    using Body = Body2T<F>;
 
-    const Float G         = static_cast<Float>(1.0);
-    const Float SOFTENING = static_cast<Float>(0.1);
+    const F G         = 1.0;
+    const F SOFTENING = 0.1;
 
-    void step(Float dt) {
+    void step(F dt) {
         for (Body& body : m_bodies) {
             body.acc = Vec2::zero();
         }
@@ -34,7 +34,7 @@ class Sim2LinearDirect {
         : m_bodies(bodies), m_integrate(integrator) {}
 
     [[nodiscard]] const std::vector<Body>& bodies() const noexcept { return m_bodies; }
-    [[nodiscard]] std::vector<Body>& bodies_mut() noexcept { return m_bodies; }
+    [[nodiscard]] std::vector<Body>&       bodies_mut() noexcept { return m_bodies; }
 
    private:
     std::vector<Body> m_bodies{};
@@ -57,11 +57,11 @@ class Sim2LinearDirect {
         Vec2 delta = b.pos.sub(a.pos);
 
         // softened squared distance (Plummer softening)
-        Float r2_soft = delta.length_sq() + (SOFTENING * SOFTENING);
+        F r2_soft = delta.length_sq() + (SOFTENING * SOFTENING);
 
         // inverse r^3 term: 1 / (r2_soft)^(3/2)
         // softening ensures denominator is non-zero
-        Float inv_r3 = static_cast<Float>(1.0) / (std::sqrt(r2_soft) * r2_soft);
+        F inv_r3 = 1.0 / (std::sqrt(r2_soft) * r2_soft);
 
         // acceleration contributions:
         // a.acc += G * m_b * delta * inv_r3
@@ -69,8 +69,8 @@ class Sim2LinearDirect {
         Vec2 a_contrib = delta.scale(G * b.mass * inv_r3);
         Vec2 b_contrib = delta.scale(G * a.mass * inv_r3);
 
-        a.acc.mut_add(a_contrib);
-        b.acc.mut_sub(b_contrib);
+        a.acc = a.acc.add(a_contrib);
+        b.acc = b.acc.sub(b_contrib);
     }
 };
 }  // namespace nbody
