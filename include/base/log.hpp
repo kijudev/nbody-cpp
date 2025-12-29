@@ -21,7 +21,14 @@ enum class LogLayer : U16 { LIB = 1, GFX = 1 << 1, APP = 1 << 2, ASSERT = 1 << 3
 std::string log_layer_to_string(LogLayer layer);
 
 // NOTE: Severities correspond to the different levels of logging.
-enum class LogSeverity : U16 { INFO = 1, WARNING = 1 << 1, ERROR = 1 << 2, FATAL = 1 << 3 };
+enum class LogSeverity : U16 {
+    DEBUG   = 1,
+    INFO    = 1 << 1,
+    WARNING = 1 << 2,
+    ERROR   = 1 << 3,
+    FATAL   = 1 << 4
+};
+
 std::string log_severity_to_string(LogSeverity severity);
 LogColor    log_severity_to_color(LogSeverity severity);
 
@@ -128,12 +135,18 @@ class Logger {
 
     // TODO: This is probably an overkill. See if it is actually needed.
     static std::mutex m_mutex;
+    static bool       m_is_initialized;
 };
 
 }  // namespace nbody
 
 // NOTE: Macros utilizing the global Logger singleton instance.
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(NLOG)
+#define LOG_INIT_DEFAULT()             nbody::Logger::init()
+#define LOG_INIT_WITH_LOGGERS(loggers) nbody::Logger::init(loggers)
+
+#define LOG_LIB_DEBUG(message) \
+    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::DEBUG, message)
 #define LOG_LIB_INFO(message) \
     nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::INFO, message)
 #define LOG_LIB_WARNING(message) \
@@ -143,6 +156,8 @@ class Logger {
 #define LOG_LIB_FATAL(message) \
     nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::FATAL, message)
 
+#define LOG_GFX_DEBUG(message) \
+    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::DEBUG, message)
 #define LOG_GFX_INFO(message) \
     nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::INFO, message)
 #define LOG_GFX_WARNING(message) \
@@ -152,6 +167,8 @@ class Logger {
 #define LOG_GFX_FATAL(message) \
     nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::FATAL, message)
 
+#define LOG_APP_DEBUG(message) \
+    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::DEBUG, message)
 #define LOG_APP_INFO(message) \
     nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, message)
 #define LOG_APP_WARNING(message) \
@@ -161,18 +178,24 @@ class Logger {
 #define LOG_APP_FATAL(message) \
     nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::FATAL, message)
 #else
-#define LOG_BASE_INFO(message)
-#define LOG_BASE_WARN(message)
-#define LOG_BASE_ERROR(message)
-#define LOG_BASE_FATAL(message)
+#define LOG_INIT_DEFAULT()      ((void)0)
+#define LOG_INIT_WITH_LOGGERS() ((void)0)
 
-#define LOG_RENDERER_INFO(message)
-#define LOG_RENDERER_WARN(message)
-#define LOG_RENDERER_ERROR(message)
-#define LOG_RENDERER_FATAL(message)
+#define LOG_LIB_DEBUG(message) ((void)0)
+#define LOG_LIB_INFO(message)  ((void)0)
+#define LOG_LIB_WARN(message)  ((void)0)
+#define LOG_LIB_ERROR(message) ((void)0)
+#define LOG_LIB_FATAL(message) ((void)0)
 
-#define LOG_APP_INFO(message)
-#define LOG_APP_WARN(message)
-#define LOG_APP_ERROR(message)
-#define LOG_APP_FATAL(message)
+#define LOG_GFX_DEBUG(message) ((void)0)
+#define LOG_GFX_INFO(message)  ((void)0)
+#define LOG_GFX_WARN(message)  ((void)0)
+#define LOG_GFX_ERROR(message) ((void)0)
+#define LOG_GFX_FATAL(message) ((void)0)
+
+#define LOG_APP_DEBUG(message) ((void)0)
+#define LOG_APP_INFO(message)  ((void)0)
+#define LOG_APP_WARN(message)  ((void)0)
+#define LOG_APP_ERROR(message) ((void)0)
+#define LOG_APP_FATAL(message) ((void)0)
 #endif

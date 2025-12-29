@@ -59,6 +59,8 @@ std::string log_layer_to_string(LogLayer layer) {
 
 std::string log_severity_to_string(LogSeverity severity) {
     switch (severity) {
+        case LogSeverity::DEBUG:
+            return "DEBUG";
         case LogSeverity::INFO:
             return "INFO";
         case LogSeverity::WARNING:
@@ -72,6 +74,8 @@ std::string log_severity_to_string(LogSeverity severity) {
 
 LogColor log_severity_to_color(LogSeverity severity) {
     switch (severity) {
+        case nbody::LogSeverity::DEBUG:
+            return LogColor::CYAN;
         case LogSeverity::INFO:
             return LogColor::GREEN;
         case LogSeverity::WARNING:
@@ -235,20 +239,29 @@ void FileLogger::log(LogLayer layer, LogSeverity severity, const std::string& me
 
 std::vector<std::unique_ptr<LoggerInterface>> Logger::m_loggers{};
 std::mutex                                    Logger::m_mutex{};
+bool                                          Logger::m_is_initialized{false};
 
 void Logger::init() {
     m_loggers.emplace_back(std::make_unique<ConsoleLogger>());
     m_loggers.emplace_back(std::make_unique<FileLogger>());
+
+    m_is_initialized = true;
 }
 
 void Logger::init(std::vector<std::unique_ptr<LoggerInterface>>&& loggers) {
     for (auto& logger : loggers) {
         m_loggers.emplace_back(std::move(logger));
     }
+
+    m_is_initialized = true;
 }
 
 void Logger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
     std::lock_guard<std::mutex> lk(m_mutex);
+
+    if (!m_is_initialized) {
+        init();
+    }
 
     for (auto& logger : m_loggers) {
         logger->log(layer, severity, message);
