@@ -1,4 +1,4 @@
-#include "gfx/impl.hpp"
+#include "gfx/vkimpl.hpp"
 
 #include <vulkan/vulkan_core.h>
 
@@ -7,7 +7,7 @@
 #include "base/type.hpp"
 
 namespace nbody {
-namespace impl {
+namespace vkimpl {
 bool QueueFamilyIndices::is_complete() const {
     return graphics_family.has_value() && present_family.has_value();
 }
@@ -51,5 +51,5 @@ SwapchainSupportDetails get_swapchain_support_details(const vk::PhysicalDevice& 
     return details;
 }
 
-}  // namespace impl
+}  // namespace vkimpl
 }  // namespace nbody

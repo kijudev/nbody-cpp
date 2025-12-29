@@ -8,7 +8,7 @@
 #include "base/type.hpp"
 
 namespace nbody {
-namespace impl {
+namespace vkimpl {
 struct QueueFamilyIndices {
     std::optional<U32> graphics_family;
     std::optional<U32> present_family;
