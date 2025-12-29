@@ -1,3 +1,5 @@
+cmake_policy(SET CMP0169 OLD)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -10,8 +12,8 @@ FetchContent_GetProperties(doctest)
 if(NOT doctest_POPULATED)
     FetchContent_Populate(doctest)
     add_library(doctest INTERFACE)
-    add_library(doctest::doctest ALIAS doctest)
     target_include_directories(doctest INTERFACE ${doctest_SOURCE_DIR})
+    add_library(doctest::doctest ALIAS doctest)
 endif()
 
 file(GLOB TEST_SOURCES "*.cpp")
