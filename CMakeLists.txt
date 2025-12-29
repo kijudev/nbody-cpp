@@ -1,53 +1,42 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 
 project(nbody LANGUAGES CXX)
 
-# NOTE: Default to Debug.
+# NOTE: Default to Debug if not specified.
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-# NOTE: Define Custom "Dist" Profile.
-set(CMAKE_CXX_FLAGS_DIST "-Os -DNDEBUG" CACHE STRING "Flags used by the C++ compiler during distribution builds." FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_DIST "-s" CACHE STRING "Flags used for linking binaries during distribution builds." FORCE)
-set(CMAKE_SHARED_LINKER_FLAGS_DIST "-s" CACHE STRING "Flags used by the shared libraries linker during distribution builds." FORCE)
-
-mark_as_advanced(CMAKE_CXX_FLAGS_DIST CMAKE_EXE_LINKER_FLAGS_DIST CMAKE_SHARED_LINKER_FLAGS_DIST)
-
+# NOTE: Standard Setup.
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# NOTE: Export compile_commands.json for Clangd.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# NOTE: Compiler warnings; clang.
+# NOTE: General Flags.
 add_compile_options(
     -Wall -Wextra -Wpedantic -Wno-missing-designated-field-initializers
     -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 )
 
-# NOTE: Debug Flags (Split to prevent parsing errors)
+# NOTE: Debug Configuration.
 add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
 add_compile_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
 
-# NOTE: Production Flags
+# NOTE: Production Configuration.
 add_compile_options($<$<CONFIG:Production>:-O3>)
 add_compile_options($<$<CONFIG:Production>:-flto=thin>)
+add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
+add_compile_options($<$<CONFIG:Production>:-DNLOG>)
+add_link_options($<$<CONFIG:Production>:-flto=thin>)
+add_link_options($<$<CONFIG:Production>:-s>)
 
-# NOTE: Dist Flags
-add_compile_options($<$<CONFIG:Dist>:-flto=thin>)
-
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_link_options(-fsanitize=address,undefined)
-endif()
-
-# NOTE: Global Dependencies.
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
-pkg_check_modules(SHADERC REQUIRED)
+find_package(raylib REQUIRED)
+pkg_check_modules(SHADERC REQUIRED shaderc) # Note: usually requires package name 'shaderc'
 
 add_subdirectory(lib)
 add_subdirectory(apps)

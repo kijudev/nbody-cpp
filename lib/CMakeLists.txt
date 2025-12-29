@@ -14,4 +14,5 @@ target_link_libraries(nbody_lib PUBLIC
     Vulkan::Vulkan
     glfw
     shaderc_shared
+    raylib
 )

@@ -47,6 +47,9 @@
               vulkan-validation-layers
               vulkan-tools
 
+              # Raylib
+              raylib
+
               # GLFW
               glfw
 
@@ -58,12 +61,6 @@
 
               # Benchmarking
               nanobench
-
-              # Fonts
-              freetype
-
-              # Math
-              glm
             ];
 
             shellHook = ''
