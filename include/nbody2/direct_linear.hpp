@@ -6,16 +6,16 @@
 #include "base/type.hpp"
 #include "type.hpp"
 
-namespace nbody {
+namespace nbody2 {
 template <FloatT Float>
-class Sim2Direct {
+class SimDirectLinear {
    public:
     using Vec2        = math::Vec2T<Float>;
-    using Body        = Body2T<Float>;
+    using Body        = BodyT<Float>;
     using Layout      = std::vector<Body>;
-    using IntegrateFn = Integrate2Fn<Float>;
+    using IntegrateFn = IntegrateFn<Float>;
 
-    Sim2Direct(Layout bodies, IntegrateFn integrator, Float g, Float softening)
+    SimDirectLinear(Layout bodies, IntegrateFn integrator, Float g, Float softening)
         : m_bodies(std::move(bodies)),
           m_integrate(std::move(integrator)),
           m_g(g),

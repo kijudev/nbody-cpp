@@ -6,16 +6,16 @@
 #include "base/type.hpp"
 #include "math/vec.hpp"
 
-namespace nbody {
+namespace nbody2 {
 template <FloatT Float>
-struct Body2T {
+struct BodyT {
     math::Vec2T<Float> pos{0.0, 0.0};
     math::Vec2T<Float> vel{0.0, 0.0};
     math::Vec2T<Float> acc{0.0, 0.0};
     Float              mass{1.0};
 
-    Body2T() = default;
-    Body2T(math::Vec2T<Float> pos, math::Vec2T<Float> vel, math::Vec2T<Float> acc, Float mass)
+    BodyT() = default;
+    BodyT(math::Vec2T<Float> pos, math::Vec2T<Float> vel, math::Vec2T<Float> acc, Float mass)
         : pos(pos), vel(vel), acc(acc), mass(mass) {}
 
     std::string fmt() const {
@@ -25,5 +25,5 @@ struct Body2T {
 };
 
 template <FloatT Float>
-using Integrate2Fn = std::function<void(Body2T<Float>& body, Float dt)>;
-};  // namespace nbody
+using IntegrateFn = std::function<void(BodyT<Float>& body, Float dt)>;
+};  // namespace nbody2
