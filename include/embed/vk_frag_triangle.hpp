@@ -3,7 +3,6 @@
 
 #include "base/type.hpp"
 
-namespace nbody {
 namespace embed {
 static const Bytecode VK_FRAG_TRIANGLE_BYTECODE = {
     3,  0,  11, 19, 0,  17, 1,  11, 1,  71,  46, 46, 0,  14, 0,  1,  15, 4,  4,   109, 0,  9,
@@ -12,4 +11,3 @@ static const Bytecode VK_FRAG_TRIANGLE_BYTECODE = {
     43, 6,  14, 0,  54, 2,  4,  0,  3,  248, 5,  61, 10, 13, 12, 81, 6,  15, 13,  0,   81, 6,
     16, 13, 1,  81, 6,  17, 13, 2,  80, 7,   18, 15, 16, 17, 14, 62, 9,  18, 253, 56};
 }  // namespace embed
-}  // namespace nbody

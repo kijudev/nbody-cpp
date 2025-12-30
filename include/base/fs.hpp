@@ -6,7 +6,7 @@
 #include <vector>
 #include "base/type.hpp"
 
-namespace nbody {
+namespace base {
 // NOTE: Reads the content of the file as a vector of characters. If the file does not exist,
 // returns nullopt.
 std::optional<std::vector<char>> file_read_as_chars(const std::string& filename);

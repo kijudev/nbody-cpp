@@ -7,8 +7,8 @@
 
 #include "base/type.hpp"
 
-namespace nbody {
-namespace vkimpl {
+namespace gfxvk {
+namespace impl {
 struct QueueFamilyIndices {
     std::optional<U32> graphics_family;
     std::optional<U32> present_family;
@@ -34,4 +34,4 @@ SwapchainSupportDetails get_swapchain_support_details(const vk::PhysicalDevice& 
                                                       const vk::SurfaceKHR      surface);
 
 }  // namespace impl
-}  // namespace nbody
+}  // namespace gfxvk

@@ -9,29 +9,29 @@
 
 #include "log.hpp"  // IWYU pragma: export
 
-namespace nbody {
+namespace base {
 namespace impl {
 std::string assert_format_message(std::string_view message, const char* file, int line);
 }  // namespace impl
-}  // namespace nbody
+}  // namespace base
 
 #ifndef NDEBUG
-#define ASSERT(condition, message)                                                 \
-    do {                                                                           \
-        if (!(condition)) {                                                        \
-            std::string _nbody_assert_msg =                                        \
-                nbody::impl::assert_format_message((message), __FILE__, __LINE__); \
-            nbody::Logger::log(nbody::LogLayer::ASSERT, nbody::LogSeverity::FATAL, \
-                               _nbody_assert_msg);                                 \
-            std::abort();                                                          \
-        }                                                                          \
+#define ASSERT(condition, message)                                                \
+    do {                                                                          \
+        if (!(condition)) {                                                       \
+            std::string _nbody_assert_msg =                                       \
+                base::impl::assert_format_message((message), __FILE__, __LINE__); \
+            base::Logger::log(base::LogLayer::ASSERT, base::LogSeverity::FATAL,   \
+                              _nbody_assert_msg);                                 \
+            std::abort();                                                         \
+        }                                                                         \
     } while (false)
-#define PANIC(message)                                                                           \
-    do {                                                                                         \
-        std::string _nbody_panic_msg =                                                           \
-            nbody::impl::assert_format_message((message), __FILE__, __LINE__);                   \
-        nbody::Logger::log(nbody::LogLayer::PANIC, nbody::LogSeverity::FATAL, _nbody_panic_msg); \
-        std::abort();                                                                            \
+#define PANIC(message)                                                                        \
+    do {                                                                                      \
+        std::string _nbody_panic_msg =                                                        \
+            base::impl::assert_format_message((message), __FILE__, __LINE__);                 \
+        base::Logger::log(base::LogLayer::PANIC, base::LogSeverity::FATAL, _nbody_panic_msg); \
+        std::abort();                                                                         \
     } while (false)
 #else
 #define ASSERT(condition, message) ((void)0)

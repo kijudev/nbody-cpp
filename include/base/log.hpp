@@ -10,50 +10,16 @@
 
 #include "type.hpp"
 
-namespace nbody {
-
-// NOTE: Colors correspond to ANSI escape codes.
-// Undefine possible conflicting color macros (commonly defined by raylib and other libs).
-#ifdef RED
-#undef RED
-#endif
-#ifdef YELLOW
-#undef YELLOW
-#endif
-#ifdef GREEN
-#undef GREEN
-#endif
-#ifdef BLUE
-#undef BLUE
-#endif
-#ifdef PURPLE
-#undef PURPLE
-#endif
-#ifdef CYAN
-#undef CYAN
-#endif
-#ifdef WHITE
-#undef WHITE
-#endif
+namespace base {
 
 enum class LogColor {
-    // Prefixed enumerators to avoid macro collisions.
-    LC_RED,
-    LC_YELLOW,
-    LC_GREEN,
-    LC_BLUE,
-    LC_PURPLE,
-    LC_CYAN,
-    LC_WHITE,
-
-    // Backwards-compatible enumerator names mapped to the prefixed ones.
-    RED = LC_RED,
-    YELLOW = LC_YELLOW,
-    GREEN = LC_GREEN,
-    BLUE = LC_BLUE,
-    PURPLE = LC_PURPLE,
-    CYAN = LC_CYAN,
-    WHITE = LC_WHITE
+    LOG_COLOR_RED,
+    LOG_COLOR_YELLOW,
+    LOG_COLOR_GREEN,
+    LOG_COLOR_BLUE,
+    LOG_COLOR_PURPLE,
+    LOG_COLOR_CYAN,
+    LOG_COLOR_WHITE,
 };
 std::string log_color_ansi_code(LogColor color);
 
@@ -179,45 +145,45 @@ class Logger {
     static bool       m_is_initialized;
 };
 
-}  // namespace nbody
+}  // namespace base
 
 // NOTE: Macros utilizing the global Logger singleton instance.
 #if !defined(NDEBUG) && !defined(NLOG)
-#define LOG_INIT_DEFAULT()             nbody::Logger::init()
-#define LOG_INIT_WITH_LOGGERS(loggers) nbody::Logger::init(loggers)
+#define LOG_INIT_DEFAULT()             base::Logger::init()
+#define LOG_INIT_WITH_LOGGERS(loggers) base::Logger::init(loggers)
 
 #define LOG_LIB_DEBUG(message) \
-    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::DEBUG, message)
+    base::Logger::log(base::LogLayer::LIB, base::LogSeverity::DEBUG, message)
 #define LOG_LIB_INFO(message) \
-    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::INFO, message)
+    base::Logger::log(base::LogLayer::LIB, base::LogSeverity::INFO, message)
 #define LOG_LIB_WARNING(message) \
-    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::WARNING, message)
+    base::Logger::log(base::LogLayer::LIB, base::LogSeverity::WARNING, message)
 #define LOG_LIB_ERROR(message) \
-    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::ERROR, message)
+    base::Logger::log(base::LogLayer::LIB, base::LogSeverity::ERROR, message)
 #define LOG_LIB_FATAL(message) \
-    nbody::Logger::log(nbody::LogLayer::LIB, nbody::LogSeverity::FATAL, message)
+    base::Logger::log(base::LogLayer::LIB, base::LogSeverity::FATAL, message)
 
 #define LOG_GFX_DEBUG(message) \
-    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::DEBUG, message)
+    base::Logger::log(base::LogLayer::GFX, base::LogSeverity::DEBUG, message)
 #define LOG_GFX_INFO(message) \
-    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::INFO, message)
+    base::Logger::log(base::LogLayer::GFX, base::LogSeverity::INFO, message)
 #define LOG_GFX_WARNING(message) \
-    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::WARNING, message)
+    base::Logger::log(base::LogLayer::GFX, base::LogSeverity::WARNING, message)
 #define LOG_GFX_ERROR(message) \
-    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::ERROR, message)
+    base::Logger::log(base::LogLayer::GFX, base::LogSeverity::ERROR, message)
 #define LOG_GFX_FATAL(message) \
-    nbody::Logger::log(nbody::LogLayer::GFX, nbody::LogSeverity::FATAL, message)
+    base::Logger::log(base::LogLayer::GFX, base::LogSeverity::FATAL, message)
 
 #define LOG_APP_DEBUG(message) \
-    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::DEBUG, message)
+    base::Logger::log(base::LogLayer::APP, base::LogSeverity::DEBUG, message)
 #define LOG_APP_INFO(message) \
-    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::INFO, message)
+    base::Logger::log(base::LogLayer::APP, base::LogSeverity::INFO, message)
 #define LOG_APP_WARNING(message) \
-    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::WARNING, message)
+    base::Logger::log(base::LogLayer::APP, base::LogSeverity::WARNING, message)
 #define LOG_APP_ERROR(message) \
-    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::ERROR, message)
+    base::Logger::log(base::LogLayer::APP, base::LogSeverity::ERROR, message)
 #define LOG_APP_FATAL(message) \
-    nbody::Logger::log(nbody::LogLayer::APP, nbody::LogSeverity::FATAL, message)
+    base::Logger::log(base::LogLayer::APP, base::LogSeverity::FATAL, message)
 #else
 #define LOG_INIT_DEFAULT()      ((void)0)
 #define LOG_INIT_WITH_LOGGERS() ((void)0)

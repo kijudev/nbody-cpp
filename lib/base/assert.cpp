@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 
-namespace nbody {
+namespace base {
 namespace impl {
 std::string assert_format_message(std::string_view message, const char* file, int line) {
     std::string out;
@@ -17,4 +17,4 @@ std::string assert_format_message(std::string_view message, const char* file, in
     return out;
 }
 }  // namespace impl
-}  // namespace nbody
+}  // namespace base

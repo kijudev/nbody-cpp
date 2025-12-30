@@ -15,8 +15,7 @@
 #include "base/type.hpp"
 #include "math/impl.hpp"
 
-namespace nbody {
-
+namespace math {
 template <FloatT F>
 struct Vec2T {
     F x = 0.0;
@@ -68,7 +67,7 @@ struct Vec2T {
 
     // NOTE: Approximate equality using an epsilon.
     [[nodiscard]] constexpr bool approx_equal(Vec2T other,
-                                              F     eps = default_epsilon<F>()) const noexcept {
+                                              F eps = impl::default_epsilon<F>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps);
     }
 
@@ -135,7 +134,7 @@ struct Vec3T {
     }
 
     [[nodiscard]] constexpr bool approx_equal(Vec3T other,
-                                              F     eps = default_epsilon<F>()) const noexcept {
+                                              F eps = impl::default_epsilon<F>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps) &&
                (std::fabs(z - other.z) <= eps);
     }
@@ -199,7 +198,7 @@ struct Vec4T {
     }
 
     [[nodiscard]] constexpr bool approx_equal(Vec4T other,
-                                              F     eps = default_epsilon<F>()) const noexcept {
+                                              F eps = impl::default_epsilon<F>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps) &&
                (std::fabs(z - other.z) <= eps) && (std::fabs(w - other.w) <= eps);
     }
@@ -217,4 +216,4 @@ using Vec2F64 = Vec2T<F64>;
 using Vec3F64 = Vec3T<F64>;
 using Vec4F64 = Vec4T<F64>;
 
-}  // namespace nbody
+}  // namespace math

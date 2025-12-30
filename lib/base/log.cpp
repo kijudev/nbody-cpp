@@ -22,22 +22,22 @@
 #include <windows.h>
 #endif
 
-namespace nbody {
+namespace base {
 std::string log_color_ansi_code(LogColor color) {
     switch (color) {
-        case LogColor::LC_RED:
+        case LogColor::LOG_COLOR_RED:
             return "\x1b[31m";
-        case LogColor::LC_YELLOW:
+        case LogColor::LOG_COLOR_YELLOW:
             return "\x1b[33m";
-        case LogColor::LC_GREEN:
+        case LogColor::LOG_COLOR_GREEN:
             return "\x1b[32m";
-        case LogColor::LC_BLUE:
+        case LogColor::LOG_COLOR_BLUE:
             return "\x1b[34m";
-        case LogColor::LC_PURPLE:
+        case LogColor::LOG_COLOR_PURPLE:
             return "\x1b[35m";
-        case LogColor::LC_CYAN:
+        case LogColor::LOG_COLOR_CYAN:
             return "\x1b[36m";
-        case LogColor::LC_WHITE:
+        case LogColor::LOG_COLOR_WHITE:
             return "\x1b[37m";
         default:
             return "\x1b[0m";
@@ -74,16 +74,16 @@ std::string log_severity_to_string(LogSeverity severity) {
 
 LogColor log_severity_to_color(LogSeverity severity) {
     switch (severity) {
-        case nbody::LogSeverity::DEBUG:
-            return LogColor::LC_CYAN;
+        case LogSeverity::DEBUG:
+            return LogColor::LOG_COLOR_CYAN;
         case LogSeverity::INFO:
-            return LogColor::LC_GREEN;
+            return LogColor::LOG_COLOR_GREEN;
         case LogSeverity::WARNING:
-            return LogColor::LC_YELLOW;
+            return LogColor::LOG_COLOR_YELLOW;
         case LogSeverity::ERROR:
-            return LogColor::LC_RED;
+            return LogColor::LOG_COLOR_RED;
         case LogSeverity::FATAL:
-            return LogColor::LC_PURPLE;
+            return LogColor::LOG_COLOR_PURPLE;
     }
 }
 
@@ -268,4 +268,4 @@ void Logger::log(LogLayer layer, LogSeverity severity, const std::string& messag
     }
 }
 
-}  // namespace nbody
+}  // namespace base

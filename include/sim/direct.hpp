@@ -10,7 +10,7 @@ namespace nbody {
 template <FloatT Float>
 class Sim2Direct {
    public:
-    using Vec2        = Vec2T<Float>;
+    using Vec2        = math::Vec2T<Float>;
     using Body        = Body2T<Float>;
     using Layout      = std::vector<Body>;
     using IntegrateFn = Integrate2Fn<Float>;
@@ -44,8 +44,8 @@ class Sim2Direct {
     const Float       m_softening{};
 
     void apply_gravity() {
-        for (size_t i = 0; i < m_bodies.size(); ++i) {
-            for (size_t j = i + 1; j < m_bodies.size(); ++j) {
+        for (USize i = 0; i < m_bodies.size(); ++i) {
+            for (USize j = i + 1; j < m_bodies.size(); ++j) {
                 apply_gravity_body_pair(m_bodies[i], m_bodies[j]);
             }
         }

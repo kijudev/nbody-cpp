@@ -75,17 +75,15 @@ std::string generate_code(const ShaderBytecodeInfo& info) {
     s += "\n";
     s += "#include \"base/type.hpp\"\n";
     s += "\n";
-    s += "namespace nbody {\n";
     s += "namespace embed {\n";
     s += "static const Bytecode " + bytecode_symbol + " = {" + bytecode_string + "};\n";
     s += "} // namespace embed\n";
-    s += "} // namespace nbody\n";
 
     return s;
 }
 
 int main() {
-    nbody::Logger::init();
+    LOG_INIT_DEFAULT();
 
     const std::string output_dir_path = "include/embed/";
 
@@ -101,7 +99,7 @@ int main() {
     bytecode_infos.reserve(input_infos.size());
 
     for (const ShaderInputInfo& input_info : input_infos) {
-        std::optional<std::string> source_result = nbody::file_read_as_string(input_info.path);
+        std::optional<std::string> source_result = base::file_read_as_string(input_info.path);
 
         ASSERT(source_result.has_value(), "Failed to read shader source -> " + input_info.path);
 
@@ -124,7 +122,7 @@ int main() {
         std::string code             = generate_code(bytecode_info);
 
         LOG_APP_INFO("Writing shader: " + bytecode_info.name);
-        nbody::file_write(output_file_path, code);
+        base::file_write(output_file_path, code);
     }
 
     return 0;

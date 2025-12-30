@@ -8,7 +8,7 @@
 
 #include "base/type.hpp"
 
-namespace nbody {
+namespace base {
 std::optional<std::vector<char>> file_read_as_chars(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
@@ -122,4 +122,4 @@ std::tuple<std::string, std::string> filename_split_by_extension(const std::stri
 
     return std::make_tuple(filename.substr(0, pos), filename.substr(pos + 1));
 }
-}  // namespace nbody
+}  // namespace base
