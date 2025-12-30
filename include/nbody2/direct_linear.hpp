@@ -8,14 +8,14 @@
 
 namespace nbody2 {
 template <FloatT Float>
-class SimDirectLinear {
+class SimDirect {
    public:
     using Vec2        = math::Vec2T<Float>;
     using Body        = BodyT<Float>;
     using Layout      = std::vector<Body>;
     using IntegrateFn = IntegrateFn<Float>;
 
-    SimDirectLinear(Layout bodies, IntegrateFn integrator, Float g, Float softening)
+    SimDirect(Layout bodies, IntegrateFn integrator, Float g, Float softening)
         : m_bodies(std::move(bodies)),
           m_integrate(std::move(integrator)),
           m_g(g),
