@@ -1,12 +1,12 @@
 #include <cmath>
-#include <vector>
 
 #include "base/type.hpp"
 #include "math/vec.hpp"
 #include "raylib.h"
-#include "sim/body2.hpp"
-#include "sim/integrator2.hpp"
-#include "sim/sim2_linear_direct.hpp"
+#include "sim/const.hpp"
+#include "sim/direct.hpp"
+#include "sim/euler.hpp"
+#include "sim/type.hpp"
 
 int main() {
     const I32 screen_width  = 1024;
@@ -15,8 +15,7 @@ int main() {
     InitWindow(screen_width, screen_height, "nbody - showcase (sim2_linear_direct)");
     SetTargetFPS(60);
 
-    // NOTE: Type aliases for convenience.
-    using Float = float;
+    using Float = F32;
     using Vec2  = nbody::Vec2T<Float>;
     using Body  = nbody::Body2T<Float>;
 
@@ -43,14 +42,15 @@ int main() {
     bodies.push_back(central);
     bodies.push_back(orb);
 
-    nbody::Sim2LinearDirect sim(bodies, &nbody::integrate2_euler<Float>);
+    nbody::Sim2Direct<Float> sim(std::move(bodies), nbody::euler2<Float>, nbody::G_TOY,
+                                 nbody::SOFTENING_TOY);
 
     // NOTE: Initialize camera/viewport controls.
     Vec2        cam_pos{0.0f, 0.0f};
-    float       zoom      = 1.0f;
-    const float zoom_step = 1.15f;
+    Float       zoom      = 1.0f;
+    const Float zoom_step = 1.15f;
     bool        paused    = false;
-    float       sim_speed = 1.0f;
+    Float       sim_speed = 1.0f;
 
     const Vector2 screen_center = {screen_width / 2.0f, screen_height / 2.0f};
 

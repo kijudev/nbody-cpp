@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <span>
 
 #include "base/type.hpp"
 #include "type.hpp"
@@ -20,8 +21,8 @@ class Sim2Direct {
           m_g(g),
           m_softening(softening) {}
 
-    [[nodiscard]] std::span<const Body> bodies() const { return m_bodies; }
-    void                                add_body(const Body& body) { m_bodies.push_back(body); }
+    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const { return m_bodies; }
+    void add_body(const Body& body) { m_bodies.push_back(body); }
 
     void step(Float dt) {
         for (Body& body : m_bodies) {

@@ -9,7 +9,7 @@
 
 namespace nbody {
 template <FloatT Float>
-class Sim2LinearBarnesHut {
+class Sim2BarnesHut {
    public:
     using Vec2        = Vec2T<Float>;
     using Body        = Body2T<Float>;
@@ -150,8 +150,8 @@ class Sim2LinearBarnesHut {
         m_tree_root.reset();
     }
 
-    Sim2LinearBarnesHut() = default;
-    Sim2LinearBarnesHut(std::vector<Body> bodies, IntegrateFn integrator)
+    Sim2BarnesHut() = default;
+    Sim2BarnesHut(std::vector<Body> bodies, IntegrateFn integrator)
         : m_bodies(std::move(bodies)), m_integrate(std::move(integrator)) {}
 
     [[nodiscard]] const std::vector<Body>& bodies() const noexcept { return m_bodies; }
@@ -203,11 +203,11 @@ class Sim2LinearBarnesHut {
 
             // Opening criterion: s / d < theta, where s is node size (use 2 * radius for full
             // width)
-            Float s = node->radius * static_cast<F>(2.0);
-            if (dist > static_cast<F>(0.0) && (s / dist) < theta) {
+            Float s = node->radius * static_cast<Float>(2.0);
+            if (dist > static_cast<Float>(0.0) && (s / dist) < theta) {
                 // Accept this node as a single body at its center-of-mass
-                Float inv_r3  = static_cast<F>(1.0) / (dist * dist2);
-                Vec2  contrib = delta.scale(G * node->mass * inv_r3);
+                Float inv_r3  = static_cast<Float>(1.0) / (dist * dist2);
+                Vec2  contrib = delta.scale( * node->mass * inv_r3);
                 body.acc      = body.acc.add(contrib);
             } else {
                 // Otherwise, recurse into children

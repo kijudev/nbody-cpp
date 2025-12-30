@@ -25,5 +25,5 @@ struct Body2T {
 };
 
 template <FloatT Float>
-using Integrate2Fn = std::move_only_function<void(Body2T<Float>& body, Float dt)>;
+using Integrate2Fn = std::function<void(Body2T<Float>& body, Float dt)>;
 };  // namespace nbody
