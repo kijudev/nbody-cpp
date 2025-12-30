@@ -1,44 +1,30 @@
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <limits>
 #include <memory>
-#include <string>
 #include <vector>
-#include <functional>
 
-#include "base/log.hpp"
 #include "base/type.hpp"
-#include "sim/integrator2.hpp"
+#include "math/vec.hpp"
+#include "type.hpp"
 
 namespace nbody {
-template <typename F, typename IntegrateFn = decltype(&nbody::integrate2_euler<F>)>
-    requires FloatT<F> && Integrate2FnT<F, IntegrateFn>
+template <FloatT Float>
 class Sim2LinearBarnesHut {
    public:
-    using Vec2 = Vec2T<F>;
-    using Body = Body2T<F>;
-
-    const F G         = 1.0;
-    const F SOFTENING = 0.1;
+    using Vec2        = Vec2T<Float>;
+    using Body        = Body2T<Float>;
+    using Layout      = std::vector<Body>;
+    using IntegrateFn = Integrate2Fn<Float>;
 
     struct Node {
-        // Region center (spatial center of this node's square region)
-        Vec2 center{0.0, 0.0};
-        // Total mass contained in this node (including children)
-        F mass{0.0};
-        // Region half-size (distance from center to any face). tree_construct sets this on root.
-        F radius{0.0};
+        Vec2  center{0.0, 0.0};
+        Float mass{0.0};
+        Float radius{0.0};
+        Vec2  com{0.0, 0.0};
 
-        // Center-of-mass of this node (weighted average of contained bodies)
-        Vec2 com{0.0, 0.0};
-
-        // If this node is a leaf and directly stores a single body, these hold it.
-        Vec2 body_pos{0.0, 0.0};
-        F    body_mass{0.0};
-        bool has_body{false};
+        Vec2  body_pos{0.0, 0.0};
+        Float body_mass{0.0};
+        bool  has_body{false};
 
         std::array<std::unique_ptr<Node>, 4> children{};
 
@@ -49,20 +35,18 @@ class Sim2LinearBarnesHut {
 
         Node() = default;
 
-        // Determine which quadrant a point belongs to relative to this node's region center.
-        USize quadrant_of(const Vec2& p) const {
-            if (p.x >= center.x && p.y >= center.y) return QUAD_NE;
-            if (p.x < center.x && p.y >= center.y) return QUAD_NW;
-            if (p.x < center.x && p.y < center.y) return QUAD_SW;
+        USize get_quadrant_of_point(const Vec2& point) const {
+            if (point.x >= center.x && point.y >= center.y) return QUAD_NE;
+            if (point.x < center.x && point.y >= center.y) return QUAD_NW;
+            if (point.x < center.x && point.y < center.y) return QUAD_SW;
             return QUAD_SE;
         }
 
-        // Lazily create and initialize a child node for quadrant q.
         void ensure_child(USize q) {
             if (children[q]) return;
 
-            F    hr = radius * 0.5;  // child half-radius
-            Vec2 c  = center;
+            Float hr = radius * 0.5;  // child half-radius
+            Vec2  c  = center;
             switch (q) {
                 case QUAD_NE:
                     c.x += hr;
@@ -91,8 +75,7 @@ class Sim2LinearBarnesHut {
             children[q]     = std::move(child);
         }
 
-        // Insert a body (position p and mass m) into this node's subtree.
-        void insert_body(const Vec2& p, F m) {
+        void insert_body(const Vec2& p, Float m) {
             // 1) Update this node's aggregated mass and center-of-mass
             if (mass == 0.0) {
                 com  = p;
@@ -117,9 +100,9 @@ class Sim2LinearBarnesHut {
                     // leaf already contains a body. If the new body is at the exact same
                     // position as the stored one, accumulate mass and keep it as a single stored
                     // body
-                    Vec2 delta = p.sub(body_pos);
-                    F    dist2 = delta.length_sq();
-                    if (dist2 == static_cast<F>(0.0) || radius == static_cast<F>(0.0)) {
+                    Vec2  delta = p.sub(body_pos);
+                    Float dist2 = delta.length_sq();
+                    if (dist2 == static_cast<Float>(0.0) || radius == static_cast<Float>(0.0)) {
                         // Can't subdivide further (or bodies coincide) — combine masses at this
                         // node. Update the stored body as the combined center (body_pos becomes
                         // com).
@@ -131,7 +114,7 @@ class Sim2LinearBarnesHut {
 
                     // Otherwise, subdivide: move the existing stored body into the appropriate
                     // child.
-                    USize existing_q = quadrant_of(body_pos);
+                    USize existing_q = get_quadrant_of_point(body_pos);
                     ensure_child(existing_q);
                     children[existing_q]->insert_body(body_pos, body_mass);
                     has_body = false;  // this node no longer stores a direct body
@@ -141,13 +124,13 @@ class Sim2LinearBarnesHut {
 
             // 3) Insert the body into the correct child (this node is internal, or was just
             // subdivided)
-            USize q = quadrant_of(p);
+            USize q = get_quadrant_of_point(p);
             ensure_child(q);
             children[q]->insert_body(p, m);
         }
     };
 
-    void step(F dt) {
+    void step(Float dt) {
         for (Body& body : m_bodies) {
             body.acc = Vec2::zero();
         }
@@ -156,7 +139,7 @@ class Sim2LinearBarnesHut {
         tree_construct();
 
         // Compute accelerations using the constructed tree
-        calc_acc();
+        apply_gravity();
 
         // Integrate bodies
         for (Body& body : m_bodies) {
@@ -168,35 +151,38 @@ class Sim2LinearBarnesHut {
     }
 
     Sim2LinearBarnesHut() = default;
-    Sim2LinearBarnesHut(const std::vector<Body>& bodies, const IntegrateFn& integrator)
-        : m_bodies(bodies), m_integrate(integrator) {}
+    Sim2LinearBarnesHut(std::vector<Body> bodies, IntegrateFn integrator)
+        : m_bodies(std::move(bodies)), m_integrate(std::move(integrator)) {}
 
     [[nodiscard]] const std::vector<Body>& bodies() const noexcept { return m_bodies; }
     [[nodiscard]] std::vector<Body>&       bodies_mut() noexcept { return m_bodies; }
 
    public:
-    std::vector<Body>     m_bodies{};
-    IntegrateFn           m_integrate{};
+    Layout                m_bodies{};
     std::unique_ptr<Node> m_tree_root{};
 
-    void calc_acc() {
+    const IntegrateFn m_integrate{};
+    const Float       m_g{};
+    const Float       m_softening{};
+
+    void apply_gravity() {
         if (!m_tree_root) return;
 
         // Barnes-Hut opening angle (tunable)
-        constexpr F theta = static_cast<F>(0.5);
+        constexpr Float theta = static_cast<Float>(0.5);
 
         // Recursive visitor that accumulates acceleration contribution from `node` onto `body`.
         std::function<void(Body&, Node*)> visit = [&](Body& body, Node* node) {
-            if (!node || node->mass == static_cast<F>(0.0)) return;
+            if (!node || node->mass == static_cast<Float>(0.0)) return;
 
             // Vector from body to node's center-of-mass
             Vec2 delta = node->com.sub(body.pos);
             // softened squared distance
-            F dist2 = delta.length_sq() + (SOFTENING * SOFTENING);
-            F dist  = std::sqrt(dist2);
+            Float dist2 = delta.length_sq() + (m_softening * m_softening);
+            Float dist  = std::sqrt(dist2);
 
-            // Check if node is a leaf (no children)
-            bool is_leaf = !(node->children[0] || node->children[1] || node->children[2] || node->children[3]);
+            bool is_leaf =
+                !(node->children[0] || node->children[1] || node->children[2] || node->children[3]);
 
             if (is_leaf) {
                 // If leaf stores a body, make sure we don't self-interact
@@ -208,20 +194,21 @@ class Sim2LinearBarnesHut {
                     }
 
                     // Treat the leaf as a single body located at node->com
-                    F inv_r3 = static_cast<F>(1.0) / (dist * dist2);
-                    Vec2 contrib = delta.scale(G * node->mass * inv_r3);
-                    body.acc = body.acc.add(contrib);
+                    Float inv_r3  = static_cast<Float>(1.0) / (dist * dist2);
+                    Vec2  contrib = delta.scale(m_g * node->mass * inv_r3);
+                    body.acc      = body.acc.add(contrib);
                 }
                 return;
             }
 
-            // Opening criterion: s / d < theta, where s is node size (use 2 * radius for full width)
-            F s = node->radius * static_cast<F>(2.0);
+            // Opening criterion: s / d < theta, where s is node size (use 2 * radius for full
+            // width)
+            Float s = node->radius * static_cast<F>(2.0);
             if (dist > static_cast<F>(0.0) && (s / dist) < theta) {
                 // Accept this node as a single body at its center-of-mass
-                F inv_r3 = static_cast<F>(1.0) / (dist * dist2);
-                Vec2 contrib = delta.scale(G * node->mass * inv_r3);
-                body.acc = body.acc.add(contrib);
+                Float inv_r3  = static_cast<F>(1.0) / (dist * dist2);
+                Vec2  contrib = delta.scale(G * node->mass * inv_r3);
+                body.acc      = body.acc.add(contrib);
             } else {
                 // Otherwise, recurse into children
                 for (const auto& child : node->children) {
@@ -241,13 +228,14 @@ class Sim2LinearBarnesHut {
     // Public visualization helpers:
     // - `Quad` is a small POD describing a node's region for rendering.
     // - `collect_quads` fills a vector with every node in the tree (for external rendering code).
-    // - `draw_quads` accepts a callable that will be invoked for every node (center, radius, is_leaf).
+    // - `draw_quads` accepts a callable that will be invoked for every node (center, radius,
+    // is_leaf).
     struct Quad {
-        Vec2 center;
-        F    radius;
-        bool is_leaf;
-        F    mass;
-        Vec2 com;
+        Vec2  center;
+        Float radius;
+        bool  is_leaf;
+        Float mass;
+        Vec2  com;
     };
 
     void collect_quads(std::vector<Quad>& out) const {
@@ -255,7 +243,8 @@ class Sim2LinearBarnesHut {
 
         std::function<void(const Node*)> visit = [&](const Node* node) {
             if (!node) return;
-            bool is_leaf = !(node->children[0] || node->children[1] || node->children[2] || node->children[3]);
+            bool is_leaf =
+                !(node->children[0] || node->children[1] || node->children[2] || node->children[3]);
             out.push_back(Quad{node->center, node->radius, is_leaf, node->mass, node->com});
             for (const auto& c : node->children) {
                 if (c) visit(c.get());
@@ -271,7 +260,8 @@ class Sim2LinearBarnesHut {
 
         std::function<void(const Node*)> visit = [&](const Node* node) {
             if (!node) return;
-            bool is_leaf = !(node->children[0] || node->children[1] || node->children[2] || node->children[3]);
+            bool is_leaf =
+                !(node->children[0] || node->children[1] || node->children[2] || node->children[3]);
             // draw_fn(center, radius, is_leaf, mass, com)
             draw_fn(node->center, node->radius, is_leaf, node->mass, node->com);
             for (const auto& c : node->children) {
@@ -283,13 +273,14 @@ class Sim2LinearBarnesHut {
     }
 
     void apply_gravity_pair(Body& a, Body& b) {
-        Vec2 delta     = b.pos.sub(a.pos);
-        F    r2_soft   = delta.length_sq() + (SOFTENING * SOFTENING);
-        F    inv_r3    = 1.0 / (std::sqrt(r2_soft) * r2_soft);
-        Vec2 a_contrib = delta.scale(G * b.mass * inv_r3);
-        Vec2 b_contrib = delta.scale(G * a.mass * inv_r3);
-        a.acc          = a.acc.add(a_contrib);
-        b.acc          = b.acc.sub(b_contrib);
+        Vec2  delta     = b.pos.sub(a.pos);
+        Float r2_soft   = delta.length_sq() + (m_softening * m_softening);
+        Float inv_r3    = 1.0 / (std::sqrt(r2_soft) * r2_soft);
+        Vec2  a_contrib = delta.scale(m_g * b.mass * inv_r3);
+        Vec2  b_contrib = delta.scale(m_g * a.mass * inv_r3);
+
+        a.acc = a.acc.add(a_contrib);
+        b.acc = b.acc.sub(b_contrib);
     }
 
     void tree_construct() {
@@ -300,10 +291,10 @@ class Sim2LinearBarnesHut {
             m_tree_root->radius = 0.0;
         }
 
-        F extent_x_min = std::numeric_limits<F>::max();
-        F extent_x_max = std::numeric_limits<F>::lowest();
-        F extent_y_min = std::numeric_limits<F>::max();
-        F extent_y_max = std::numeric_limits<F>::lowest();
+        Float extent_x_min = std::numeric_limits<Float>::max();
+        Float extent_x_max = std::numeric_limits<Float>::lowest();
+        Float extent_y_min = std::numeric_limits<Float>::max();
+        Float extent_y_max = std::numeric_limits<Float>::lowest();
 
         for (const Body& body : m_bodies) {
             extent_x_min = std::min(extent_x_min, body.pos.x);
@@ -312,18 +303,15 @@ class Sim2LinearBarnesHut {
             extent_y_max = std::max(extent_y_max, body.pos.y);
         }
 
-        Vec2 center = Vec2((extent_x_min + extent_x_max) / static_cast<F>(2.0),
-                           (extent_y_min + extent_y_max) / static_cast<F>(2.0));
+        Vec2 center = Vec2((extent_x_min + extent_x_max) / static_cast<Float>(2.0),
+                           (extent_y_min + extent_y_max) / static_cast<Float>(2.0));
         // radius is the half-extent that covers all bodies
-        F radius = std::max(extent_x_max - center.x, center.x - extent_x_min);
-        radius   = std::max(radius, extent_y_max - center.y);
-        radius   = std::max(radius, center.y - extent_y_min);
+        Float radius = std::max(extent_x_max - center.x, center.x - extent_x_min);
+        radius       = std::max(radius, extent_y_max - center.y);
+        radius       = std::max(radius, center.y - extent_y_min);
 
         m_tree_root->center = center;
         m_tree_root->radius = radius;
-
-        LOG_LIB_DEBUG("Tree center" + center.fmt());
-        LOG_LIB_DEBUG("Tree radius" + std::to_string(radius));
 
         // Clear previous tree children and data
         m_tree_root->mass      = 0.0;
