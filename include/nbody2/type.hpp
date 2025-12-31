@@ -13,6 +13,10 @@ template <FloatT Float>
 struct PointMassT {
     math::Vec2T<Float> pos{0.0, 0.0};
     Float              mass{1.0};
+
+    std::string fmt() const {
+        return std::format("{{pos: {}, mass: {}}}", pos.fmt(), std::to_string(mass));
+    }
 };
 
 template <FloatT Float>
