@@ -15,6 +15,7 @@ class SimBarnesHut {
    public:
     using Vec2        = math::Vec2T<Float>;
     using Body        = BodyT<Float>;
+    using PointMass   = PointMassT<Float>;
     using Layout      = std::vector<Body>;
     using IntegrateFn = IntegrateFn<Float>;
     using Quad        = USize;
@@ -24,7 +25,6 @@ class SimBarnesHut {
     static constexpr Quad QUAD_SE = 2;
     static constexpr Quad QUAD_SW = 3;
 
-    struct NodeBody;
     enum class NodeKind;
     struct Node;
 
@@ -58,6 +58,8 @@ class SimBarnesHut {
     const Float       m_g{};
     const Float       m_softening{};
 
+    static constexpr Float M_MIN_ROOT_QUAD_RADIUS = 1.0;
+
     void apply_gravity() {
         for (Body& body : m_bodies) {
             m_root->apply_gravity(body, m_g, m_softening);
@@ -68,7 +70,7 @@ class SimBarnesHut {
         init_root();
 
         for (const Body& body : m_bodies) {
-            m_root->insert_body(NodeBody::make_from_body(body));
+            m_root->insert_body(body.pm);
         }
     }
 
@@ -78,40 +80,37 @@ class SimBarnesHut {
             return;
         }
 
+        auto [center, radius] = calc_root_quad_dim();
+
+        m_root = Node::make_internal(center, radius);
+    }
+
+    std::tuple<Vec2, Float> calc_root_quad_dim() {
         Float max_x = std::numeric_limits<Float>::lowest();
         Float max_y = std::numeric_limits<Float>::lowest();
         Float min_x = std::numeric_limits<Float>::max();
         Float min_y = std::numeric_limits<Float>::max();
 
         for (const Body& body : m_bodies) {
-            max_x = std::max(max_x, body.pos.x);
-            max_y = std::max(max_y, body.pos.y);
-            min_x = std::min(min_x, body.pos.x);
-            min_y = std::min(min_y, body.pos.y);
+            max_x = std::max(max_x, body.pm.pos.x);
+            max_y = std::max(max_y, body.pm.pos.y);
+            min_x = std::min(min_x, body.pm.pos.x);
+            min_y = std::min(min_y, body.pm.pos.y);
         }
 
         Float width  = max_x - min_x;
         Float height = max_y - min_y;
 
         Float radius = std::max(width, height) / 2.0;
-        Vec2  center =
+        radius       = std::max(radius, M_MIN_ROOT_QUAD_RADIUS);
+
+        Vec2 center =
             Vec2{static_cast<Float>(min_x + width / 2.0), static_cast<Float>(min_y + height / 2.0)};
 
-        m_root = Node::make_internal(center, radius);
+        return std::make_tuple(center, radius);
     }
 
    public:
-    struct NodeBody {
-        Vec2  pos{0.0, 0.0};
-        Float mass{1.0};
-
-        static NodeBody make_from_body(const Body& body) { return NodeBody{body.pos, body.mass}; }
-
-        std::string fmt() const {
-            return std::format("NodeBody(pos={}, mass={})", pos.fmt(), mass);
-        }
-    };
-
     enum class NodeKind { INTERNAL, EXTERNAL };
 
     struct Node {
@@ -125,51 +124,57 @@ class SimBarnesHut {
         std::array<std::unique_ptr<Node>, 4> children{nullptr, nullptr, nullptr, nullptr};
 
         static std::unique_ptr<Node> make_internal(const Vec2& center, Float radius) {
-            return std::make_unique<Node>(center, 0.0, radius, NodeKind::INTERNAL, center);
+            return std::make_unique<Node>(Node{.center   = center,
+                                               .mass     = 0.0,
+                                               .radius   = radius,
+                                               .kind     = NodeKind::INTERNAL,
+                                               .body_pos = center});
         }
 
         static std::unique_ptr<Node> make_external(const Vec2& center, Float radius,
-                                                   const NodeBody& body) {
-            return std::make_unique<Node>(center, body.mass, radius, NodeKind::EXTERNAL, body.pos);
+                                                   const PointMass& pm) {
+            return std::make_unique<Node>(Node{.center   = center,
+                                               .mass     = pm.mass,
+                                               .radius   = radius,
+                                               .kind     = NodeKind::EXTERNAL,
+                                               .body_pos = pm.pos});
         }
 
-        Node(const Vec2& center_, Float mass_, Float radius_, NodeKind kind_, const Vec2& body_pos_)
-            : center(center_), mass(mass_), radius(radius_), kind(kind_), body_pos(body_pos_) {}
+        void insert_body(const PointMass& pm) {
+            Quad quad = find_quad_for_pos(pm.pos);
 
-        void insert_body(const NodeBody& body) {
-            Quad quad = find_quad_for_pos(body.pos);
-
-            if (!children[quad]) {
-                children[quad] = make_external(get_center_of_quad(quad), radius / 2, body);
-                LOG_LIB_DEBUG("insert_body -> make_external: " + body.fmt() +
-                              "; quad: " + std::to_string(quad));
-            } else if (is_internal()) {
-                children[quad]->insert_body(body);
+            if (is_internal()) {
+                if (!children(quad)) {
+                    children[quad] = make_external(get_center_of_quad(quad), radius / 2, pm);
+                } else {
+                    children[quad]->insert_body(pm);
+                }
             } else {
-                Quad node_body_quad = find_quad_for_pos(body_pos);
+                Quad new_quad = find_quad_for_pos(body_pos);
 
-                kind = NodeKind::INTERNAL;
-                children[node_body_quad] =
-                    make_external(get_center_of_quad(node_body_quad), radius / 2, body);
+                kind               = NodeKind::INTERNAL;
+                children[new_quad] = make_external(get_center_of_quad(new_quad), radius / 2, pm);
 
-                insert_body(body);
+                insert_body(pm);
             }
 
-            update_mass(body);
-            update_com(body);
+            update_mass(pm);
+            update_com(pm);
         }
 
         void apply_gravity(Body& target, Float g, Float softening) {
             if (is_external()) {
-                apply_gravity_target_source(target, extract_node_body(), g, softening);
+                apply_gravity_target_source(target, PointMass{.pos = center, .mass = mass}, g,
+                                            softening);
             } else {
                 Float constexpr theta = 0.5;
-                Float sd              = radius / target.pos.sub(center).length();
+                Float sd              = radius / target.pm.pos.sub(center).length();
 
                 if (sd < theta) {
-                    apply_gravity_target_source(target, extract_node_body(), g, softening);
+                    apply_gravity_target_source(target, PointMass{.pos = center, .mass = mass}, g,
+                                                softening);
                 } else {
-                    for (auto& child : children) {
+                    for (std::unique_ptr<Node>& child : children) {
                         if (child) {
                             child->apply_gravity(target, g, softening);
                         }
@@ -181,11 +186,6 @@ class SimBarnesHut {
        private:
         bool is_internal() const { return kind == NodeKind::INTERNAL; }
         bool is_external() const { return kind == NodeKind::EXTERNAL; }
-
-        NodeBody extract_node_body() const {
-            ASSERT(is_external(), "Node is not external");
-            return NodeBody{body_pos, mass};
-        }
 
         Quad find_quad_for_pos(const Vec2& pos) const {
             if (pos.x >= center.x) {
@@ -203,15 +203,15 @@ class SimBarnesHut {
             }
         }
 
-        void update_mass(const NodeBody& body) {
+        void update_mass(const PointMass& pm) {
             ASSERT(is_internal(), "Node is not internal");
-            mass += body.mass;
+            mass += pm.mass;
         }
 
-        void update_com(const NodeBody& body) {
+        void update_com(const PointMass& pm) {
             ASSERT(is_internal(), "Node is not internal");
-            center = center.scale(mass).add(body.pos.scale(body.mass));
-            center = center.scale(1 / (mass + body.mass));
+            center = center.scale(mass).add(pm.pos.scale(pm.mass));
+            center = center.scale(1 / (mass + pm.mass));
         }
 
         Vec2 get_center_of_quad(Quad quad) const {
@@ -241,13 +241,13 @@ class SimBarnesHut {
         }
     };
 
-    static void apply_gravity_target_source(Body& target, const NodeBody& source, Float g,
+    static void apply_gravity_target_source(Body& target_body, const PointMass& source_pm, Float g,
                                             Float softening) {
-        Vec2  delta               = source.pos.sub(target.pos);
+        Vec2  delta               = source_pm.pos.sub(target_body.pm.pos);
         Float r2_soft             = delta.length_sq() + (softening * softening);
         Float inv_r3              = 1.0 / (std::sqrt(r2_soft) * r2_soft);
-        Vec2  source_contribution = delta.scale(g * source.mass * inv_r3);
-        target.acc                = target.acc.add(source_contribution);
+        Vec2  source_contribution = delta.scale(g * source_pm.mass * inv_r3);
+        target_body.acc           = target_body.acc.add(source_contribution);
     }
 };
 }  // namespace nbody2

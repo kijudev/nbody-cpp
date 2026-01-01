@@ -21,14 +21,12 @@ struct PointMassT {
 
 template <FloatT Float>
 struct BodyT {
-    math::Vec2T<Float> pos{0.0, 0.0};
+    PointMassT<Float>  pm;
     math::Vec2T<Float> vel{0.0, 0.0};
     math::Vec2T<Float> acc{0.0, 0.0};
-    Float              mass{1.0};
 
     std::string fmt() const {
-        return std::format("{{pos: {}, vel: {}, acc: {}, mass: {}}}", pos.fmt(), vel.fmt(),
-                           acc.fmt(), std::to_string(mass));
+        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.fmt(), vel.fmt(), acc.fmt());
     }
 };
 

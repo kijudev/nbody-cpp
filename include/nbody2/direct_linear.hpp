@@ -52,14 +52,14 @@ class SimDirect {
     }
 
     void apply_gravity_body_pair(Body& a, Body& b) {
-        Vec2  delta     = b.pos.sub(a.pos);
+        Vec2  delta     = b.pm.pos.sub(a.pm.pos);
         Float r2_soft   = delta.length_sq() + (m_softening * m_softening);
         Float inv_r3    = 1.0 / (std::sqrt(r2_soft) * r2_soft);
-        Vec2  a_contrib = delta.scale(m_g * b.mass * inv_r3);
-        Vec2  b_contrib = delta.scale(m_g * a.mass * inv_r3);
+        Vec2  a_contrib = delta.scale(m_g * b.pm.mass * inv_r3);
+        Vec2  b_contrib = delta.scale(m_g * a.pm.mass * inv_r3);
 
         a.acc = a.acc.add(a_contrib);
         b.acc = b.acc.sub(b_contrib);
     }
 };
-}  // namespace nbody
+}  // namespace nbody2
