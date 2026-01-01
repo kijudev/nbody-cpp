@@ -70,6 +70,30 @@ class SimBarnesHut {
         }
     }
 
+    std::vector<Node> collect_tree_nodes() {
+        if (!m_root) {
+            return {};
+        }
+
+        std::vector<Node> nodes{m_root};
+
+        while (!nodes.empty()) {
+            Node& node = nodes.back();
+            nodes.pop_back();
+
+            if (node.is_external()) {
+                continue;
+            }
+
+            nodes.push_back(node.children[0]);
+            nodes.push_back(node.children[1]);
+            nodes.push_back(node.children[2]);
+            nodes.push_back(node.children[3]);
+        }
+
+        return nodes;
+    }
+
    private:
     Layout                m_bodies{};       // NOTE: Stores the bodies in the simulation.
     std::unique_ptr<Node> m_root{nullptr};  // NOTE: Stores the Barnes-Hut quadtree.
@@ -230,6 +254,13 @@ class SimBarnesHut {
 
         bool is_internal() const { return kind == NodeKind::INTERNAL; }
         bool is_external() const { return kind == NodeKind::EXTERNAL; }
+
+        std::string fmt() const {
+            return std::format(
+                "Node{ center: {}, mass: {}, radius: {}, body_pos: {}, children: {} }",
+                center.fmt(), std::to_string(mass), std::to_string(radius), body_pos.fmt(),
+                std::to_string(children.size()));
+        }
 
        private:
         void self_update_mass(const PointMass& pm) {
