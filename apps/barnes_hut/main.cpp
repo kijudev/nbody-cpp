@@ -44,6 +44,15 @@ void draw_bodies(std::span<const nbody2::BodyT<F32>, std::dynamic_extent> bodies
     }
 }
 
+void draw_nodes(const std::vector<const nbody2::SimBarnesHut<F32>::Node*>& nodes) {
+    for (const auto& node : nodes) {
+        F32 x = node->region_center.x - node->region_radius;
+        F32 y = node->region_center.y - node->region_radius;
+        DrawRectangleLines(x, y, node->region_radius * 2, node->region_radius * 2,
+                           {255, 255, 255, 100});
+    }
+}
+
 void draw_ui(I32 window_width, I32 window_height) {
     constexpr I32 unit = 8;
 
@@ -106,6 +115,7 @@ int main() {
         ClearBackground(BLACK);
 
         BeginMode2D(camera);
+        draw_nodes(sim.collect_nodes());
         draw_bodies(sim.bodies());
         EndMode2D();
 

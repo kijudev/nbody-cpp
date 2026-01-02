@@ -74,7 +74,7 @@ class SimBarnesHut {
     }
 
     // Return a flat list of node pointers (const) for the renderer. Null root returns empty list.
-    std::vector<const Node*> collect_tree_nodes() const {
+    std::vector<const Node*> collect_nodes() const {
         if (!m_root) {
             return {};
         }
@@ -318,7 +318,6 @@ class SimBarnesHut {
         }
 
        private:
-        // Recompute this node's mass and center-of-mass from its children.
         void self_recompute_com_mass() {
             ASSERT(!is_empty(), "Node is empty");
 
@@ -387,10 +386,11 @@ class SimBarnesHut {
                                                      Float g, Float softening) {
             Vec2  delta   = source_pm.pos.sub(target_body.pm.pos);
             Float r2_soft = delta.length_sq() + (softening * softening);
-            // avoid division by zero
+
             if (r2_soft <= std::numeric_limits<Float>::epsilon()) {
                 return;
             }
+
             Float inv_r3              = 1.0 / (std::sqrt(r2_soft) * r2_soft);
             Vec2  source_contribution = delta.scale(g * source_pm.mass * inv_r3);
             target_body.acc           = target_body.acc.add(source_contribution);
