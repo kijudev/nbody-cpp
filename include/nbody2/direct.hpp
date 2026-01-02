@@ -15,11 +15,18 @@ class SimDirect {
     using Layout      = std::vector<Body>;
     using IntegrateFn = IntegrateFn<Float>;
 
-    SimDirect(Layout bodies, IntegrateFn integrator, Float g, Float softening)
-        : m_bodies(std::move(bodies)),
-          m_integrate(std::move(integrator)),
-          m_g(g),
-          m_softening(softening) {}
+    struct Config {
+        Layout      bodies;
+        IntegrateFn integrate_fn;
+        Float       g;
+        Float       softening;
+    };
+
+    SimDirect(Config config)
+        : m_bodies(std::move(config.bodies)),
+          m_integrate(std::move(config.integrate_fn)),
+          m_g(config.g),
+          m_softening(config.softening) {}
 
     [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const { return m_bodies; }
     void add_body(const Body& body) { m_bodies.push_back(body); }

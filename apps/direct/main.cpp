@@ -1,8 +1,8 @@
 #include <vector>
 
 #include "base/type.hpp"
-#include "nbody2/barnes_hut.hpp"
 #include "nbody2/const.hpp"
+#include "nbody2/direct.hpp"
 #include "nbody2/euler.hpp"
 #include "nbody2/type.hpp"
 
@@ -27,10 +27,14 @@ int main() {
         .acc = {0.0,        0.0},
     };
 
-    nbody2::SimBarnesHut<F32> sim({a, b, c}, nbody2::euler_integrate_body<F32>, nbody2::G_TOY,
-                                  nbody2::SOFTENING_TOY);
+    nbody2::SimDirect<F32>::Config config{
+        .bodies       = {a, b, c},
+        .integrate_fn = nbody2::euler_integrate_body<F32>,
+        .g            = nbody2::G_TOY,
+        .softening    = nbody2::SOFTENING_TOY,
+    };
 
-    sim.step(1.0);
+    nbody2::SimDirect<F32> sim(config);
 
     return 0;
 }

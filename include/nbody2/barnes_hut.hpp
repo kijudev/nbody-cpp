@@ -208,7 +208,7 @@ class SimBarnesHut {
                 if (!children[pm_quad]) {
                     children[pm_quad] = make_external(impl_quad_center(pm_quad), radius / 2, pm);
                 } else {
-                    children[pm_quad]->insert_body(pm);
+                    children[pm_quad]->insert_point_mass(pm);
                 }
             } else {
                 Quad sub_quad      = impl_pos_quad(body_pos);
