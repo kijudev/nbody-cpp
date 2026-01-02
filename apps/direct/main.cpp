@@ -28,10 +28,10 @@ int main() {
     };
 
     nbody2::SimDirect<F32>::Config config{
-        .bodies       = {a, b, c},
+        .bodies = {a, b, c},
         .integrate_fn = nbody2::euler_integrate_body<F32>,
-        .g            = nbody2::G_TOY,
-        .softening    = nbody2::SOFTENING_TOY,
+        .g = nbody2::G_TOY,
+        .softening = nbody2::SOFTENING_TOY,
     };
 
     nbody2::SimDirect<F32> sim(config);

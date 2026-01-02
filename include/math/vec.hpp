@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <raymath.h>
+
 #include <cmath>
 #include <format>
 
@@ -72,6 +74,8 @@ struct Vec2T {
     }
 
     [[nodiscard]] std::string fmt() const { return std::format("({:.16f}, {:.16f})", x, y); }
+
+    [[nodiscard]] Vector2 raylib_vector2() const noexcept { return Vector2(x, y); }
 };
 
 template <FloatT F>
@@ -142,6 +146,8 @@ struct Vec3T {
     [[nodiscard]] std::string fmt() const {
         return std::format("({:.16f}, {:.16f}, {:.16f})", x, y, z);
     }
+
+    [[nodiscard]] Vector3 raylib_vector3() const noexcept { return Vector3(x, y, z); }
 };
 
 template <FloatT F>
@@ -206,9 +212,11 @@ struct Vec4T {
     [[nodiscard]] std::string fmt() const {
         return std::format("({:.16f}, {:.16f}, {:.16f}, {:.16f})", x, y, z, w);
     }
+
+    [[nodiscard]] Vector4 raylib_vector4() const noexcept { return Vector4(x, y, z, w); }
 };
 
-// convenient aliases
+// NOTE: convenient aliases
 using Vec2F32 = Vec2T<F32>;
 using Vec3F32 = Vec3T<F32>;
 using Vec4F32 = Vec4T<F32>;
