@@ -1,8 +1,11 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <span>
+#include <vector>
 
 #include "base/assert.hpp"
 #include "base/type.hpp"
@@ -70,28 +73,35 @@ class SimBarnesHut {
         }
     }
 
-    std::vector<Node> collect_tree_nodes() {
+    // Return a flat list of node pointers (const) for the renderer. Null root returns empty list.
+    std::vector<const Node*> collect_tree_nodes() const {
         if (!m_root) {
             return {};
         }
 
-        std::vector<Node> nodes{m_root};
+        std::vector<const Node*> out;
+        out.reserve(64);
 
-        while (!nodes.empty()) {
-            Node& node = nodes.back();
-            nodes.pop_back();
+        std::vector<const Node*> stack;
+        stack.push_back(m_root.get());
 
-            if (node.is_external()) {
-                continue;
+        while (!stack.empty()) {
+            const Node* node = stack.back();
+            stack.pop_back();
+
+            out.push_back(node);
+
+            if (node->is_region()) {
+                // push children if present
+                for (const auto& child : node->children) {
+                    if (child) {
+                        stack.push_back(child.get());
+                    }
+                }
             }
-
-            nodes.push_back(node.children[0]);
-            nodes.push_back(node.children[1]);
-            nodes.push_back(node.children[2]);
-            nodes.push_back(node.children[3]);
         }
 
-        return nodes;
+        return out;
     }
 
    private:
@@ -104,6 +114,10 @@ class SimBarnesHut {
 
     // NOTE: Applies gravity to each body.
     void impl_apply_gravity() {
+        if (!m_root) {
+            return;
+        }
+
         for (Body& target_body : m_bodies) {
             m_root->apply_gravity_target(target_body, m_g, m_softening);
         }
@@ -114,20 +128,22 @@ class SimBarnesHut {
         impl_init_root();
 
         for (const Body& body : m_bodies) {
-            m_root->insert_point_mass(body.pm);
+            if (m_root) {
+                m_root->insert_point_mass(body.pm);
+            }
         }
     }
 
     // NOTE: Initializes the root node of the Barnes-Hut quadtree.
     void impl_init_root() {
         if (m_bodies.empty()) {
-            m_root = Node::make_internal(Vec2::zero(), 0.0);
+            m_root = Node::make_region(Vec2::zero(), 0.0);
             return;
         }
 
         auto [center, radius] = impl_root_node_center_radius();
 
-        m_root = Node::make_internal(center, radius);
+        m_root = Node::make_region(center, radius);
     }
 
     // NOTE: Calculates the center and radius of the root node of the Barnes-Hut quadtree. Ensures
@@ -159,130 +175,178 @@ class SimBarnesHut {
 
    public:
     // NOTE:
-    // - INTERNAL: Represents a node that subdivides the space into four quadrants.
-    // - EXTERNAL: Represents a node that contains a single body.
-    enum class NodeKind { INTERNAL, EXTERNAL };
+    // - EMPTY: Represents an empty node.
+    // - REGION: Represents a node that subdivides the space into four quadrants.
+    // - LEAF: Represents a node that contains a single body (point mass).
+    enum class NodeKind { EMPTY, REGION, LEAF };
 
     struct Node {
        public:
-        Vec2  center{0.0, 0.0};
+        Vec2  region_center{0.0, 0.0};
+        Float region_radius{0.0};
+
+        // NOTE:
+        // A) If the node is EMPTY, it the values should be set to zero.
+        // B) If the node is REGION, com is the center of mass of the region, and mass is the total
+        // mass of the region.
+        // C) If the node is LEAF, com is the position of the point mass, and
+        // mass is the mass of the point mass.
+        Vec2  com{0.0, 0.0};
         Float mass{0.0};
-        Float radius{0.0};
 
-        // TODO: This might be not needed; a temporary solution.
-        NodeKind kind{NodeKind::INTERNAL};
+        NodeKind kind{NodeKind::EMPTY};
 
-        // WHY: It is necessary to store the position of the body in the node for external nodes.
-        Vec2 body_pos{0.0, 0.0};
+        std::array<std::unique_ptr<Node>, 4> children{};
 
-        std::array<std::unique_ptr<Node>, 4> children{nullptr, nullptr, nullptr, nullptr};
+        static std::unique_ptr<Node> make_empty(const Vec2& center, Float radius) {
+            std::unique_ptr<Node> node = std::make_unique<Node>();
+            node->region_center        = center;
+            node->region_radius        = radius;
+            node->kind                 = NodeKind::EMPTY;
 
-        static std::unique_ptr<Node> make_internal(const Vec2& center, Float radius) {
-            return std::make_unique<Node>(Node{.center   = center,
-                                               .mass     = 0.0,
-                                               .radius   = radius,
-                                               .kind     = NodeKind::INTERNAL,
-                                               .body_pos = center});
+            return node;
         }
 
-        static std::unique_ptr<Node> make_external(const Vec2& center, Float radius,
-                                                   const PointMass& pm) {
-            return std::make_unique<Node>(Node{.center   = center,
-                                               .mass     = pm.mass,
-                                               .radius   = radius,
-                                               .kind     = NodeKind::EXTERNAL,
-                                               .body_pos = pm.pos});
+        static std::unique_ptr<Node> make_region(const Vec2& center, Float radius) {
+            std::unique_ptr<Node> node = std::make_unique<Node>();
+            node->region_center        = center;
+            node->region_radius        = radius;
+            node->kind                 = NodeKind::REGION;
+
+            return node;
         }
 
-        // NOTE: Inserting a point mass into the quad tree.
-        // 1) Calculate the quadrant of the point mass.
-        // 2) If the node is internal and the quadrant is empty, create a new external node.
-        // 3) If the node is internal and the quadrant is not empty, insert the point mass into the
-        // child node.
-        // 4) If the node is external, create a new internal node and insert the point
-        // mass into the appropriate child node.
+        static std::unique_ptr<Node> make_leaf(const Vec2& center, Float radius,
+                                               const PointMass& pm) {
+            std::unique_ptr<Node> node = std::make_unique<Node>();
+            node->region_center        = center;
+            node->region_radius        = radius;
+            node->com                  = pm.pos;
+            node->mass                 = pm.mass;
+            node->kind                 = NodeKind::LEAF;
+
+            return node;
+        }
+
+        // Insert a point mass into the quadtree rooted at this node.
         void insert_point_mass(const PointMass& pm) {
-            Quad pm_quad = impl_pos_quad(pm.pos);
+            if (is_empty()) {
+                kind = NodeKind::LEAF;
+                com  = pm.pos;
+                mass = pm.mass;
+            } else if (is_region()) {
+                Quad q = impl_pos_quad(pm.pos);
 
-            if (is_internal()) {
-                if (!children[pm_quad]) {
-                    children[pm_quad] = make_external(impl_quad_center(pm_quad), radius / 2, pm);
+                if (!children[q]) {
+                    children[q] = make_leaf(impl_quad_center(q), region_radius / 2, pm);
                 } else {
-                    children[pm_quad]->insert_point_mass(pm);
+                    children[q]->insert_point_mass(pm);
                 }
-            } else {
-                Quad sub_quad      = impl_pos_quad(body_pos);
-                children[sub_quad] = make_external(impl_quad_center(sub_quad), radius / 2, pm);
 
-                kind = NodeKind::INTERNAL;
-                insert_point_mass(pm);
+                // NOTE: Recompute mass & com by aggregating children.
+                self_recompute_com_mass();
+            } else if (is_leaf()) {
+                PointMass self_pm = point_mass();
+
+                kind = NodeKind::REGION;
+
+                for (USize q = 0; q < 4; ++q) {
+                    children[q] = make_empty(impl_quad_center(q), region_radius / 2);
+                }
+
+                // NOTE: Insert self as point mass into the appropriate child.
+                Quad self_quad = impl_pos_quad(self_pm.pos);
+                children[self_quad]->insert_point_mass(self_pm);
+
+                // NOTE: Insert the new point mass into the appropriate child.
+                Quad new_quad = impl_pos_quad(pm.pos);
+                children[new_quad]->insert_point_mass(pm);
+
+                // NOTE: Recompute mass & com by aggregating children.
+                self_recompute_com_mass();
+            }
+        }
+
+        void apply_gravity_target(Body& target, Float g, Float softening) const {
+            if (is_leaf()) {
+                if (mass > 0.0) {
+                    impl_apply_gravity_target_source(target, point_mass(), g, softening);
+                }
+
+                return;
             }
 
-            self_update_mass(pm);
-            self_update_com(pm);
-        }
+            Float constexpr theta = static_cast<Float>(0.5);
 
-        // NOTE: Apply gravity from this node to the target body.
-        // 1) If the node is external, apply gravity from the point mass to the target body;
-        // directly calculate the force.
-        // 2) If the node is internal, calculate the distance between
-        // the center of the node and the target body.
-        // 3) If the distance is less than the
-        // threshold, apply gravity from the point mass to the target body.
-        // 4) If the distance is greater than the threshold, apply gravity from the center of the
-        // node to the target body.
-        void apply_gravity_target(Body& target, Float g, Float softening) {
-            if (is_external()) {
-                impl_apply_gravity_target_source(target, PointMass{.pos = center, .mass = mass}, g,
-                                                 softening);
+            Float s     = region_radius * 2.0;
+            Vec2  delta = com.sub(target.pm.pos);
+            Float dist  = delta.length();
+
+            if (dist <= std::numeric_limits<Float>::epsilon()) {
+                return;
+            }
+
+            Float ratio = s / dist;
+            if (ratio < theta) {
+                impl_apply_gravity_target_source(target, point_mass(), g, softening);
             } else {
-                Float constexpr theta = 0.5;
-                Float sd              = radius / target.pm.pos.sub(center).length();
-
-                if (sd < theta) {
-                    impl_apply_gravity_target_source(target, PointMass{.pos = center, .mass = mass},
-                                                     g, softening);
-                } else {
-                    for (std::unique_ptr<Node>& child : children) {
-                        if (child) {
-                            child->apply_gravity_target(target, g, softening);
-                        }
+                for (const std::unique_ptr<Node>& child : children) {
+                    if (child) {
+                        child->apply_gravity_target(target, g, softening);
                     }
                 }
             }
         }
 
-        bool is_internal() const { return kind == NodeKind::INTERNAL; }
-        bool is_external() const { return kind == NodeKind::EXTERNAL; }
+        bool is_empty() const { return kind == NodeKind::EMPTY; }
+        bool is_region() const { return kind == NodeKind::REGION; }
+        bool is_leaf() const { return kind == NodeKind::LEAF; }
+
+        PointMass point_mass() const {
+            ASSERT(is_leaf(), "Node is not a leaf");
+            return {.pos = com, .mass = mass};
+        }
 
         std::string fmt() const {
             return std::format(
-                "Node{ center: {}, mass: {}, radius: {}, body_pos: {}, children: {} }",
-                center.fmt(), std::to_string(mass), std::to_string(radius), body_pos.fmt(),
-                std::to_string(children.size()));
+                "Node{{ region_center: {}, region_radius: {}, mass: {}, com: {}, kind: {}}}",
+                region_center.fmt(), std::to_string(region_radius), std::to_string(mass),
+                com.fmt());
         }
 
        private:
-        void self_update_mass(const PointMass& pm) {
-            ASSERT(is_internal(), "Node is not internal");
-            mass += pm.mass;
-        }
+        // Recompute this node's mass and center-of-mass from its children.
+        void self_recompute_com_mass() {
+            ASSERT(!is_empty(), "Node is empty");
 
-        void self_update_com(const PointMass& pm) {
-            ASSERT(is_internal(), "Node is not internal");
-            center = center.scale(mass).add(pm.pos.scale(pm.mass));
-            center = center.scale(1 / (mass + pm.mass));
+            Float total_mass   = static_cast<Float>(0.0);
+            Vec2  weighted_sum = Vec2::zero();
+
+            for (const auto& child : children) {
+                if (child && child->mass > static_cast<Float>(0.0)) {
+                    weighted_sum = weighted_sum.add(child->com.scale(child->mass));
+                    total_mass += child->mass;
+                }
+            }
+
+            if (total_mass > 0.0) {
+                com  = weighted_sum.scale(1.0 / total_mass);
+                mass = total_mass;
+            } else {
+                com  = Vec2::zero();
+                mass = 0.0;
+            }
         }
 
         Quad impl_pos_quad(const Vec2& pos) const {
-            if (pos.x >= center.x) {
-                if (pos.y >= center.y) {
+            if (pos.x >= region_center.x) {
+                if (pos.y >= region_center.y) {
                     return QUAD_NE;
                 } else {
                     return QUAD_SE;
                 }
             } else {
-                if (pos.y >= center.y) {
+                if (pos.y >= region_center.y) {
                     return QUAD_NW;
                 } else {
                     return QUAD_SW;
@@ -291,8 +355,8 @@ class SimBarnesHut {
         }
 
         Vec2 impl_quad_center(Quad quad) const {
-            Vec2  new_center = center;
-            Float new_radius = radius / 2;
+            Vec2  new_center = region_center;
+            Float new_radius = region_radius / 2.0;
 
             switch (quad) {
                 case QUAD_NE:
@@ -318,8 +382,12 @@ class SimBarnesHut {
 
         static void impl_apply_gravity_target_source(Body& target_body, const PointMass& source_pm,
                                                      Float g, Float softening) {
-            Vec2  delta               = source_pm.pos.sub(target_body.pm.pos);
-            Float r2_soft             = delta.length_sq() + (softening * softening);
+            Vec2  delta   = source_pm.pos.sub(target_body.pm.pos);
+            Float r2_soft = delta.length_sq() + (softening * softening);
+            // avoid division by zero
+            if (r2_soft <= std::numeric_limits<Float>::epsilon()) {
+                return;
+            }
             Float inv_r3              = 1.0 / (std::sqrt(r2_soft) * r2_soft);
             Vec2  source_contribution = delta.scale(g * source_pm.mass * inv_r3);
             target_body.acc           = target_body.acc.add(source_contribution);
