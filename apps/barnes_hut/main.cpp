@@ -7,14 +7,14 @@
 #include "base/type.hpp"
 #include "nbody2/barnes_hut.hpp"
 #include "nbody2/const.hpp"
-#include "nbody2/euler.hpp"
 #include "nbody2/generators.hpp"
 #include "nbody2/type.hpp"
+#include "nbody2/verlet.hpp"
 
-Camera2D make_camera() {
+Camera2D make_camera(I32 window_width, I32 window_height) {
     Camera2D camera = {
-        .offset   = {0.0, 0.0},
-        .target   = {0.0, 0.0},
+        .offset   = {static_cast<F32>(window_width) * 0.5f, static_cast<F32>(window_height) * 0.5f},
+        .target   = {0.0,                                   0.0                                   },
         .rotation = 0.0,
         .zoom     = 1.0,
     };
@@ -104,8 +104,9 @@ void draw_ui(I32 window_width, I32 window_height) {
 
     std::string fps_text = "FPS: " + std::to_string(GetFPS());
 
-    DrawRectangleLines(unit, unit, unit * 16, unit * 16, WHITE);
-    DrawText(fps_text.c_str(), unit * 2, unit * 2, unit, WHITE);
+    DrawRectangle(unit, unit, unit * 16, unit * 8, BLACK);
+    DrawRectangleLines(unit, unit, unit * 16, unit * 8, WHITE);
+    DrawText(fps_text.c_str(), unit * 4, unit * 2, unit, WHITE);
 
     (void)window_width;
     (void)window_height;
@@ -113,19 +114,40 @@ void draw_ui(I32 window_width, I32 window_height) {
 
 int main() {
     nbody2::GenerateDistributionConfig<F32> generate_config{
-        .n           = 1'000,
-        .min_mass    = 1000.0,
+        .n           = 3'000,
+        .min_mass    = 500.0,
         .max_mass    = 100'000.0,
-        .radius      = 10'000.0,
+        .radius      = 15'000.0,
         .position_fn = nbody2::generate_position_distribution_plummer_model<F32>,
         .mass_fn     = nbody2::generate_mass_distribution_salpeter_imf<F32>,
     };
 
     std::vector<nbody2::BodyT<F32>> bodies = nbody2::generate_distribution(generate_config);
+    bodies.push_back({
+        .pm =
+            {
+                 .pos  = {0.0, 0.0},
+                 .mass = 1'000'000.0,
+                 },
+    });
+
+    for (auto& b : bodies) {
+        math::Vec2T<F32> pos = b.pm.pos;
+        F32              r   = pos.length();
+
+        if (r < 1e-6) {
+            b.vel = math::Vec2T<F32>::zero();
+        } else {
+            math::Vec2T<F32> tangent{-pos.y, pos.x};
+            tangent   = tangent.normalized();
+            F32 speed = 2'000.0 / std::sqrt(r);
+            b.vel     = tangent.scale(speed);
+        }
+    }
 
     nbody2::SimBarnesHut<F32>::Config config{
         .bodies       = std::move(bodies),
-        .integrate_fn = nbody2::euler_integrate_body<F32>,
+        .integrate_fn = nbody2::verlet_integrate_body<F32>,
         .g            = nbody2::G_TOY,
         .softening    = nbody2::SOFTENING_TOY,
     };
@@ -136,28 +158,66 @@ int main() {
     I32 window_height = 600;
     I32 target_fps    = 60;
 
-    InitWindow(window_width, window_height, "nbody - direct");
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(window_width, window_height, "nbody - barnes hut");
     SetTargetFPS(target_fps);
 
-    Camera2D camera = make_camera();
+    Camera2D camera     = make_camera(window_width, window_height);
+    bool     show_grid  = true;
+    I32      follow_idx = -1;
 
-    // --- Main Loop ---
     while (!WindowShouldClose()) {
-        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
         window_width  = GetScreenWidth();
         window_height = GetScreenHeight();
+        camera.offset = {static_cast<F32>(window_width) * 0.5f,
+                         static_cast<F32>(window_height) * 0.5f};
 
         F32 dt = GetFrameTime();
         sim.step(dt * 10);
 
         handle_camera_controls(camera);
 
+        if (IsKeyPressed(KEY_G)) {
+            show_grid = !show_grid;
+        }
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            Vector2 mouse_screen = GetMousePosition();
+            Vector2 mouse_world  = GetScreenToWorld2D(mouse_screen, camera);
+            auto    bodies_span  = sim.bodies();
+            I32     picked       = -1;
+            F32     best_d       = 1e30;
+            for (size_t i = 0; i < bodies_span.size(); ++i) {
+                Vector2 bp = bodies_span[i].pm.pos.raylib_vector2();
+                float   r  = std::sqrt(bodies_span[i].pm.mass);
+                float   d  = Vector2Distance(mouse_world, bp);
+                if (d <= r && d < best_d) {
+                    picked = static_cast<I32>(i);
+                    best_d = d;
+                }
+            }
+            follow_idx = picked;
+        }
+
+        if (follow_idx >= 0 && static_cast<USize>(follow_idx) < sim.bodies().size()) {
+            camera.target = sim.bodies()[follow_idx].pm.pos.raylib_vector2();
+        }
+
         BeginDrawing();
         ClearBackground(BLACK);
 
         BeginMode2D(camera);
-        draw_nodes(sim.collect_nodes());
+        if (show_grid) draw_nodes(sim.collect_nodes());
         draw_bodies(sim.bodies());
+        if (follow_idx >= 0 && static_cast<USize>(follow_idx) < sim.bodies().size()) {
+            const auto& b        = sim.bodies()[follow_idx];
+            Vector2     center   = b.pm.pos.raylib_vector2();
+            F32         box_size = 10.0 / camera.zoom;
+            F32         half     = box_size * 0.5;
+            F32         left     = center.x - half;
+            F32         top      = center.y - half;
+            DrawRectangleV({left, top}, {box_size, box_size}, WHITE);
+        }
         EndMode2D();
 
         draw_ui(window_width, window_height);

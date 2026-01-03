@@ -26,10 +26,11 @@ add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
 
 # NOTE: Production Configuration.
 add_compile_options($<$<CONFIG:Production>:-O3>)
-add_compile_options($<$<CONFIG:Production>:-flto=thin>)
+# removed global thin-LTO compile flag to avoid producing bitcode that can break static archives
+# (enable per-target LTO if desired)
 add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
 add_compile_options($<$<CONFIG:Production>:-DNLOG>)
-add_link_options($<$<CONFIG:Production>:-flto=thin>)
+
 add_link_options($<$<CONFIG:Production>:-s>)
 
 find_package(PkgConfig REQUIRED)

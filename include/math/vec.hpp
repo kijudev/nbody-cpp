@@ -55,7 +55,7 @@ struct Vec2T {
     [[nodiscard]] Vec2T normalized() const noexcept {
         const F len = length();
         if (len == static_cast<F>(0)) return Vec2T::zero();
-        return div_scalar(len);
+        return scale(1 / len);
     }
 
     [[nodiscard]] constexpr F distance_sq(Vec2T other) const noexcept {
