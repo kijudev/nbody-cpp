@@ -48,8 +48,13 @@ void draw_nodes(const std::vector<const nbody2::SimBarnesHut<F32>::Node*>& nodes
     for (const auto& node : nodes) {
         F32 x = node->region_center.x - node->region_radius;
         F32 y = node->region_center.y - node->region_radius;
-        DrawRectangleLines(x, y, node->region_radius * 2, node->region_radius * 2,
-                           {255, 255, 255, 100});
+
+        DrawLineV({x, y}, {x + node->region_radius * 2, y}, {255, 255, 255, 100});
+        DrawLineV({x, y}, {x, y + node->region_radius * 2}, {255, 255, 255, 100});
+        DrawLineV({x + node->region_radius * 2, y},
+                  {x + node->region_radius * 2, y + node->region_radius * 2}, {255, 255, 255, 100});
+        DrawLineV({x, y + node->region_radius * 2},
+                  {x + node->region_radius * 2, y + node->region_radius * 2}, {255, 255, 255, 100});
     }
 }
 
