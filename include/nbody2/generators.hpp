@@ -119,22 +119,25 @@ std::vector<Float> generate_mass_distribution_uniform(USize n, Float min_mass, F
 template <FloatT Float>
 std::vector<Float> generate_mass_distribution_salpeter_imf(USize n, Float min_mass,
                                                            Float max_mass) {
-    // TODO: Hardcoded for now; paramaterize ALPHA.
     constexpr Float ALPHA = 2.35;
+
+    Float exponent = 1.0 - ALPHA;
+    Float term_a   = std::pow(max_mass, exponent);
+    Float term_b   = std::pow(min_mass, exponent);
+    Float diff     = term_a - term_b;
+    Float inv_exp  = 1.0 / exponent;
 
     std::vector<Float> masses;
     masses.reserve(n);
 
-    std::default_random_engine            random_engine;
-    std::uniform_real_distribution<Float> uniform_dist(min_mass, max_mass);
+    static std::mt19937 random_engine(std::random_device{}());
 
-    for (USize i = 0; i < n; ++i) {
-        Float X        = uniform_dist(random_engine);
-        Float exponent = 1.0 - ALPHA;
-        Float term_a   = std::pow(max_mass, exponent);
-        Float term_b   = std::pow(min_mass, exponent);
-        Float base     = X * (term_a - term_b) + term_b;
-        Float mass     = std::pow(base, 1.0 / exponent);
+    std::uniform_real_distribution<Float> uniform_dist(0.0, 1.0);
+
+    for (std::size_t i = 0; i < n; ++i) {
+        Float X    = uniform_dist(random_engine);
+        Float base = X * diff + term_b;
+        Float mass = std::pow(base, inv_exp);
         masses.push_back(mass);
     }
 
@@ -147,8 +150,9 @@ struct GenerateDistributionConfig {
     Float                                 min_mass = 1.0;
     Float                                 max_mass = 1.0;
     Float                                 radius   = 10.0;
-    GeneratePositionDistributionFn<Float> position_fn;
-    GenerateMassDistributionFn<Float>     mass_fn;
+    GeneratePositionDistributionFn<Float> position_fn =
+        generate_position_distribution_uniform_box<Float>;
+    GenerateMassDistributionFn<Float> mass_fn = generate_mass_distribution_uniform<Float>;
 };
 
 template <FloatT Float>
