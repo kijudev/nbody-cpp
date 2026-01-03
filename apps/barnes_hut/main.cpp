@@ -113,7 +113,7 @@ void draw_ui(I32 window_width, I32 window_height) {
 
 int main() {
     nbody2::GenerateDistributionConfig<F32> generate_config{
-        .n           = 3'000,
+        .n           = 1'000,
         .min_mass    = 1000.0,
         .max_mass    = 100'000.0,
         .radius      = 10'000.0,
