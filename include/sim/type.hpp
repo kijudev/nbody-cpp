@@ -35,5 +35,5 @@ using BodyF32 = BodyT<F32>;
 using BodyF64 = BodyT<F64>;
 
 template <FloatT Float>
-using IntegrateFnT = std::function<void(BodyT<Float>& body, Float dt)>;
+using IntegrateBodyFnT = std::function<void(BodyT<Float>& body, Float dt)>;
 };  // namespace nbody::sim
