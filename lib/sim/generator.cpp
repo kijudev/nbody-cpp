@@ -1,4 +1,4 @@
-#include "sim/generators.hpp"
+#include "sim/generator.hpp"
 
 #include <math.h>
 #include <raymath.h>

@@ -40,7 +40,7 @@ class SimBarnesHut {
 
     struct Config {
         Layout      bodies{};
-        IntegrateFn integrate_fn{euler_integrate_body<Float>};
+        IntegrateFn integrate_fn{integrate_body_euler<Float>};
         Float       g{G_IRL};
         Float       softening{SOFTENING_IRL};
     };
