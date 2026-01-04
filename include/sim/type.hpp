@@ -15,7 +15,7 @@ struct PointMassT {
     math::Vec2T<Float> pos{0.0, 0.0};
     Float              mass{1.0};
 
-    std::string fmt() const {
+    std::string to_string() const {
         return std::format("{{pos: {}, mass: {}}}", pos.to_string(), std::to_string(mass));
     }
 };
@@ -26,11 +26,14 @@ struct BodyT {
     math::Vec2T<Float> vel{0.0, 0.0};
     math::Vec2T<Float> acc{0.0, 0.0};
 
-    std::string fmt() const {
-        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.fmt(), vel.to_string(), acc.to_string());
+    std::string to_string() const {
+        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.to_string(), vel.to_string(), acc.to_string());
     }
 };
 
+using BodyF32 = BodyT<F32>;
+using BodyF64 = BodyT<F64>;
+
 template <FloatT Float>
-using IntegrateFn = std::function<void(BodyT<Float>& body, Float dt)>;
+using IntegrateFnT = std::function<void(BodyT<Float>& body, Float dt)>;
 };  // namespace nbody::sim

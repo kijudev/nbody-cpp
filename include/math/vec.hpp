@@ -26,6 +26,7 @@ struct Vec2T {
     Float y = 0.0;
 
     constexpr Vec2T() noexcept = default;
+    constexpr Vec2T(Float x, Float y) noexcept : x(x), y(y) {}
 
     [[nodiscard]] static constexpr Vec2T make_zero() noexcept { return Vec2T{0.0, 0.0}; }
     [[nodiscard]] static constexpr Vec2T make_one() noexcept { return Vec2T{1.0, 1.0}; }
@@ -48,9 +49,13 @@ struct Vec2T {
         return Vec2T{x * scalar, y * scalar};
     }
 
-    [[nodiscard]] constexpr Float dot(Vec2T other) const noexcept { return x * other.x + y * other.y; }
+    [[nodiscard]] constexpr Float dot(Vec2T other) const noexcept {
+        return x * other.x + y * other.y;
+    }
     [[nodiscard]] constexpr Float length_sq() const noexcept { return dot(*this); }
-    [[nodiscard]] Float length() const noexcept { return static_cast<Float>(std::sqrt(length_sq())); }
+    [[nodiscard]] Float           length() const noexcept {
+        return static_cast<Float>(std::sqrt(length_sq()));
+    }
 
     // NOTE: Returns zero vector when input length is zero.
     [[nodiscard]] Vec2T normalized() const noexcept {
@@ -93,6 +98,7 @@ struct Vec3T {
     Float z = 0.0;
 
     constexpr Vec3T() noexcept = default;
+    constexpr Vec3T(Float x, Float y, Float z) noexcept : x(x), y(y), z(z) {}
 
     [[nodiscard]] static constexpr Vec3T make_zero() noexcept { return Vec3T{0.0, 0.0, 0.0}; }
     [[nodiscard]] static constexpr Vec3T make_one() noexcept { return Vec3T{1.0, 1.0, 1.0}; }
@@ -175,6 +181,7 @@ struct Vec4T {
     Float w = 0.0;
 
     constexpr Vec4T() noexcept = default;
+    constexpr Vec4T(Float x, Float y, Float z, Float w) noexcept : x(x), y(y), z(z), w(w) {}
 
     [[nodiscard]] static constexpr Vec4T make_zero() noexcept { return Vec4T{0.0, 0.0, 0.0, 0.0}; }
     [[nodiscard]] static constexpr Vec4T make_one() noexcept { return Vec4T{1.0, 1.0, 1.0, 1.0}; }

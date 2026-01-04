@@ -15,7 +15,7 @@ class SimDirect {
     using Vec2        = math::Vec2T<Float>;
     using Body        = BodyT<Float>;
     using Layout      = std::vector<Body>;
-    using IntegrateFn = IntegrateFn<Float>;
+    using IntegrateFn = IntegrateFnT<Float>;
 
     struct Config {
         Layout      bodies;

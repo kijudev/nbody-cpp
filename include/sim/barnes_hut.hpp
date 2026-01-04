@@ -24,7 +24,7 @@ class SimBarnesHut {
     using Body        = BodyT<Float>;
     using PointMass   = PointMassT<Float>;
     using Layout      = std::vector<Body>;
-    using IntegrateFn = IntegrateFn<Float>;
+    using IntegrateFn = IntegrateFnT<Float>;
 
     // NOTE: Quad info. Public; to be used by the renderer.
     using Quad                                    = USize;
