@@ -22,7 +22,9 @@
 #include <windows.h>
 #endif
 
-namespace base {
+namespace nbody::base {
+using namespace nbody::base::type;
+
 std::string log_color_ansi_code(LogColor color) {
     switch (color) {
         case LogColor::LOG_COLOR_RED:
@@ -268,4 +270,4 @@ void Logger::log(LogLayer layer, LogSeverity severity, const std::string& messag
     }
 }
 
-}  // namespace base
+}  // namespace nbody::base

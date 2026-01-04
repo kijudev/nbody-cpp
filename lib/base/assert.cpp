@@ -3,9 +3,12 @@
 #include <string>
 #include <string_view>
 
-namespace base {
-namespace impl {
-std::string assert_format_message(std::string_view message, const char* file, int line) {
+#include "base/type.hpp"
+
+namespace nbody::base::impl {
+using namespace nbody::base::type;
+
+std::string assert_format_message(std::string_view message, const char* file, I32 line) {
     std::string out;
     out.reserve(message.size() + 64);
     out.append(message);
@@ -16,5 +19,4 @@ std::string assert_format_message(std::string_view message, const char* file, in
     out.append("]");
     return out;
 }
-}  // namespace impl
-}  // namespace base
+}  // namespace nbody::base::impl

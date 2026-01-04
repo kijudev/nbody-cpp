@@ -6,7 +6,9 @@
 #include "base/type.hpp"
 #include "type.hpp"
 
-namespace nbody2 {
+namespace nbody::sim {
+using namespace nbody::base::type;
+
 template <FloatT Float>
 class SimDirect {
    public:
@@ -69,4 +71,4 @@ class SimDirect {
         b.acc = b.acc.sub(b_contrib);
     }
 };
-}  // namespace nbody2
+}  // namespace nbody::sim

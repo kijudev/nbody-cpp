@@ -10,7 +10,8 @@
 
 #include "type.hpp"
 
-namespace base {
+namespace nbody::base {
+using namespace nbody::base::type;
 
 enum class LogColor {
     LOG_COLOR_RED,
@@ -145,7 +146,7 @@ class Logger {
     static bool       m_is_initialized;
 };
 
-}  // namespace base
+}  // namespace nbody::base
 
 // NOTE: Macros utilizing the global Logger singleton instance.
 #if !defined(NDEBUG) && !defined(NLOG)

@@ -9,11 +9,13 @@
 
 #include "log.hpp"  // IWYU pragma: export
 
-namespace base {
+namespace nbody::base {
+using namespace nbody::base::type;
+
 namespace impl {
 std::string assert_format_message(std::string_view message, const char* file, int line);
 }  // namespace impl
-}  // namespace base
+}  // namespace nbody::base
 
 #ifndef NDEBUG
 #define ASSERT(condition, message)                                                \

@@ -2,8 +2,9 @@
 
 #include "base/type.hpp"
 
-namespace math {
-namespace impl {
+namespace nbody::math::impl {
+using namespace nbody::base::type;
+
 // NOTE: Helper to pick a reasonable default epsilon for approximate comparisons.
 template <FloatT Float>
 constexpr Float default_epsilon() noexcept {
@@ -13,5 +14,4 @@ constexpr Float default_epsilon() noexcept {
         return static_cast<Float>(1e-12);
     }
 }
-}  // namespace impl
-}  // namespace math
+}  // namespace nbody::math::impl

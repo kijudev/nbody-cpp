@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <vector>
 
+namespace nbody::base::type {
 // NOTE: Type aliases for basic data types conforming with the design principles of the project.
 // WHY: I am just being pedantic about the naming conventions :)
 using U8    = std::uint8_t;
@@ -28,3 +29,4 @@ using Bytecode = std::vector<U8>;
 // NOTE: Aliased floating point types.
 template <typename T>
 concept FloatT = std::floating_point<T>;
+}  // namespace nbody::base::type

@@ -41,20 +41,8 @@
               clang-tools
               cppcheck
 
-              # Vulkan
-              vulkan-headers
-              vulkan-loader
-              vulkan-validation-layers
-              vulkan-tools
-
               # Raylib
               raylib
-
-              # GLFW
-              glfw
-
-              # Shaders
-              shaderc
 
               # Testing
               doctest

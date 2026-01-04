@@ -2,43 +2,37 @@ cmake_minimum_required(VERSION 3.13)
 
 project(nbody LANGUAGES CXX)
 
-# NOTE: Default to Debug if not specified.
+# Default to Debug if not specified.
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-# NOTE: Standard Setup.
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# NOTE: General Flags.
+# TODO: Implement flags for other compilers.
 add_compile_options(
     -Wall -Wextra -Wpedantic -Wno-missing-designated-field-initializers
     -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 )
 
-# NOTE: Debug Configuration.
+# Debug Configuration.
 add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
 add_compile_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
 add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
 
-# NOTE: Production Configuration.
+# Production Configuration.
 add_compile_options($<$<CONFIG:Production>:-O3>)
-# removed global thin-LTO compile flag to avoid producing bitcode that can break static archives
-# (enable per-target LTO if desired)
 add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
 add_compile_options($<$<CONFIG:Production>:-DNLOG>)
-
 add_link_options($<$<CONFIG:Production>:-s>)
 
-find_package(PkgConfig REQUIRED)
-find_package(Vulkan REQUIRED)
-find_package(glfw3 3.3 REQUIRED)
+# Dependencies.
 find_package(raylib REQUIRED)
-pkg_check_modules(SHADERC REQUIRED shaderc) # Note: usually requires package name 'shaderc'
 
+# Directories.
 add_subdirectory(lib)
 add_subdirectory(apps)
 add_subdirectory(tests)

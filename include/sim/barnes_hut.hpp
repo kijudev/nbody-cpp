@@ -9,11 +9,13 @@
 
 #include "base/assert.hpp"
 #include "base/type.hpp"
-#include "nbody2/const.hpp"
-#include "nbody2/euler.hpp"
+#include "const.hpp"
+#include "euler.hpp"
 #include "type.hpp"
 
-namespace nbody2 {
+namespace nbody::sim {
+using namespace nbody::base::type;
+
 template <FloatT Float>
 class SimBarnesHut {
    public:
@@ -397,4 +399,4 @@ class SimBarnesHut {
         }
     };
 };
-}  // namespace nbody2
+}  // namespace nbody::sim

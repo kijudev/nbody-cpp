@@ -8,9 +8,10 @@
 
 #include "base/type.hpp"
 #include "math/vec.hpp"
-#include "nbody2/type.hpp"
+#include "type.hpp"
 
-namespace nbody2 {
+namespace nbody::sim {
+using namespace nbody::base::type;
 
 template <FloatT Float>
 using GeneratePositionDistributionFn =
@@ -172,4 +173,4 @@ std::vector<BodyT<Float>> generate_distribution(const GenerateDistributionConfig
     return bodies;
 }
 
-}  // namespace nbody2
+}  // namespace nbody::sim

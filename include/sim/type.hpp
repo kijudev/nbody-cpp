@@ -6,7 +6,8 @@
 #include "base/type.hpp"
 #include "math/vec.hpp"
 
-namespace nbody2 {
+namespace nbody::sim {
+using namespace nbody::base::type;
 
 // TODO: Implement PointMassT.
 template <FloatT Float>
@@ -32,4 +33,4 @@ struct BodyT {
 
 template <FloatT Float>
 using IntegrateFn = std::function<void(BodyT<Float>& body, Float dt)>;
-};  // namespace nbody2
+};  // namespace nbody::sim

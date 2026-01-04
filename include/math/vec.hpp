@@ -17,7 +17,9 @@
 #include "base/type.hpp"
 #include "math/impl.hpp"
 
-namespace math {
+namespace nbody::math {
+using namespace nbody::base::type;
+
 template <FloatT F>
 struct Vec2T {
     F x = 0.0;
@@ -224,4 +226,4 @@ using Vec2F64 = Vec2T<F64>;
 using Vec3F64 = Vec3T<F64>;
 using Vec4F64 = Vec4T<F64>;
 
-}  // namespace math
+}  // namespace nbody::math

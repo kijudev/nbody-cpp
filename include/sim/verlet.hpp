@@ -4,7 +4,8 @@
 #include "base/type.hpp"
 #include "type.hpp"
 
-namespace nbody2 {
+namespace nbody::sim {
+using namespace nbody::base::type;
 
 template <FloatT Float>
 void verlet_integrate_body(BodyT<Float>& body, Float dt) {
@@ -15,4 +16,4 @@ void verlet_integrate_body(BodyT<Float>& body, Float dt) {
     body.vel    = body.vel.add(body.acc.scale(dt));
 }
 
-}  // namespace nbody2
+}  // namespace nbody::sim
