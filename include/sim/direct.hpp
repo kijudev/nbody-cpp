@@ -35,7 +35,7 @@ class SimDirect {
 
     void step(Float dt) {
         for (Body& body : m_bodies) {
-            body.acc = Vec2::zero();
+            body.acc = Vec2::make_zero();
         }
 
         apply_gravity();

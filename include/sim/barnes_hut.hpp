@@ -10,7 +10,7 @@
 #include "base/assert.hpp"
 #include "base/type.hpp"
 #include "const.hpp"
-#include "euler.hpp"
+#include "integrators.hpp"
 #include "type.hpp"
 
 namespace nbody::sim {
@@ -64,7 +64,7 @@ class SimBarnesHut {
     // 4) Integrate the bodies' positions and velocities.
     void step(Float dt) {
         for (Body& body : m_bodies) {
-            body.acc = Vec2::zero();
+            body.acc = Vec2::make_zero();
         }
 
         impl_construct_tree();
@@ -139,7 +139,7 @@ class SimBarnesHut {
     // NOTE: Initializes the root node of the Barnes-Hut quadtree.
     void impl_init_root() {
         if (m_bodies.empty()) {
-            m_root = Node::make_region(Vec2::zero(), 0.0);
+            m_root = Node::make_region(Vec2::make_zero(), 0.0);
             return;
         }
 
@@ -315,8 +315,8 @@ class SimBarnesHut {
         std::string fmt() const {
             return std::format(
                 "Node{{ region_center: {}, region_radius: {}, mass: {}, com: {}, kind: {}}}",
-                region_center.fmt(), std::to_string(region_radius), std::to_string(mass),
-                com.fmt());
+                region_center.to_string(), std::to_string(region_radius), std::to_string(mass),
+                com.to_string());
         }
 
        private:
@@ -324,7 +324,7 @@ class SimBarnesHut {
             ASSERT(!is_empty(), "Node is empty");
 
             Float total_mass   = static_cast<Float>(0.0);
-            Vec2  weighted_sum = Vec2::zero();
+            Vec2  weighted_sum = Vec2::make_zero();
 
             for (const auto& child : children) {
                 if (child && child->mass > static_cast<Float>(0.0)) {
@@ -337,7 +337,7 @@ class SimBarnesHut {
                 com  = weighted_sum.scale(1.0 / total_mass);
                 mass = total_mass;
             } else {
-                com  = Vec2::zero();
+                com  = Vec2::make_zero();
                 mass = 0.0;
             }
         }

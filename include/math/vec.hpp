@@ -20,18 +20,17 @@
 namespace nbody::math {
 using namespace nbody::base::type;
 
-template <FloatT F>
+template <FloatT Float>
 struct Vec2T {
-    F x = 0.0;
-    F y = 0.0;
+    Float x = 0.0;
+    Float y = 0.0;
 
     constexpr Vec2T() noexcept = default;
-    constexpr Vec2T(F x_, F y_) noexcept : x(x_), y(y_) {}
 
-    [[nodiscard]] static constexpr Vec2T zero() noexcept { return Vec2T{0.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec2T one() noexcept { return Vec2T{1.0, 1.0}; }
-    [[nodiscard]] static constexpr Vec2T unit_x() noexcept { return Vec2T{1.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec2T unit_y() noexcept { return Vec2T{0.0, 1.0}; }
+    [[nodiscard]] static constexpr Vec2T make_zero() noexcept { return Vec2T{0.0, 0.0}; }
+    [[nodiscard]] static constexpr Vec2T make_one() noexcept { return Vec2T{1.0, 1.0}; }
+    [[nodiscard]] static constexpr Vec2T make_unit_x() noexcept { return Vec2T{1.0, 0.0}; }
+    [[nodiscard]] static constexpr Vec2T make_unit_y() noexcept { return Vec2T{0.0, 1.0}; }
 
     [[nodiscard]] constexpr Vec2T add(Vec2T other) const noexcept {
         return Vec2T{x + other.x, y + other.y};
@@ -45,55 +44,61 @@ struct Vec2T {
         return Vec2T{x * other.x, y * other.y};
     }
 
-    [[nodiscard]] constexpr Vec2T scale(F scalar) const noexcept {
+    [[nodiscard]] constexpr Vec2T scale(Float scalar) const noexcept {
         return Vec2T{x * scalar, y * scalar};
     }
 
-    [[nodiscard]] constexpr F dot(Vec2T other) const noexcept { return x * other.x + y * other.y; }
-    [[nodiscard]] constexpr F length_sq() const noexcept { return dot(*this); }
-    [[nodiscard]] F length() const noexcept { return static_cast<F>(std::sqrt(length_sq())); }
+    [[nodiscard]] constexpr Float dot(Vec2T other) const noexcept { return x * other.x + y * other.y; }
+    [[nodiscard]] constexpr Float length_sq() const noexcept { return dot(*this); }
+    [[nodiscard]] Float length() const noexcept { return static_cast<Float>(std::sqrt(length_sq())); }
 
     // NOTE: Returns zero vector when input length is zero.
     [[nodiscard]] Vec2T normalized() const noexcept {
-        const F len = length();
-        if (len == static_cast<F>(0)) return Vec2T::zero();
-        return scale(1 / len);
+        const Float l = length();
+        if (l == 0.0) {
+            return Vec2T::make_zero();
+        }
+        return scale(1 / l);
     }
 
-    [[nodiscard]] constexpr F distance_sq(Vec2T other) const noexcept {
+    [[nodiscard]] constexpr Float distance_sq(Vec2T other) const noexcept {
         const Vec2T d = sub(other);
         return d.length_sq();
     }
 
-    [[nodiscard]] F distance(Vec2T other) const noexcept {
-        return static_cast<F>(std::sqrt(distance_sq(other)));
+    [[nodiscard]] Float distance(Vec2T other) const noexcept {
+        return static_cast<Float>(std::sqrt(distance_sq(other)));
     }
 
     // NOTE: Approximate equality using an epsilon.
-    [[nodiscard]] constexpr bool approx_equal(Vec2T other,
-                                              F eps = impl::default_epsilon<F>()) const noexcept {
+    [[nodiscard]] constexpr bool is_approx_equal(
+        Vec2T other, Float eps = impl::default_epsilon<Float>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps);
     }
 
-    [[nodiscard]] std::string fmt() const { return std::format("({:.16f}, {:.16f})", x, y); }
+    [[nodiscard]] std::string to_string() const { return std::format("({:.16f}, {:.16f})", x, y); }
 
-    [[nodiscard]] Vector2 raylib_vector2() const noexcept { return Vector2(x, y); }
+    [[nodiscard]] Vector2 as_raylib_vector() const noexcept {
+        return Vector2{
+            .x = x,
+            .y = y,
+        };
+    }
 };
 
-template <FloatT F>
+template <FloatT Float>
 struct Vec3T {
-    F x = 0.0;
-    F y = 0.0;
-    F z = 0.0;
+    Float x = 0.0;
+    Float y = 0.0;
+    Float z = 0.0;
 
     constexpr Vec3T() noexcept = default;
-    constexpr Vec3T(F x_, F y_, F z_) noexcept : x(x_), y(y_), z(z_) {}
 
-    [[nodiscard]] static constexpr Vec3T zero() noexcept { return Vec3T{0.0, 0.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec3T one() noexcept { return Vec3T{1.0, 1.0, 1.0}; }
-    [[nodiscard]] static constexpr Vec3T unit_x() noexcept { return Vec3T{1.0, 0.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec3T unit_y() noexcept { return Vec3T{0.0, 1.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec3T unit_z() noexcept { return Vec3T{0.0, 0.0, 1.0}; }
+    [[nodiscard]] static constexpr Vec3T make_zero() noexcept { return Vec3T{0.0, 0.0, 0.0}; }
+    [[nodiscard]] static constexpr Vec3T make_one() noexcept { return Vec3T{1.0, 1.0, 1.0}; }
+    [[nodiscard]] static constexpr Vec3T make_unit_x() noexcept { return Vec3T{1.0, 0.0, 0.0}; }
+    [[nodiscard]] static constexpr Vec3T make_unit_y() noexcept { return Vec3T{0.0, 1.0, 0.0}; }
+    [[nodiscard]] static constexpr Vec3T make_unit_z() noexcept { return Vec3T{0.0, 0.0, 1.0}; }
 
     [[nodiscard]] constexpr Vec3T add(Vec3T other) const noexcept {
         return Vec3T{x + other.x, y + other.y, z + other.z};
@@ -107,11 +112,11 @@ struct Vec3T {
         return Vec3T{x * other.x, y * other.y, z * other.z};
     }
 
-    [[nodiscard]] constexpr Vec3T scale(F scalar) const noexcept {
+    [[nodiscard]] constexpr Vec3T scale(Float scalar) const noexcept {
         return Vec3T{x * scalar, y * scalar, z * scalar};
     }
 
-    [[nodiscard]] constexpr F dot(Vec3T other) const noexcept {
+    [[nodiscard]] constexpr Float dot(Vec3T other) const noexcept {
         return x * other.x + y * other.y + z * other.z;
     }
 
@@ -120,102 +125,137 @@ struct Vec3T {
                      x * other.y - y * other.x};
     }
 
-    [[nodiscard]] constexpr F length_sq() const noexcept { return dot(*this); }
+    [[nodiscard]] constexpr Float length_sq() const noexcept { return dot(*this); }
 
-    [[nodiscard]] F length() const noexcept { return static_cast<F>(std::sqrt(length_sq())); }
-
-    [[nodiscard]] Vec3T normalized() const noexcept {
-        const F len = length();
-        if (len == static_cast<F>(0)) return Vec3T::zero();
-        return div_scalar(len);
+    [[nodiscard]] Float length() const noexcept {
+        return static_cast<Float>(std::sqrt(length_sq()));
     }
 
-    [[nodiscard]] constexpr F distance_sq(Vec3T other) const noexcept {
+    [[nodiscard]] Vec3T normalized() const noexcept {
+        const Float l = length();
+        if (l == 0.0) {
+            return Vec3T::make_zero();
+        }
+        return div_scalar(l);
+    }
+
+    [[nodiscard]] constexpr Float distance_sq(Vec3T other) const noexcept {
         const Vec3T d = sub(other);
         return d.length_sq();
     }
 
-    [[nodiscard]] F distance(Vec3T other) const noexcept {
-        return static_cast<F>(std::sqrt(distance_sq(other)));
+    [[nodiscard]] Float distance(Vec3T other) const noexcept {
+        return static_cast<Float>(std::sqrt(distance_sq(other)));
     }
 
-    [[nodiscard]] constexpr bool approx_equal(Vec3T other,
-                                              F eps = impl::default_epsilon<F>()) const noexcept {
+    [[nodiscard]] constexpr bool is_approx_equal(
+        Vec3T other, Float eps = impl::default_epsilon<Float>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps) &&
                (std::fabs(z - other.z) <= eps);
     }
 
-    [[nodiscard]] std::string fmt() const {
+    [[nodiscard]] std::string to_string() const {
         return std::format("({:.16f}, {:.16f}, {:.16f})", x, y, z);
     }
 
-    [[nodiscard]] Vector3 raylib_vector3() const noexcept { return Vector3(x, y, z); }
+    [[nodiscard]] Vector3 as_raylib_vector() const noexcept {
+        return Vector3{
+            .x = static_cast<F32>(x),
+            .y = static_cast<F32>(y),
+            .z = static_cast<F32>(z),
+        };
+    }
 };
 
-template <FloatT F>
+template <FloatT Float>
 struct Vec4T {
-    F x = 0.0;
-    F y = 0.0;
-    F z = 0.0;
-    F w = 0.0;
+    Float x = 0.0;
+    Float y = 0.0;
+    Float z = 0.0;
+    Float w = 0.0;
 
     constexpr Vec4T() noexcept = default;
-    constexpr Vec4T(F x_, F y_, F z_, F w_) noexcept : x(x_), y(y_), z(z_), w(w_) {}
 
-    [[nodiscard]] static constexpr Vec4T zero() noexcept { return Vec4T{0.0, 0.0, 0.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec4T one() noexcept { return Vec4T{1.0, 1.0, 1.0, 1.0}; }
-    [[nodiscard]] static constexpr Vec4T unit_x() noexcept { return Vec4T{1.0, 0.0, 0.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec4T unit_y() noexcept { return Vec4T{0.0, 1.0, 0.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec4T unit_z() noexcept { return Vec4T{0.0, 0.0, 1.0, 0.0}; }
-    [[nodiscard]] static constexpr Vec4T unit_w() noexcept { return Vec4T{0.0, 0.0, 0.0, 1.0}; }
+    [[nodiscard]] static constexpr Vec4T make_zero() noexcept { return Vec4T{0.0, 0.0, 0.0, 0.0}; }
+    [[nodiscard]] static constexpr Vec4T make_one() noexcept { return Vec4T{1.0, 1.0, 1.0, 1.0}; }
+
+    [[nodiscard]] static constexpr Vec4T make_unit_x() noexcept {
+        return Vec4T{1.0, 0.0, 0.0, 0.0};
+    }
+
+    [[nodiscard]] static constexpr Vec4T make_unit_y() noexcept {
+        return Vec4T{0.0, 1.0, 0.0, 0.0};
+    }
+
+    [[nodiscard]] static constexpr Vec4T make_unit_z() noexcept {
+        return Vec4T{0.0, 0.0, 1.0, 0.0};
+    }
+
+    [[nodiscard]] static constexpr Vec4T make_unit_w() noexcept {
+        return Vec4T{0.0, 0.0, 0.0, 1.0};
+    }
 
     [[nodiscard]] constexpr Vec4T add(Vec4T other) const noexcept {
         return Vec4T{x + other.x, y + other.y, z + other.z, w + other.w};
     }
+
     [[nodiscard]] constexpr Vec4T sub(Vec4T other) const noexcept {
         return Vec4T{x - other.x, y - other.y, z - other.z, w - other.w};
     }
+
     [[nodiscard]] constexpr Vec4T mul(Vec4T other) const noexcept {
         return Vec4T{x * other.x, y * other.y, z * other.z, w * other.w};
     }
-    [[nodiscard]] constexpr Vec4T scale(F scalar) const noexcept {
+
+    [[nodiscard]] constexpr Vec4T scale(Float scalar) const noexcept {
         return Vec4T{x * scalar, y * scalar, z * scalar, w * scalar};
     }
 
-    [[nodiscard]] constexpr F dot(Vec4T other) const noexcept {
+    [[nodiscard]] constexpr Float dot(Vec4T other) const noexcept {
         return x * other.x + y * other.y + z * other.z + w * other.w;
     }
 
-    [[nodiscard]] constexpr F length_sq() const noexcept { return dot(*this); }
+    [[nodiscard]] constexpr Float length_sq() const noexcept { return dot(*this); }
 
-    [[nodiscard]] F length() const noexcept { return static_cast<F>(std::sqrt(length_sq())); }
-
-    [[nodiscard]] Vec4T normalized() const noexcept {
-        const F len = length();
-        if (len == static_cast<F>(0)) return Vec4T::zero();
-        return div_scalar(len);
+    [[nodiscard]] Float length() const noexcept {
+        return static_cast<Float>(std::sqrt(length_sq()));
     }
 
-    [[nodiscard]] constexpr F distance_sq(Vec4T other) const noexcept {
+    [[nodiscard]] Vec4T normalized() const noexcept {
+        const Float l = length();
+        if (l == 0.0) {
+            return Vec4T::make_zero();
+        }
+        return div_scalar(l);
+    }
+
+    [[nodiscard]] constexpr Float distance_sq(Vec4T other) const noexcept {
         const Vec4T d = sub(other);
         return d.length_sq();
     }
 
-    [[nodiscard]] F distance(Vec4T other) const noexcept {
-        return static_cast<F>(std::sqrt(distance_sq(other)));
+    [[nodiscard]] Float distance(Vec4T other) const noexcept {
+        return static_cast<Float>(std::sqrt(distance_sq(other)));
     }
 
-    [[nodiscard]] constexpr bool approx_equal(Vec4T other,
-                                              F eps = impl::default_epsilon<F>()) const noexcept {
+    [[nodiscard]] constexpr bool is_approx_equal(
+        Vec4T other, Float eps = impl::default_epsilon<Float>()) const noexcept {
         return (std::fabs(x - other.x) <= eps) && (std::fabs(y - other.y) <= eps) &&
                (std::fabs(z - other.z) <= eps) && (std::fabs(w - other.w) <= eps);
     }
 
-    [[nodiscard]] std::string fmt() const {
+    [[nodiscard]] std::string to_string() const {
         return std::format("({:.16f}, {:.16f}, {:.16f}, {:.16f})", x, y, z, w);
     }
 
-    [[nodiscard]] Vector4 raylib_vector4() const noexcept { return Vector4(x, y, z, w); }
+    [[nodiscard]] Vector4 as_raylib_vector() const noexcept {
+        return Vector4{
+            .x = static_cast<F32>(x),
+            .y = static_cast<F32>(y),
+            .z = static_cast<F32>(z),
+            .w = static_cast<F32>(w),
+        };
+    }
 };
 
 // NOTE: convenient aliases

@@ -16,7 +16,7 @@ struct PointMassT {
     Float              mass{1.0};
 
     std::string fmt() const {
-        return std::format("{{pos: {}, mass: {}}}", pos.fmt(), std::to_string(mass));
+        return std::format("{{pos: {}, mass: {}}}", pos.to_string(), std::to_string(mass));
     }
 };
 
@@ -27,7 +27,7 @@ struct BodyT {
     math::Vec2T<Float> acc{0.0, 0.0};
 
     std::string fmt() const {
-        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.fmt(), vel.fmt(), acc.fmt());
+        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.fmt(), vel.to_string(), acc.to_string());
     }
 };
 
