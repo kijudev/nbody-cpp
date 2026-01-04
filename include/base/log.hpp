@@ -149,7 +149,7 @@ class Logger {
 }  // namespace nbody::base
 
 // NOTE: Macros utilizing the global Logger singleton instance.
-#if !defined(NDEBUG) && !defined(NLOG)
+#if !defined(NDEBUG)
 #define LOG_INIT_DEFAULT()             base::Logger::init()
 #define LOG_INIT_WITH_LOGGERS(loggers) base::Logger::init(loggers)
 

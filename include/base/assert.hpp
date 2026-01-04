@@ -17,7 +17,7 @@ std::string assert_format_message(std::string_view message, const char* file, in
 }  // namespace impl
 }  // namespace nbody::base
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 #define ASSERT(condition, message)                                                \
     do {                                                                          \
         if (!(condition)) {                                                       \
