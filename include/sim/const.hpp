@@ -34,6 +34,8 @@ static constexpr F64 TIME_SECOND  = TIME_MINUTE / 60.0;
 
 // UNIT: AU, Solar Mass, Solar Day.
 static constexpr F64 CONST_G         = 0.00029591220828;
+
+// NOTE: ~Earth's radius.
 static constexpr F64 CONST_SOFTENING = UNIT_AU * 5.0e-5;
 }  // namespace scale_au
 }  // namespace nbody::sim
