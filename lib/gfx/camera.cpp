@@ -1,9 +1,12 @@
 #include <raylib.h>
 
 #include <cmath>
+#include <tuple>
 
+#include "base/assert.hpp"
 #include "base/type.hpp"
 #include "gfx/camera.hpp"
+#include "math/collision.hpp"
 
 namespace nbody::gfx {
 using namespace nbody::base::type;
@@ -20,6 +23,9 @@ Point Camera<Float>::world_to_screen(const Vec2& world_pos) const {
 
 template <FloatT Float>
 typename Camera<Float>::Vec2 Camera<Float>::screen_to_world(Point point) const {
+    ASSERT(point.x <= screen_width, "Out of screen");
+    ASSERT(point.y <= screen_height, "Out of screen");
+
     Float centered_x = static_cast<Float>(point.x) - (screen_width / 2.0);
     Float centered_y = static_cast<Float>(point.y) - (screen_height / 2.0);
 
@@ -30,16 +36,21 @@ typename Camera<Float>::Vec2 Camera<Float>::screen_to_world(Point point) const {
 }
 
 template <FloatT Float>
+std::tuple<typename Camera<Float>::Vec2, typename Camera<Float>::Vec2>
+Camera<Float>::viewport_extent_world() const {
+    return std::make_tuple(screen_to_world({0, 0}), screen_to_world({screen_width, screen_height}));
+}
+
+template <FloatT Float>
 bool Camera<Float>::is_pos_in_viewport(const Vec2& pos) const {
-    (void)pos;
-    return false;
+    return math::check_collision2_rect_point(screen_to_world({0, 0}),
+                                             screen_to_world({screen_width, screen_height}), pos);
 }
 
 template <FloatT Float>
 bool Camera<Float>::is_circle_in_viewport(const Vec2& center, Float radius) const {
-    (void)center;
-    (void)radius;
-    return false;
+    return math::check_collision2_rect_circle(
+        screen_to_world({0, 0}), screen_to_world({screen_width, screen_height}), center, radius);
 }
 
 template <FloatT Float>

@@ -52,21 +52,7 @@ bool check_collision2_rect_circle(const Vec2T<Float> rect_corner_a,
         return false;
     }
 
-    if (std::sqrt(center.x + radius) > std::max(rect_corner_a.x, rect_corner_b.x)) {
-        return false;
-    }
-
-    if (std::sqrt(center.x + radius) < std::min(rect_corner_a.x, rect_corner_b.x)) {
-        return false;
-    }
-
-    if (std::sqrt(center.y + radius) > std::max(rect_corner_a.y, rect_corner_b.y)) {
-        return false;
-    }
-
-    if (std::sqrt(center.y + radius) < std::min(rect_corner_a.y, rect_corner_b.y)) {
-        return false;
-    }
+    // TODO: Implement the checks for corner cases.
 
     return true;
 }
