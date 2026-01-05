@@ -16,9 +16,19 @@ struct Camera {
     I32   screen_height{600};
     Vec2  pos{0.0, 0.0};
     Float zoom{1.0};
+    Float movement_speed{1.0};
 
-    Point world_to_screen(math::Vec2T<Float> world_pos) const;
-    Vec2  screen_to_world(Point point);
+    Point world_to_screen(const Vec2& world_pos) const;
+    Vec2  screen_to_world(Point point) const;
+
+    bool is_pos_in_viewport(const Vec2& pos) const;
+    bool is_circle_in_viewport(const Vec2& center, Float radius) const;
+
+    // NOTE: Handles basic camera controls:
+    // - UP, DOWN, RIGHT, LEFT (arrows, WSAD).
+    // - Scolling.
+    // WARNING: This method need to be called on every game loop interation.
+    void handle_controls(Float dt);
 };
 
 }  // namespace nbody::gfx
