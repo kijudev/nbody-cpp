@@ -21,7 +21,8 @@ BarnesHut<Float>::BarnesHut(const Config& config)
       m_integrate(std::move(config.integrate_fn)),
       m_g(config.g),
       m_softening(config.softening),
-      m_theta(config.theta) {}
+      m_theta(config.theta),
+      m_depth(config.depth) {}
 
 template <FloatT Float>
 [[nodiscard]] std::span<const typename BarnesHut<Float>::Body, std::dynamic_extent>
@@ -88,7 +89,7 @@ void BarnesHut<Float>::impl_construct_tree() {
     ASSERT(m_root, "Root is not initlialized");
 
     for (const Body& body : m_bodies) {
-        m_root->insert_point_mass(body.pm);
+        m_root->insert_point_mass(body.pm, 0, m_depth);
     }
 }
 
@@ -181,7 +182,19 @@ bool BarnesHut<Float>::Node::is_leaf() const {
 }
 
 template <FloatT Float>
-void BarnesHut<Float>::Node::insert_point_mass(const PointMass& pm) {
+void BarnesHut<Float>::Node::insert_point_mass(const PointMass& pm, U16 current_depth,
+                                               U16 max_depth) {
+    if (current_depth > max_depth) {
+        ASSERT(is_leaf(), "Is not NodeKind::LEAF");
+
+        Float new_mass = mass + pm.mass;
+        center.x       = (center.x * mass + pm.pos.x * mass) / new_mass;
+        center.x       = (center.y * mass + pm.pos.y * mass) / new_mass;
+        mass           = new_mass;
+
+        return;
+    }
+
     if (is_empty()) {
         kind   = NodeKind::LEAF;
         center = pm.pos;
@@ -192,7 +205,7 @@ void BarnesHut<Float>::Node::insert_point_mass(const PointMass& pm) {
         if (!children[qid]) {
             children[qid] = make_ptr_leaf(impl_quad_id_center(qid), quad_radius / 2.0, pm);
         } else {
-            children[qid]->insert_point_mass(pm);
+            children[qid]->insert_point_mass(pm, current_depth, max_depth);
         }
 
         self_recompute_com_mass();
@@ -205,10 +218,10 @@ void BarnesHut<Float>::Node::insert_point_mass(const PointMass& pm) {
         }
 
         QuadId self_qid = impl_pos_quad_id(self_pm.pos);
-        children[self_qid]->insert_point_mass(self_pm);
+        children[self_qid]->insert_point_mass(self_pm, current_depth + 1, max_depth);
 
         QuadId new_qid = impl_pos_quad_id(pm.pos);
-        children[new_qid]->insert_point_mass(pm);
+        children[new_qid]->insert_point_mass(pm, current_depth + 1, max_depth);
 
         self_recompute_com_mass();
     }

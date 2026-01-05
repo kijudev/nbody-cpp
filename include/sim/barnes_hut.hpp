@@ -40,6 +40,7 @@ class BarnesHut {
         Float           g{G_TOY};
         Float           softening{SOFTENING_TOY};
         Float           theta{0.5};
+        U16             depth{64};
     };
 
    public:
@@ -60,6 +61,7 @@ class BarnesHut {
     const Float m_g{G_TOY};            // NOTE: Gravitational constant. can be changed at runtime.
     Float m_softening{SOFTENING_TOY};  // NOTE: Softening parameter; can be changed at runtime.
     Float m_theta{0.5};                // NOTE: Theta parameter for Barnes-Hut approximation.
+    U16   m_depth{64};
 
     void                    impl_create_root();
     void                    impl_construct_tree();
@@ -84,7 +86,7 @@ class BarnesHut {
         bool is_empty() const;
         bool is_region() const;
         bool is_leaf() const;
-        void insert_point_mass(const PointMass& pm);
+        void insert_point_mass(const PointMass& pm, U16 current_depth, U16 max_depth);
         void apply_gravity_body(Body& body, Float g, Float softening, Float theta) const;
 
         std::string to_string() const;
