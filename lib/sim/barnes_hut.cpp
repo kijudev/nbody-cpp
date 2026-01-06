@@ -1,5 +1,3 @@
-#include "sim/barnes_hut.hpp"
-
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -11,6 +9,7 @@
 #include "base/assert.hpp"
 #include "base/type.hpp"
 #include "math/impl.hpp"
+#include "sim/barnes_hut.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <tuple>
 
 #include "base/type.hpp"
@@ -19,8 +21,10 @@ struct Camera {
     Vec2  pos{0.0, 0.0};
     Float zoom{1.0};
     Float movement_speed{1.0};
+    Float scaling_speed{1.0};
 
     Point world_to_screen(const Vec2& world_pos) const;
+    Vec2  world_to_screen_vec(const Vec2& world_pos) const;
     Vec2  screen_to_world(Point point) const;
 
     std::tuple<Vec2, Vec2> viewport_extent_world() const;

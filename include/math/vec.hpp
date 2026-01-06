@@ -85,8 +85,8 @@ struct Vec2T {
 
     [[nodiscard]] Vector2 as_raylib_vector() const noexcept {
         return Vector2{
-            .x = x,
-            .y = y,
+            .x = static_cast<F32>(x),
+            .y = static_cast<F32>(y),
         };
     }
 };

@@ -1,8 +1,5 @@
-#include "sim/integrator.hpp"
-
-#pragma once
-
 #include "base/type.hpp"
+#include "sim/integrator.hpp"
 #include "sim/type.hpp"
 
 namespace nbody::sim {
