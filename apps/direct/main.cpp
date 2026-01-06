@@ -23,7 +23,7 @@ using Vec2  = nbody::math::Vec2T<Float>;
 
 int main() {
     nbody::sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 100,
+        .n           = 1000,
         .min_mass    = nbody::sim::scale_au::MASS_HYGIEA,
         .max_mass    = nbody::sim::scale_au::MASS_SOL * 10,
         .radius      = nbody::sim::scale_au::UNIT_AU * 20,
@@ -48,19 +48,18 @@ int main() {
 
     // NOTE: This is a little bit artificial. The scale_factor scales only the bodies in the
     // visualisatoin.
-    Float scale_factor = nbody::sim::scale_au::UNIT_AU * 1'000'000.0;
+    Float scale_factor = nbody::sim::scale_au::UNIT_AU * 3'000.0;
 
     // NOTE: How much time passes per second irl.
-    Float time_factor = nbody::sim::scale_au::TIME_YEAR * 10.0;
+    Float time_factor = nbody::sim::scale_au::TIME_YEAR * 100.0;
 
-    // --- UI ---
-    I32 ui_padding = 4;
+    bool is_running = true;
 
     nbody::gfx::Camera<Float> camera{
         .screen_width   = screen_width,
         .screen_height  = screen_height,
         .zoom           = 1.0,
-        .movement_speed = std::sqrt(scale_factor),
+        .movement_speed = nbody::sim::scale_au::UNIT_AU / nbody::sim::scale_au::TIME_MINUTE,
         .scaling_speed  = 1.0,
     };
 
@@ -71,7 +70,22 @@ int main() {
         Float dt = static_cast<Float>(GetFrameTime());
 
         camera.handle_controls(dt);
-        sim.step(dt * time_factor);
+
+        if (IsKeyDown(KEY_SPACE)) {
+            is_running = false;
+        } else {
+            is_running = true;
+        }
+
+        if (IsKeyDown(KEY_F)) {
+            time_factor = nbody::sim::scale_au::TIME_YEAR * 1000.0;
+        } else {
+            time_factor = nbody::sim::scale_au::TIME_YEAR * 100.0;
+        }
+
+        if (is_running) {
+            sim.step(dt * time_factor);
+        }
 
         BeginDrawing();
         ClearBackground(BLACK);
@@ -79,11 +93,12 @@ int main() {
         std::span<const Body, std::dynamic_extent> bodies = sim.bodies();
 
         for (USize i = 0; i < sim.bodies().size(); ++i) {
-            const Body  body   = bodies[i];
-            const Vec2  center = camera.world_to_screen_vec(body.pm.pos);
-            const Float radius = camera.zoom / (std::sqrt(body.pm.mass) * scale_factor);
+            const Body body   = bodies[i];
+            const Vec2 center = camera.world_to_screen_vec(body.pm.pos);
+            const Vec2 point =
+                camera.world_to_screen_vec(Vec2{center.x + std::cbrt(body.pm.mass), center.y});
 
-            DrawCircleV(center.as_raylib_vector(), radius, WHITE);
+            DrawCircleV(center.as_raylib_vector(), center.distance(point) / scale_factor, WHITE);
         }
 
         nbody::gfx::draw_ruler(camera, " AU");
