@@ -86,19 +86,7 @@ int main() {
             DrawCircleV(center.as_raylib_vector(), radius, WHITE);
         }
 
-        nbody::gfx::Point ruler_point_a = {ui_padding * 2, ui_padding * 2};
-        nbody::gfx::Point ruler_point_b = {ui_padding * 2 + 128, ui_padding * 2};
-
-        DrawRectangle(ruler_point_a.x, ruler_point_a.y + ui_padding,
-                      std::abs(ruler_point_a.x - ruler_point_b.x), 2, WHITE);
-
-        Vec2        ruler_world_a  = camera.screen_to_world(ruler_point_a);
-        Vec2        ruler_world_b  = camera.screen_to_world(ruler_point_b);
-        Float       ruler_distance = ruler_world_a.distance(ruler_world_b);
-        std::string ruler_text     = std::to_string(ruler_distance) + " AU";
-
-        DrawText(ruler_text.c_str(), ruler_point_a.x, ruler_point_a.y + ui_padding + 2 + ui_padding,
-                 ui_padding * 4, WHITE);
+        nbody::gfx::draw_ruler(camera, " AU");
 
         EndDrawing();
     }
