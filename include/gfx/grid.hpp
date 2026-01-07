@@ -1,3 +1,5 @@
+#pragma once
+
 #include "base/type.hpp"
 #include "gfx/box.hpp"
 
@@ -12,6 +14,12 @@ struct Grid {
 
     // NOTE: Columns and rows are indexed from 0.
     Box span(I32 col_a, I32 row_a, I32 col_b, I32 row_b) const;
+
+    Box col(I32 col, I32 rows) const;
+    Box row(I32 row, I32 cols) const;
+
+    std::vector<Box> all_cols() const;
+    std::vector<Box> all_rows() const;
 
     I32 col_size() const;
     I32 row_size() const;

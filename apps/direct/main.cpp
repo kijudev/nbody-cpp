@@ -1,5 +1,6 @@
 #include <raylib.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <span>
@@ -9,6 +10,7 @@
 #include "base/type.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/draw.hpp"
+#include "gfx/grid.hpp"
 #include "gfx/window.hpp"
 #include "math/vec.hpp"
 #include "sim/const.hpp"
@@ -43,9 +45,7 @@ int main() {
 
     nbody::sim::Direct<Float> sim(sim_config);
 
-    I32 screen_width  = 800;
-    I32 screen_height = 600;
-    I32 target_fps    = 60;
+    I32 target_fps = 60;
 
     // NOTE: This is a little bit artificial. The scale_factor scales only the bodies in the
     // visualisatoin.
@@ -56,17 +56,24 @@ int main() {
 
     bool is_running = true;
 
+    nbody::gfx::Window window{
+        .width  = 800,
+        .height = 600,
+    };
+
     nbody::gfx::Camera<Float> camera{
-        .screen_width   = screen_width,
-        .screen_height  = screen_height,
+        .screen_width   = window.width,
+        .screen_height  = window.height,
         .zoom           = 1.0,
         .movement_speed = nbody::sim::scale_au::UNIT_AU / nbody::sim::scale_au::TIME_MINUTE,
         .scaling_speed  = 1.0,
     };
 
-    nbody::gfx::Window window{
-        .width  = screen_width,
-        .height = screen_height,
+    nbody::gfx::Grid grid{
+        .width  = window.width,
+        .height = window.height,
+        .cols   = 16,
+        .rows   = 12,
     };
 
     window.init();
@@ -75,8 +82,18 @@ int main() {
     while (!WindowShouldClose()) {
         Float dt = static_cast<Float>(GetFrameTime());
 
-        camera.handle_controls(dt);
         window.handle_resize();
+        camera.screen_width  = window.width;
+        camera.screen_height = window.height;
+        camera.handle_controls(dt);
+        grid.width  = window.width;
+        grid.height = window.height;
+
+        if (window.width > 1000) {
+            grid.cols = 24;
+        } else {
+            grid.cols = 16;
+        }
 
         if (IsKeyDown(KEY_SPACE)) {
             is_running = false;
@@ -90,6 +107,10 @@ int main() {
             time_factor = nbody::sim::scale_au::TIME_YEAR * 100.0;
         }
 
+        I32 font_small   = std::clamp(8, std::min(window.width, window.height) / 96, 12);
+        I32 font_regular = std::clamp(12, std::min(window.width, window.height) / 48, 16);
+        I32 font_big     = std::clamp(16, std::min(window.width, window.height) / 32, 32);
+
         if (is_running) {
             sim.step(dt * time_factor);
         }
@@ -97,18 +118,40 @@ int main() {
         BeginDrawing();
         ClearBackground(BLACK);
 
+        // --- NBody ---
         std::span<const Body, std::dynamic_extent> bodies = sim.bodies();
-
         for (USize i = 0; i < sim.bodies().size(); ++i) {
             const Body body   = bodies[i];
             const Vec2 center = camera.world_to_screen_vec(body.pm.pos);
             const Vec2 edge   = camera.world_to_screen_vec(
                 Vec2{body.pm.pos.x + std::cbrt(body.pm.mass), body.pm.pos.y});
+            Float r = center.distance(edge) * scale_factor;
 
-            DrawCircleV(center.as_raylib_vector(), center.distance(edge) * scale_factor, WHITE);
+            if (r > 1.0) {
+                DrawCircleV(center.as_raylib_vector(), r, WHITE);
+            }
         }
 
-        nbody::gfx::draw_ruler(camera, " AU");
+        // --- UI ---
+        nbody::gfx::ui_draw_text(grid.row(0, 3)
+                                     .with_padding(16)
+                                     .with_border(WHITE, 0)
+                                     .with_background(BLACK, 0)
+                                     .with_padding_left(8)
+                                     .with_padding_y(8),
+                                 nbody::gfx::Layout::CenterLeft, font_big, "NBody");
+
+        nbody::gfx::ui_draw_text(grid.span(0, 1, 2, 2)
+                                     .with_padding(16)
+                                     .with_border(WHITE, 0)
+                                     .with_background(BLACK, 0)
+                                     .with_padding_left(8)
+                                     .with_padding_y(8),
+                                 nbody::gfx::Layout::TopLeft, font_regular,
+                                 "FPS: " + std::to_string(GetFPS()) + "\n" +
+                                     "Bodies: " + std::to_string(sim.bodies().size()));
+
+        nbody::gfx::ui_draw_ruler(camera, " AU");
 
         EndDrawing();
     }
