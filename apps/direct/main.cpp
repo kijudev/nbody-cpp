@@ -9,6 +9,7 @@
 #include "base/type.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/draw.hpp"
+#include "gfx/window.hpp"
 #include "math/vec.hpp"
 #include "sim/const.hpp"
 #include "sim/direct.hpp"
@@ -63,13 +64,19 @@ int main() {
         .scaling_speed  = 1.0,
     };
 
-    InitWindow(screen_width, screen_height, "NBody - Direct");
+    nbody::gfx::Window window{
+        .width  = screen_width,
+        .height = screen_height,
+    };
+
+    window.init();
     SetTargetFPS(target_fps);
 
     while (!WindowShouldClose()) {
         Float dt = static_cast<Float>(GetFrameTime());
 
         camera.handle_controls(dt);
+        window.handle_resize();
 
         if (IsKeyDown(KEY_SPACE)) {
             is_running = false;
