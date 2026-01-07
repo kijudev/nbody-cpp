@@ -48,7 +48,7 @@ int main() {
 
     // NOTE: This is a little bit artificial. The scale_factor scales only the bodies in the
     // visualisatoin.
-    Float scale_factor = nbody::sim::scale_au::UNIT_AU * 3'000.0;
+    Float scale_factor = nbody::sim::scale_au::UNIT_AU * 100.0;
 
     // NOTE: How much time passes per second irl.
     Float time_factor = nbody::sim::scale_au::TIME_YEAR * 100.0;
@@ -95,10 +95,10 @@ int main() {
         for (USize i = 0; i < sim.bodies().size(); ++i) {
             const Body body   = bodies[i];
             const Vec2 center = camera.world_to_screen_vec(body.pm.pos);
-            const Vec2 point =
-                camera.world_to_screen_vec(Vec2{center.x + std::cbrt(body.pm.mass), center.y});
+            const Vec2 edge   = camera.world_to_screen_vec(
+                Vec2{body.pm.pos.x + std::cbrt(body.pm.mass), body.pm.pos.y});
 
-            DrawCircleV(center.as_raylib_vector(), center.distance(point) / scale_factor, WHITE);
+            DrawCircleV(center.as_raylib_vector(), center.distance(edge) * scale_factor, WHITE);
         }
 
         nbody::gfx::draw_ruler(camera, " AU");

@@ -3,14 +3,11 @@
 #include <tuple>
 
 #include "base/type.hpp"
+#include "gfx/point.hpp"
 #include "math/vec.hpp"
 
 namespace nbody::gfx {
 using namespace nbody::base::type;
-
-struct Point {
-    I32 x{0}, y{0};
-};
 
 template <FloatT Float>
 struct Camera {
