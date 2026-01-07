@@ -37,17 +37,14 @@ void BarnesHut<Float>::insert_body(Body&& body) {
 
 template <FloatT Float>
 void BarnesHut<Float>::step(Float dt) {
-    // Reset accelerations.
     for (Body& body : m_bodies) {
         body.acc = Vec2::make_zero();
     }
 
-    // Build tree and apply gravity.
     impl_create_root();
     impl_construct_tree();
     impl_apply_gravity();
 
-    // Integrate bodies.
     for (Body& body : m_bodies) {
         m_integrate(body, dt);
     }
