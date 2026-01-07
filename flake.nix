@@ -26,6 +26,7 @@
               nixd
               nil
               package-version-server
+              cloc
 
               # Cmake
               gnumake

@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <raymath.h>
+#include <raylib.h>
 
 #include <cmath>
 #include <format>
