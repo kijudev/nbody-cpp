@@ -73,9 +73,10 @@ class BarnesHutLinear {
     const std::vector<Node>&                                 nodes() const { return m_nodes; }
 
    private:
-    Layout            m_bodies{};
-    std::vector<Node> m_nodes{};
-    USize             m_root_index{static_cast<USize>(-1)};  // index of root node, or -1
+    Layout               m_bodies{};
+    std::vector<Node>    m_nodes{};
+    USize                m_next_free{0};                           // next free index when using pre-sized node pool
+    USize                m_root_index{static_cast<USize>(-1)};  // index of root node, or -1
 
     const IntegrateBodyFn m_integrate{integrate_body_euler<Float>};
     const Float           m_g{G_TOY};

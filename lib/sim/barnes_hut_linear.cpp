@@ -82,8 +82,25 @@ std::vector<USize> BarnesHutLinear<Float>::collect_node_indices() const {
 
 template <FloatT Float>
 void BarnesHutLinear<Float>::impl_create_root() {
+    // Reset node storage for this step and prepare a node pool that grows via push_back.
+    // We no longer rely on pre-sized vector slots and index-preserving assignments.
     m_nodes.clear();
+    m_next_free  = 0;
     m_root_index = static_cast<USize>(-1);
+
+    // Reserve a conservative upper bound to avoid repeated reallocations while
+    // building the tree. Use an estimate proportional to the number of bodies.
+    // But do NOT call resize() — we will grow with push_back to avoid invalidating
+    // references assumptions.
+    const USize base_min = 64;
+    const USize reserve_estimate =
+        (m_bodies.empty() ? base_min : static_cast<USize>(m_bodies.size()) * 8 + base_min);
+
+    if (m_nodes.capacity() < reserve_estimate) {
+        m_nodes.reserve(reserve_estimate);
+    }
+    // Do not pre-size with resize(); use push_back to grow the pool safely.
+    // m_next_free will be kept in sync with m_nodes.size() after push_back operations.
 
     if (m_bodies.empty()) {
         Vec2  zero   = Vec2::make_zero();
@@ -143,6 +160,22 @@ BarnesHutLinear<Float>::impl_root_node_center_radius() const {
     return std::make_tuple(center, radius);
 }
 
+template <FloatT Float>
+USize BarnesHutLinear<Float>::node_make_region(const Vec2& qc, Float qr) {
+    Node n;
+    n.quad_center = qc;
+    n.quad_radius = qr;
+    n.center      = Vec2::make_zero();
+    n.mass        = 0.0;
+    n.kind        = NodeKind::REGION;
+    n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
+                     static_cast<USize>(-1)};
+    // Append node to pool and return its index.
+    USize idx = static_cast<USize>(m_nodes.size());
+    m_nodes.push_back(std::move(n));
+    m_next_free = static_cast<USize>(m_nodes.size());
+    return idx;
+}
 
 template <FloatT Float>
 USize BarnesHutLinear<Float>::node_make_empty(const Vec2& qc, Float qr) {
@@ -154,22 +187,11 @@ USize BarnesHutLinear<Float>::node_make_empty(const Vec2& qc, Float qr) {
     n.kind        = NodeKind::EMPTY;
     n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
                      static_cast<USize>(-1)};
-    m_nodes.emplace_back(std::move(n));
-    return m_nodes.size() - 1;
-}
-
-template <FloatT Float>
-USize BarnesHutLinear<Float>::node_make_region(const Vec2& qc, Float qr) {
-    Node n;
-    n.quad_center = qc;
-    n.quad_radius = qr;
-    n.center      = Vec2::make_zero();
-    n.mass        = 0.0;
-    n.kind        = NodeKind::REGION;
-    n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
-                     static_cast<USize>(-1)};
-    m_nodes.emplace_back(std::move(n));
-    return m_nodes.size() - 1;
+    // Append node to pool and return its index.
+    USize idx = static_cast<USize>(m_nodes.size());
+    m_nodes.push_back(std::move(n));
+    m_next_free = static_cast<USize>(m_nodes.size());
+    return idx;
 }
 
 template <FloatT Float>
@@ -182,8 +204,11 @@ USize BarnesHutLinear<Float>::node_make_leaf(const Vec2& qc, Float qr, const Poi
     n.kind        = NodeKind::LEAF;
     n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
                      static_cast<USize>(-1)};
-    m_nodes.emplace_back(std::move(n));
-    return m_nodes.size() - 1;
+    // Append node to pool and return its index.
+    USize idx = static_cast<USize>(m_nodes.size());
+    m_nodes.push_back(std::move(n));
+    m_next_free = static_cast<USize>(m_nodes.size());
+    return idx;
 }
 
 template <FloatT Float>
@@ -191,66 +216,97 @@ void BarnesHutLinear<Float>::node_insert_point_mass(USize node_idx, const PointM
                                                     U16 current_depth, U16 max_depth) {
     ASSERT(node_idx < m_nodes.size(), "Invalid node index");
 
-    Node& node = m_nodes[node_idx];
+    // Avoid holding references to m_nodes elements across allocations.
+    // Access m_nodes by index each time after potential emplace_back to avoid invalidation.
 
-    if (node.is_empty()) {
-        node.kind   = NodeKind::LEAF;
-        node.center = pm.pos;
-        node.mass   = pm.mass;
+    // If empty node -> become leaf
+    if (m_nodes[node_idx].is_empty()) {
+        m_nodes[node_idx].kind   = NodeKind::LEAF;
+        m_nodes[node_idx].center = pm.pos;
+        m_nodes[node_idx].mass   = pm.mass;
         return;
     }
 
+    // If we've exceeded depth, accumulate into this leaf (must be leaf)
     if (current_depth > max_depth) {
-        ASSERT(node.is_leaf(), "Is not NodeKind::LEAF");
+        ASSERT(m_nodes[node_idx].is_leaf(), "Is not NodeKind::LEAF");
 
-        Float new_mass = node.mass + pm.mass;
+        Float old_mass   = m_nodes[node_idx].mass;
+        Vec2  old_center = m_nodes[node_idx].center;
+
+        Float new_mass = old_mass + pm.mass;
         if (new_mass <= math::impl::default_epsilon<Float>()) {
-            node.mass   = 0.0;
-            node.center = Vec2::make_zero();
+            m_nodes[node_idx].mass   = 0.0;
+            m_nodes[node_idx].center = Vec2::make_zero();
         } else {
-            node.center.x = (node.center.x * node.mass + pm.pos.x * pm.mass) / new_mass;
-            node.center.y = (node.center.y * node.mass + pm.pos.y * pm.mass) / new_mass;
-            node.mass     = new_mass;
+            m_nodes[node_idx].center.x = (old_center.x * old_mass + pm.pos.x * pm.mass) / new_mass;
+            m_nodes[node_idx].center.y = (old_center.y * old_mass + pm.pos.y * pm.mass) / new_mass;
+            m_nodes[node_idx].mass     = new_mass;
         }
         return;
     }
 
-    if (node.is_region()) {
+    // REGION case
+    if (m_nodes[node_idx].is_region()) {
         QuadId qid = node_impl_pos_quad_id(node_idx, pm.pos);
 
-        USize child_idx = node.children[qid];
+        USize child_idx = m_nodes[node_idx].children[qid];
         if (child_idx == static_cast<USize>(-1)) {
+            // compute child parameters before potentially reallocating the node vector
             Vec2  child_center = node_impl_quad_id_center(node_idx, qid);
-            Float child_qr     = node.quad_radius / 2.0;
-            USize new_child    = node_make_leaf(child_center, child_qr, pm);
-            node.children[qid] = new_child;
+            Float child_qr     = m_nodes[node_idx].quad_radius / 2.0;
+
+            // create leaf child (may reallocate m_nodes)
+            USize new_child = node_make_leaf(child_center, child_qr, pm);
+
+            // re-acquire node by index and set child
+            m_nodes[node_idx].children[qid] = new_child;
         } else {
+            // recurse into child (no vector modifications here)
             node_insert_point_mass(child_idx, pm, current_depth + 1, max_depth);
         }
 
+        // recompute center of mass for this node
         node_self_recompute_com_mass(node_idx);
-    } else if (node.is_leaf()) {
-        PointMass self_pm = node.self_as_point_mass();
-        node.kind         = NodeKind::REGION;
+        return;
+    }
 
-        Float child_qr = node.quad_radius / 2.0;
+    // LEAF case: need to split into region and re-insert both masses
+    if (m_nodes[node_idx].is_leaf()) {
+        // capture previous point mass
+        PointMass self_pm = m_nodes[node_idx].self_as_point_mass();
+
+        // convert to region
+        m_nodes[node_idx].kind = NodeKind::REGION;
+
+        // prepare child radius
+        Float child_qr = m_nodes[node_idx].quad_radius / 2.0;
+
+        // create 4 empty children (each creation may reallocate m_nodes)
         for (USize q = 0; q < 4; ++q) {
-            Vec2  child_qc   = node_impl_quad_id_center(node_idx, q);
-            USize new_child  = node_make_empty(child_qc, child_qr);
-            node.children[q] = new_child;
+            Vec2  child_qc  = node_impl_quad_id_center(node_idx, q);
+            USize new_child = node_make_empty(child_qc, child_qr);
+            // assign child after creation
+            m_nodes[node_idx].children[q] = new_child;
         }
 
+        // determine target child ids for old and new point masses
         QuadId self_qid = node_impl_pos_quad_id(node_idx, self_pm.pos);
         QuadId new_qid  = node_impl_pos_quad_id(node_idx, pm.pos);
 
-        USize self_child = node.children[self_qid];
-        node_insert_point_mass(self_child, self_pm, current_depth + 1, max_depth);
+        // insert the two point masses into respective children at depth+1
+        node_insert_point_mass(m_nodes[node_idx].children[self_qid], self_pm, current_depth + 1,
+                               max_depth);
+        node_insert_point_mass(m_nodes[node_idx].children[new_qid], pm, current_depth + 1,
+                               max_depth);
 
-        USize new_child = node.children[new_qid];
-        node_insert_point_mass(new_child, pm, current_depth + 1, max_depth);
-
+        // recompute center of mass
         node_self_recompute_com_mass(node_idx);
+        return;
     }
+
+    // Shouldn't reach here; defensive return
+    return;
 }
 
 template <FloatT Float>
