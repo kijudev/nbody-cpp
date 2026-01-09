@@ -1,15 +1,13 @@
 #include "base/type.hpp"
-#include "math/vec.hpp"
 
 namespace nbody::math {
 using namespace nbody::base::type;
 
-template <FloatT Float>
-bool check_collision2_rect_point(const Vec2T<Float> rect_corner_a, const Vec2T<Float> rect_corner_b,
-                                 const Vec2T<Float> point);
+template <SignedNumberT Number>
+bool check_collision2_rect_point(Number rx, Number ry, Number rwidth, Number rheight, Number px,
+                                 Number py);
 
-template <FloatT Float>
-bool check_collision2_rect_circle(const Vec2T<Float> rect_corner_a,
-                                  const Vec2T<Float> rect_corner_b, const Vec2T<Float> center,
-                                  Float radius);
+template <SignedNumberT Number>
+bool check_collision2_rect_circle(Number rx, Number ry, Number rwidth, Number rheight, Number cx,
+                                  Number cy, Number cr);
 }  // namespace nbody::math

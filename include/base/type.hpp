@@ -7,7 +7,6 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
 #include <vector>
 
 namespace nbody::base::type {
@@ -28,10 +27,20 @@ using F64   = double;
 using Bytecode = std::vector<U8>;
 
 // NOTE: Aliased floating point types.
-template <typename T>
-concept FloatT = std::floating_point<T>;
+template <typename Float>
+concept FloatT = std::same_as<Float, float> || std::same_as<Float, double>;
 
-template <typename T>
-concept UintT = std::same_as<T, U8> || std::same_as<T, U16> || std::same_as<T, U32> ||
-                std::same_as<T, U64>;
+template <typename Uint>
+concept UintT = std::same_as<Uint, U8> || std::same_as<Uint, U16> || std::same_as<Uint, U32> ||
+                std::same_as<Uint, U64>;
+
+template <typename Int>
+concept IntT = std::same_as<Int, I8> || std::same_as<Int, I16> || std::same_as<Int, I32> ||
+               std::same_as<Int, I64>;
+
+template <typename Number>
+concept NumberT = FloatT<Number> || UintT<Number> || IntT<Number>;
+
+template <typename Number>
+concept SignedNumberT = FloatT<Number> || IntT<Number>;
 }  // namespace nbody::base::type

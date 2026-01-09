@@ -1,64 +1,81 @@
-#include "base/type.hpp"
+#include <cmath>
+
 #include "math/collision.hpp"
-#include "math/vec.hpp"
 
 namespace nbody::math {
 using namespace nbody::base::type;
 
-template <FloatT Float>
-bool check_collision2_rect_point(const Vec2T<Float> rect_corner_a, const Vec2T<Float> rect_corner_b,
-                                 const Vec2T<Float> point) {
-    if (point.x > std::max(rect_corner_a.x, rect_corner_b.x)) {
+template <SignedNumberT Number>
+bool check_collision2_rect_point(Number rx, Number ry, Number rwidth, Number rheight, Number px,
+                                 Number py) {
+    if (px < rx) {
         return false;
     }
 
-    if (point.x < std::min(rect_corner_a.x, rect_corner_b.x)) {
+    if (px > rx + rwidth) {
         return false;
     }
 
-    if (point.y > std::max(rect_corner_a.y, rect_corner_b.y)) {
+    if (py < ry) {
         return false;
     }
 
-    if (point.y < std::min(rect_corner_a.y, rect_corner_b.y)) {
+    if (py > py + rheight) {
         return false;
     }
 
     return true;
 }
 
-template bool check_collision2_rect_point(const Vec2F32 rect_corner_a, const Vec2F32 rect_corner_b,
-                                          const Vec2F32 point);
-template bool check_collision2_rect_point(const Vec2F64 rect_corner_a, const Vec2F64 rect_corner_b,
-                                          const Vec2F64 point);
+template bool check_collision2_rect_point(I8 rx, I8 ry, I8 rwidth, I8 rheight, I8 px, I8 py);
+template bool check_collision2_rect_point(I16 rx, I16 ry, I16 rwidth, I16 rheight, I16 px, I16 py);
+template bool check_collision2_rect_point(I32 rx, I32 ry, I32 rwidth, I32 rheight, I32 px, I32 py);
+template bool check_collision2_rect_point(I64 rx, I64 ry, I64 rwidth, I64 rheight, I64 px, I64 py);
+template bool check_collision2_rect_point(F32 rx, F32 ry, F32 rwidth, F32 rheight, F32 px, F32 py);
+template bool check_collision2_rect_point(F64 rx, F64 ry, F64 rwidth, F64 rheight, F64 px, F64 py);
 
-template <FloatT Float>
-bool check_collision2_rect_circle(const Vec2T<Float> rect_corner_a,
-                                  const Vec2T<Float> rect_corner_b, const Vec2T<Float> center,
-                                  Float radius) {
-    if (center.x + radius > std::max(rect_corner_a.x, rect_corner_b.x)) {
-        return false;
+template <SignedNumberT Number>
+bool check_collision2_rect_circle(Number rx, Number ry, Number rwidth, Number rheight, Number cx,
+                                  Number cy, Number cr) {
+    // NOTE: Temporary variables to set the edges for testing.
+    Number tx = cx;
+    Number ty = cy;
+
+    // NOTE: Find out which edge is the closest for the x axis.
+    if (cx < rx) {
+        tx = rx;
+    } else if (cx > rx + rwidth) {
+        tx = rx + rwidth;
     }
 
-    if (center.x + radius < std::min(rect_corner_a.x, rect_corner_b.x)) {
-        return false;
+    // NOTE: Find out which edge is the closest for the y axis.
+    if (cy < ry) {
+        ty = ry;
+    } else if (cy > ry + rheight) {
+        ty = ry + rheight;
     }
 
-    if (center.y + radius > std::max(rect_corner_a.y, rect_corner_b.y)) {
-        return false;
+    // NOTE: Calculate the distance from the closest edges.
+    Number distx = cx - tx;
+    Number disty = cy - ty;
+    Number dist  = std::sqrt((distx * distx) + (disty * disty));
+
+    if (dist <= cr) {
+        return true;
     }
 
-    if (center.y + radius < std::min(rect_corner_a.y, rect_corner_b.y)) {
-        return false;
-    }
-
-    // TODO: Implement the checks for corner cases.
-
-    return true;
+    return false;
 }
 
-template bool check_collision2_rect_circle(const Vec2F32 rect_corner_a, const Vec2F32 rect_corner_b,
-                                           const Vec2F32 point, F32 radius);
-template bool check_collision2_rect_circle(const Vec2F64 rect_corner_a, const Vec2F64 rect_corner_b,
-                                           const Vec2F64 point, F64 radius);
+template bool check_collision2_rect_circle(I8 rx, I8 ry, I8 width, I8 rheight, I8 cx, I8 cy, I8 cr);
+template bool check_collision2_rect_circle(I16 rx, I16 ry, I16 width, I16 rheight, I16 cx, I16 cy,
+                                           I16 cr);
+template bool check_collision2_rect_circle(I32 rx, I32 ry, I32 width, I32 rheight, I32 cx, I32 cy,
+                                           I32 cr);
+template bool check_collision2_rect_circle(I64 rx, I64 ry, I64 width, I64 rheight, I64 cx, I64 cy,
+                                           I64 cr);
+template bool check_collision2_rect_circle(F32 rx, F32 ry, F32 width, F32 rheight, F32 cx, F32 cy,
+                                           F32 cr);
+template bool check_collision2_rect_circle(F64 rx, F64 ry, F64 width, F64 rheight, F64 cx, F64 cy,
+                                           F64 cr);
 }  // namespace nbody::math
