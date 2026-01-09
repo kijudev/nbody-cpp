@@ -3,6 +3,7 @@
 #include <raylib.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <tuple>
 
 #include "base/type.hpp"
@@ -51,14 +52,21 @@ Camera<Float>::viewport_extent_world() const {
 
 template <FloatT Float>
 bool Camera<Float>::is_pos_in_viewport(const Vec2& pos) const {
-    return math::check_collision2_rect_point(screen_to_world({0, 0}),
-                                             screen_to_world({screen_width, screen_height}), pos);
+    Vec2 w0      = screen_to_world({0, 0});
+    Vec2 wscreen = screen_to_world({screen_width, screen_height});
+
+    return math::check_collision2_rect_point(w0.x, w0.y, std::abs(wscreen.x - w0.x),
+                                             std::abs(wscreen.y - w0.y), pos.x, pos.y);
 }
 
 template <FloatT Float>
 bool Camera<Float>::is_circle_in_viewport(const Vec2& center, Float radius) const {
-    return math::check_collision2_rect_circle(
-        screen_to_world({0, 0}), screen_to_world({screen_width, screen_height}), center, radius);
+    Vec2 w0      = screen_to_world({0, 0});
+    Vec2 wscreen = screen_to_world({screen_width, screen_height});
+
+    return math::check_collision2_rect_circle(w0.x, w0.y, std::abs(wscreen.x - w0.x),
+                                              std::abs(wscreen.y - w0.y), center.x, center.y,
+                                              radius);
 }
 
 template <FloatT Float>

@@ -1,3 +1,5 @@
+#include "sim/barnes_hut_linear.hpp"
+
 #include <algorithm>
 #include <limits>
 #include <stack>
@@ -7,7 +9,6 @@
 #include "base/assert.hpp"
 #include "base/type.hpp"
 #include "math/impl.hpp"
-#include "sim/barnes_hut_linear.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;
@@ -115,7 +116,7 @@ void BarnesHutLinear<Float>::impl_create_root() {
 
 template <FloatT Float>
 void BarnesHutLinear<Float>::impl_construct_tree() {
-    ASSERT(m_root_index != std::numerical_limits<USize>::max(), "Root is not initialized");
+    ASSERT(m_root_index != std::numeric_limits<USize>::max(), "Root is not initialized");
     for (const Body& body : m_bodies) {
         node_insert_point_mass(m_root_index, body.pm, 0, m_depth);
     }

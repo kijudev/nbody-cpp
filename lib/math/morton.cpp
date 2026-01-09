@@ -1,5 +1,6 @@
 #include "math/morton.hpp"
 
+#include <algorithm>
 #include <limits>
 
 #include "base/assert.hpp"
@@ -56,12 +57,14 @@ U64 morton_expand_bits_u32_portable(U32 value) {
     return x;
 }
 
+// TODO: Implement.
 U32 morton_expand_bits_u16_intrisics(U16 value) {
     ASSERT(false, "TODO: Implement");
     (void)value;
     return 0;
 }
 
+// TODO: Implement.
 U64 morton_expand_bits_u32_intrisics(U32 value) {
     ASSERT(false, "TODO: Implement");
     (void)value;

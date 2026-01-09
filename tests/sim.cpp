@@ -185,7 +185,7 @@ TEST_CASE("barnes_hut vs direct (plummer) - F64") {
     CHECK(max_abs_err_bh < tolerance);
     CHECK(max_abs_err_bhl < tolerance);
 
-    // NOTE: Barnes-Hut pointer and linear consistency
+    // NOTE: Barnes-Hut pointer and linear consistency.
     Float max_abs_err_bh_pair = 0.0;
     for (USize i = 0; i < direct_bodies.size(); ++i) {
         max_abs_err_bh_pair =
