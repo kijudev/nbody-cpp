@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <limits>
 #include <span>
 #include <tuple>
 #include <vector>
@@ -32,15 +33,22 @@ class BarnesHutLinear {
 
     enum class NodeKind { EMPTY, REGION, LEAF };
 
+    static constexpr Float DEAFULT_G         = sim::scale_toy::G;
+    static constexpr Float DEAFULT_SOFTENING = sim::scale_toy::SOFTENING;
+
     struct Node {
-        Vec2     quad_center{0.0, 0.0};  // geometric center of the quad
-        Float    quad_radius{0.0};       // half-side-length (radius)
-        Vec2     center{0.0, 0.0};       // center-of-mass for this node (if region/leaf)
-        Float    mass{0.0};              // total mass represented by this node
+        Vec2     quad_center{0.0, 0.0};  // NOTE: Geometric center of the quad.
+        Float    quad_radius{0.0};       // NOTE: Galf-side-length (radius).
+        Vec2     center{0.0, 0.0};       // NOTE: Center-of-mass for this node (if region/leaf).
+        Float    mass{0.0};              // NOTE: Total mass represented by this node.
         NodeKind kind{NodeKind::EMPTY};
 
-        std::array<USize, 4> children{static_cast<USize>(-1), static_cast<USize>(-1),
-                                      static_cast<USize>(-1), static_cast<USize>(-1)};
+        std::array<USize, 4> children{
+            std::numeric_limits<USize>::max(),
+            std::numeric_limits<USize>::max(),
+            std::numeric_limits<USize>::max(),
+            std::numeric_limits<USize>::max(),
+        };
 
         bool is_empty() const noexcept { return kind == NodeKind::EMPTY; }
         bool is_region() const noexcept { return kind == NodeKind::REGION; }
@@ -52,8 +60,8 @@ class BarnesHutLinear {
     struct Config {
         Layout          bodies{};
         IntegrateBodyFn integrate_fn{integrate_body_euler<Float>};
-        Float           g{G_TOY};
-        Float           softening{SOFTENING_TOY};
+        Float           g{DEAFULT_G};
+        Float           softening{DEAFULT_SOFTENING};
         Float           theta{0.5};
         U16             depth{64};
 
@@ -73,14 +81,14 @@ class BarnesHutLinear {
     const std::vector<Node>&                                 nodes() const { return m_nodes; }
 
    private:
-    Layout               m_bodies{};
-    std::vector<Node>    m_nodes{};
-    USize                m_next_free{0};                           // next free index when using pre-sized node pool
-    USize                m_root_index{static_cast<USize>(-1)};  // index of root node, or -1
+    Layout            m_bodies{};
+    std::vector<Node> m_nodes{};
+    USize             m_next_free{0};  // NOTE: Next free index when using pre-sized node pool.
+    USize m_root_index{std::numeric_limits<USize>::max()};  // NOTE: Index of root node, or -1.
 
     const IntegrateBodyFn m_integrate{integrate_body_euler<Float>};
-    const Float           m_g{G_TOY};
-    Float                 m_softening{SOFTENING_TOY};
+    const Float           m_g{DEAFULT_G};
+    Float                 m_softening{DEAFULT_SOFTENING};
     Float                 m_theta{0.5};
     U16                   m_depth{64};
 
@@ -94,17 +102,20 @@ class BarnesHutLinear {
 
     void node_insert_point_mass(USize node_idx, const PointMass& pm, U16 current_depth,
                                 U16 max_depth);
+
     void node_self_recompute_com_mass(USize node_idx);
-    BarnesHutLinear::QuadId node_impl_pos_quad_id(USize node_idx, const Vec2& pos) const;
-    Vec2                    node_impl_quad_id_center(USize node_idx, QuadId qid) const;
+
+    QuadId node_impl_pos_quad_id(USize node_idx, const Vec2& pos) const;
+
+    Vec2 node_impl_quad_id_center(USize node_idx, QuadId qid) const;
+
     void node_impl_apply_gravity_body_source(Body& body, const PointMass& pm, Float g,
                                              Float softening) const;
 
     void node_apply_gravity_at(USize node_idx, Body& body, Float g, Float softening,
                                Float theta) const;
 
-    // Root bounding calculation
+    // NOTE: Root bounding calculation.
     std::tuple<Vec2, Float> impl_root_node_center_radius() const;
 };
-
 }  // namespace nbody::sim

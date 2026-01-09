@@ -5,15 +5,18 @@
 namespace nbody::sim {
 using namespace nbody::base::type;
 
-static constexpr F64 G_IRL = 6.67430e-11;
-static constexpr F64 G_TOY = 1.0;
+namespace scale_toy {
+static constexpr F64 DISTANCE_UNIT = 1.0;
+static constexpr F64 MASS_UNIT     = 1.0;
+static constexpr F64 TIME_UNIT     = 1.0;
 
-static constexpr F64 SOFTENING_IRL = 1e-6;
-static constexpr F64 SOFTENING_TOY = 0.1;
+static constexpr F64 G         = 0.00029591220828;
+static constexpr F64 SOFTENING = DISTANCE_UNIT * 5.0e-5;
+}  // namespace scale_toy
 
 namespace scale_au {
 // UNIT: 149 597 871 000m.
-static constexpr F64 UNIT_AU = 1.0;
+static constexpr F64 DISTANCE_AU = 1.0;
 
 // UNIT: 1.9891 * 10^30kg.
 static constexpr F64 MASS_SOL     = 1.0;
@@ -33,9 +36,9 @@ static constexpr F64 TIME_MINUTE  = TIME_HOUR / 60.0;
 static constexpr F64 TIME_SECOND  = TIME_MINUTE / 60.0;
 
 // UNIT: AU, Solar Mass, Solar Day.
-static constexpr F64 CONST_G = 0.00029591220828;
+static constexpr F64 G = 0.00029591220828;
 
 // NOTE: ~Earth's radius.
-static constexpr F64 CONST_SOFTENING = UNIT_AU * 5.0e-5;
+static constexpr F64 SOFTENING = DISTANCE_AU * 5.0e-5;
 }  // namespace scale_au
 }  // namespace nbody::sim

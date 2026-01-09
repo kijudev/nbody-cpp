@@ -1,5 +1,3 @@
-#include "sim/barnes_hut_linear.hpp"
-
 #include <algorithm>
 #include <limits>
 #include <stack>
@@ -9,6 +7,7 @@
 #include "base/assert.hpp"
 #include "base/type.hpp"
 #include "math/impl.hpp"
+#include "sim/barnes_hut_linear.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;
@@ -17,7 +16,7 @@ template <FloatT Float>
 BarnesHutLinear<Float>::BarnesHutLinear(const Config& config)
     : m_bodies(std::move(config.bodies)),
       m_nodes{},
-      m_root_index(static_cast<USize>(-1)),
+      m_root_index(std::numeric_limits<USize>::max()),
       m_integrate(std::move(config.integrate_fn)),
       m_g(config.g),
       m_softening(config.softening),
@@ -57,7 +56,7 @@ void BarnesHutLinear<Float>::step(Float dt) {
 template <FloatT Float>
 std::vector<USize> BarnesHutLinear<Float>::collect_node_indices() const {
     std::vector<USize> out;
-    if (m_root_index == static_cast<USize>(-1)) return out;
+    if (m_root_index == std::numeric_limits<USize>::max()) return out;
 
     out.reserve(m_nodes.size());
     std::stack<USize> stack;
@@ -73,7 +72,7 @@ std::vector<USize> BarnesHutLinear<Float>::collect_node_indices() const {
         const Node& n = m_nodes[idx];
         for (USize q = 0; q < 4; ++q) {
             USize child = n.children[q];
-            if (child != static_cast<USize>(-1)) stack.push(child);
+            if (child != std::numeric_limits<USize>::max()) stack.push(child);
         }
     }
 
@@ -86,7 +85,7 @@ void BarnesHutLinear<Float>::impl_create_root() {
     // We no longer rely on pre-sized vector slots and index-preserving assignments.
     m_nodes.clear();
     m_next_free  = 0;
-    m_root_index = static_cast<USize>(-1);
+    m_root_index = std::numeric_limits<USize>::max();
 
     // Reserve a conservative upper bound to avoid repeated reallocations while
     // building the tree. Use an estimate proportional to the number of bodies.
@@ -116,7 +115,7 @@ void BarnesHutLinear<Float>::impl_create_root() {
 
 template <FloatT Float>
 void BarnesHutLinear<Float>::impl_construct_tree() {
-    ASSERT(m_root_index != static_cast<USize>(-1), "Root is not initialized");
+    ASSERT(m_root_index != std::numerical_limits<USize>::max(), "Root is not initialized");
     for (const Body& body : m_bodies) {
         node_insert_point_mass(m_root_index, body.pm, 0, m_depth);
     }
@@ -124,7 +123,7 @@ void BarnesHutLinear<Float>::impl_construct_tree() {
 
 template <FloatT Float>
 void BarnesHutLinear<Float>::impl_apply_gravity() {
-    if (m_root_index == static_cast<USize>(-1)) return;
+    if (m_root_index == std::numeric_limits<USize>::max()) return;
 
     for (Body& body : m_bodies) {
         node_apply_gravity_at(m_root_index, body, m_g, m_softening, m_theta);
@@ -168,8 +167,12 @@ USize BarnesHutLinear<Float>::node_make_region(const Vec2& qc, Float qr) {
     n.center      = Vec2::make_zero();
     n.mass        = 0.0;
     n.kind        = NodeKind::REGION;
-    n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
-                     static_cast<USize>(-1)};
+    n.children    = {
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+    };
     // Append node to pool and return its index.
     USize idx = static_cast<USize>(m_nodes.size());
     m_nodes.push_back(std::move(n));
@@ -185,8 +188,12 @@ USize BarnesHutLinear<Float>::node_make_empty(const Vec2& qc, Float qr) {
     n.center      = Vec2::make_zero();
     n.mass        = 0.0;
     n.kind        = NodeKind::EMPTY;
-    n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
-                     static_cast<USize>(-1)};
+    n.children    = {
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+    };
     // Append node to pool and return its index.
     USize idx = static_cast<USize>(m_nodes.size());
     m_nodes.push_back(std::move(n));
@@ -202,8 +209,13 @@ USize BarnesHutLinear<Float>::node_make_leaf(const Vec2& qc, Float qr, const Poi
     n.center      = pm.pos;
     n.mass        = pm.mass;
     n.kind        = NodeKind::LEAF;
-    n.children    = {static_cast<USize>(-1), static_cast<USize>(-1), static_cast<USize>(-1),
-                     static_cast<USize>(-1)};
+    n.children    = {
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+        std::numeric_limits<USize>::max(),
+    };
+
     // Append node to pool and return its index.
     USize idx = static_cast<USize>(m_nodes.size());
     m_nodes.push_back(std::move(n));
@@ -251,7 +263,7 @@ void BarnesHutLinear<Float>::node_insert_point_mass(USize node_idx, const PointM
         QuadId qid = node_impl_pos_quad_id(node_idx, pm.pos);
 
         USize child_idx = m_nodes[node_idx].children[qid];
-        if (child_idx == static_cast<USize>(-1)) {
+        if (child_idx == std::numeric_limits<USize>::max()) {
             // compute child parameters before potentially reallocating the node vector
             Vec2  child_center = node_impl_quad_id_center(node_idx, qid);
             Float child_qr     = m_nodes[node_idx].quad_radius / 2.0;
@@ -319,7 +331,7 @@ void BarnesHutLinear<Float>::node_self_recompute_com_mass(USize node_idx) {
 
     for (USize q = 0; q < 4; ++q) {
         USize child = node.children[q];
-        if (child == static_cast<USize>(-1)) continue;
+        if (child == std::numeric_limits<USize>::max()) continue;
         Node& cn = m_nodes[child];
         total_mass += cn.mass;
         weighted_sum = weighted_sum.add(cn.center.scale(cn.mass));
@@ -408,14 +420,13 @@ void BarnesHutLinear<Float>::node_apply_gravity_at(USize node_idx, Body& body, F
     } else {
         for (USize q = 0; q < 4; ++q) {
             USize child = node.children[q];
-            if (child != static_cast<USize>(-1)) {
+            if (child != std::numeric_limits<USize>::max()) {
                 node_apply_gravity_at(child, body, g, softening, theta);
             }
         }
     }
 }
 
-/* explicit template instantiations */
 template class BarnesHutLinear<F32>;
 template class BarnesHutLinear<F64>;
 

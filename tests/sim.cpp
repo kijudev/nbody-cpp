@@ -1,4 +1,5 @@
 #include "base/type.hpp"
+#include "sim/const.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
@@ -18,6 +19,9 @@ using namespace nbody::sim;
 TEST_CASE("barnes_hut vs direct (uniform box) - F64") {
     using Float = F64;
 
+    static constexpr Float G         = scale_toy::G;
+    static constexpr Float SOFTENING = scale_toy::SOFTENING;
+
     GenerateDistributionConfig<Float> gen_config{
         .n           = 64,
         .min_mass    = 0.1,
@@ -32,15 +36,15 @@ TEST_CASE("barnes_hut vs direct (uniform box) - F64") {
     Direct<Float>::Config direct_config{
         .bodies       = bodies,
         .integrate_fn = integrate_body_euler<Float>,
-        .g            = static_cast<Float>(G_TOY),
-        .softening    = static_cast<Float>(SOFTENING_TOY),
+        .g            = static_cast<Float>(G),
+        .softening    = static_cast<Float>(SOFTENING),
     };
 
     BarnesHut<Float>::Config barnes_hut_config{
         .bodies       = bodies,
         .integrate_fn = integrate_body_euler<Float>,
-        .g            = static_cast<Float>(G_TOY),
-        .softening    = static_cast<Float>(SOFTENING_TOY),
+        .g            = static_cast<Float>(G),
+        .softening    = static_cast<Float>(SOFTENING),
         .theta        = static_cast<Float>(1e-6),  // NOTE: Tighter theta for more precision.
         .depth        = 64,
     };
@@ -48,8 +52,8 @@ TEST_CASE("barnes_hut vs direct (uniform box) - F64") {
     BarnesHutLinear<Float>::Config barnes_hut_linear_config{
         .bodies        = bodies,
         .integrate_fn  = integrate_body_euler<Float>,
-        .g             = static_cast<Float>(G_TOY),
-        .softening     = static_cast<Float>(SOFTENING_TOY),
+        .g             = static_cast<Float>(G),
+        .softening     = static_cast<Float>(SOFTENING),
         .theta         = static_cast<Float>(1e-6),  // NOTE: Tighter theta for more precision.
         .depth         = 64,
         .reserve_nodes = 1024,
@@ -105,6 +109,9 @@ TEST_CASE("barnes_hut vs direct (uniform box) - F64") {
 TEST_CASE("barnes_hut vs direct (plummer) - F64") {
     using Float = F64;
 
+    static constexpr Float G         = scale_toy::G;
+    static constexpr Float SOFTENING = scale_toy::SOFTENING;
+
     // NOTE: Use Plummer distribution which is more clustered.
     GenerateDistributionConfig<Float> generate_distribution_config{
         .n           = 48,
@@ -120,25 +127,25 @@ TEST_CASE("barnes_hut vs direct (plummer) - F64") {
     Direct<Float>::Config direct_config{
         .bodies       = bodies,
         .integrate_fn = integrate_body_euler<Float>,
-        .g            = static_cast<Float>(G_TOY),
-        .softening    = static_cast<Float>(SOFTENING_TOY),
+        .g            = G,
+        .softening    = SOFTENING,
     };
 
     BarnesHut<Float>::Config barnes_hut_config{
         .bodies       = bodies,
         .integrate_fn = integrate_body_euler<Float>,
-        .g            = static_cast<Float>(G_TOY),
-        .softening    = static_cast<Float>(SOFTENING_TOY),
-        .theta        = static_cast<Float>(0.15),  // NOTE: Tighter theta for clustered data.
+        .g            = G,
+        .softening    = SOFTENING,
+        .theta        = 0.15,  // NOTE: Tighter theta for clustered data.
         .depth        = 64,
     };
 
     BarnesHutLinear<Float>::Config barnes_hut_linear_config{
         .bodies        = bodies,
         .integrate_fn  = integrate_body_euler<Float>,
-        .g             = static_cast<Float>(G_TOY),
-        .softening     = static_cast<Float>(SOFTENING_TOY),
-        .theta         = static_cast<Float>(0.15),  // NOTE: Tighter theta for clustered data.
+        .g             = G,
+        .softening     = SOFTENING,
+        .theta         = 0.15,  // NOTE: Tighter theta for clustered data.
         .depth         = 64,
         .reserve_nodes = 1024,
     };
@@ -147,9 +154,9 @@ TEST_CASE("barnes_hut vs direct (plummer) - F64") {
     BarnesHut<Float>       barnes_hut(barnes_hut_config);
     BarnesHutLinear<Float> barnes_hut_linear(barnes_hut_linear_config);
 
-    direct.step(static_cast<Float>(0.0));
-    barnes_hut.step(static_cast<Float>(0.0));
-    barnes_hut_linear.step(static_cast<Float>(0.0));
+    direct.step(0.0);
+    barnes_hut.step(0.0);
+    barnes_hut_linear.step(0.0);
 
     auto direct_bodies = direct.bodies();
     auto bh_bodies     = barnes_hut.bodies();
@@ -173,7 +180,7 @@ TEST_CASE("barnes_hut vs direct (plummer) - F64") {
     }
 
     // NOTE: Looser tolerance for clustered plummer model but still should be reasonably close.
-    const Float tolerance = static_cast<Float>(5e-4);
+    const Float tolerance = 5e-4;
 
     CHECK(max_abs_err_bh < tolerance);
     CHECK(max_abs_err_bhl < tolerance);
@@ -184,6 +191,6 @@ TEST_CASE("barnes_hut vs direct (plummer) - F64") {
         max_abs_err_bh_pair =
             std::max(max_abs_err_bh_pair, bh_bodies[i].acc.distance(bhl_bodies[i].acc));
     }
-    const Float tol_pair = static_cast<Float>(1e-8);
+    const Float tol_pair = 1e-8;
     CHECK(max_abs_err_bh_pair < tol_pair);
 }

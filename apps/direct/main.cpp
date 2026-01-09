@@ -29,7 +29,7 @@ int main() {
         .n           = 1000,
         .min_mass    = nbody::sim::scale_au::MASS_HYGIEA,
         .max_mass    = nbody::sim::scale_au::MASS_SOL * 10,
-        .radius      = nbody::sim::scale_au::UNIT_AU * 20,
+        .radius      = nbody::sim::scale_au::DISTANCE_AU * 20,
         .position_fn = nbody::sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = nbody::sim::generate_mass_distribution_salpeter_imf<Float>,
     };
@@ -39,8 +39,8 @@ int main() {
     nbody::sim::Direct<Float>::Config sim_config{
         .bodies       = std::move(bodies),
         .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
-        .g            = nbody::sim::scale_au::CONST_G,
-        .softening    = nbody::sim::scale_au::CONST_SOFTENING,
+        .g            = nbody::sim::scale_au::G,
+        .softening    = nbody::sim::scale_au::SOFTENING,
     };
 
     nbody::sim::Direct<Float> sim(sim_config);
@@ -49,7 +49,7 @@ int main() {
 
     // NOTE: This is a little bit artificial. The scale_factor scales only the bodies in the
     // visualisatoin.
-    Float scale_factor = nbody::sim::scale_au::UNIT_AU * 100.0;
+    Float scale_factor = nbody::sim::scale_au::DISTANCE_AU * 100.0;
 
     // NOTE: How much time passes per second irl.
     Float time_factor = nbody::sim::scale_au::TIME_YEAR * 100.0;
@@ -65,7 +65,7 @@ int main() {
         .screen_width   = window.width,
         .screen_height  = window.height,
         .zoom           = 1.0,
-        .movement_speed = nbody::sim::scale_au::UNIT_AU / nbody::sim::scale_au::TIME_MINUTE,
+        .movement_speed = nbody::sim::scale_au::DISTANCE_AU / nbody::sim::scale_au::TIME_MINUTE,
         .scaling_speed  = 1.0,
     };
 
@@ -110,6 +110,8 @@ int main() {
         I32 font_small   = std::clamp(8, std::min(window.width, window.height) / 96, 12);
         I32 font_regular = std::clamp(12, std::min(window.width, window.height) / 48, 16);
         I32 font_big     = std::clamp(16, std::min(window.width, window.height) / 32, 32);
+
+        (void)font_small;
 
         if (is_running) {
             sim.step(dt * time_factor);

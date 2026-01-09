@@ -19,17 +19,19 @@ class Direct {
     using Layout          = std::vector<Body>;
     using IntegrateBodyFn = IntegrateBodyFnT<Float>;
 
+    static constexpr Float DEAFULT_G         = sim::scale_toy::G;
+    static constexpr Float DEAFULT_SOFTENING = sim::scale_toy::SOFTENING;
+
     struct Config {
         Layout          bodies{};
         IntegrateBodyFn integrate_fn = integrate_body_euler<Float>;
-        Float           g            = G_TOY;
-        Float           softening    = SOFTENING_TOY;
+        Float           g            = DEAFULT_G;
+        Float           softening    = DEAFULT_SOFTENING;
     };
 
    public:
     Direct(const Config& config);
 
-   public:
     void                                                     step(Float dt);
     [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const;
     void                                                     insert_body(Body&& body);
@@ -38,10 +40,9 @@ class Direct {
     Layout m_bodies{};
 
     const IntegrateBodyFn m_integrate_body{integrate_body_euler<Float>};
-    const Float           m_g{G_TOY};
-    const Float           m_softening{SOFTENING_TOY};
+    const Float           m_g{DEAFULT_G};
+    const Float           m_softening{DEAFULT_SOFTENING};
 
-   private:
     void impl_apply_gravity();
     void impl_apply_gravity_body_pair(Body& a, Body& b);
 };
