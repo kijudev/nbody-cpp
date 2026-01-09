@@ -17,10 +17,11 @@ using namespace nbody::base::type;
 using namespace nbody::sim;
 
 TEST_CASE("BarnesHut; BarnesHutLinear - Direct as basline - Plummer Distribution - F64") {
-    using Float                      = F64;
+    using Float                       = F64;
     static constexpr USize BODY_COUNT = 256;
-    static constexpr Float G         = scale_toy::G;
-    static constexpr Float SOFTENING = scale_toy::SOFTENING;
+    static constexpr Float G          = scale_toy::G;
+    static constexpr Float SOFTENING  = scale_toy::SOFTENING;
+    static constexpr Float DT         = 0.0;
 
     std::vector<BodyT<Float>> bodies = generate_distribution(GenerateDistributionConfig<Float>{
         .n           = BODY_COUNT,
@@ -61,9 +62,9 @@ TEST_CASE("BarnesHut; BarnesHutLinear - Direct as basline - Plummer Distribution
     BarnesHut<Float>       bh(bh_config);
     BarnesHutLinear<Float> bhl(bhl_config);
 
-    direct.step(0.0);
-    bh.step(0.0);
-    bhl.step(0.0);
+    direct.step(DT);
+    bh.step(DT);
+    bhl.step(DT);
 
     auto direct_bodies = direct.bodies();
     auto bh_bodies     = bh.bodies();
