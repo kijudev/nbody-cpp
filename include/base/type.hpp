@@ -7,6 +7,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 
 namespace nbody::base::type {
@@ -29,4 +30,8 @@ using Bytecode = std::vector<U8>;
 // NOTE: Aliased floating point types.
 template <typename T>
 concept FloatT = std::floating_point<T>;
+
+template <typename T>
+concept UintT = std::same_as<T, U8> || std::same_as<T, U16> || std::same_as<T, U32> ||
+                std::same_as<T, U64>;
 }  // namespace nbody::base::type
