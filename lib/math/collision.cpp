@@ -20,7 +20,8 @@ bool check_collision2_rect_point(Number rx, Number ry, Number rwidth, Number rhe
         return false;
     }
 
-    if (py > py + rheight) {
+    // NOTE: Fixed: compare against rectangle bottom (ry + rheight), previously compared py to itself.
+    if (py > ry + rheight) {
         return false;
     }
 

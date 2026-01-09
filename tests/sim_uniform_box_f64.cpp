@@ -17,10 +17,10 @@ using namespace nbody::base::type;
 using namespace nbody::sim;
 
 TEST_CASE("BarnesHut; BarnesHutLinear - Direct as baseline - Uniform Box Distribution - F64") {
-    using Float                      = F64;
+    using Float                       = F64;
     static constexpr USize BODY_COUNT = 256;
-    static constexpr Float G         = scale_toy::G;
-    static constexpr Float SOFTENING = scale_toy::SOFTENING;
+    static constexpr Float G          = scale_toy::G;
+    static constexpr Float SOFTENING  = scale_toy::SOFTENING;
 
     std::vector<BodyT<Float>> bodies = generate_distribution(GenerateDistributionConfig<Float>{
         .n           = BODY_COUNT,

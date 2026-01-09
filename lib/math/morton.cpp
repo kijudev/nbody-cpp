@@ -11,25 +11,30 @@ using namespace nbody::base::type;
 
 namespace impl {
 U32 morton_f32_to_u32_as_u16(F32 value, F32 min, F32 max) {
-    F32 clamped    = std::clamp(min, value, max);
+    // std::clamp expects (value, low, high)
+    F32 clamped    = std::clamp(value, min, max);
     F32 normalized = (clamped - min) / (max - min);
     return static_cast<U32>(normalized * std::numeric_limits<U16>::max());
 }
 
 U32 morton_f64_to_u32_as_u16(F64 value, F64 min, F64 max) {
-    F64 clamped    = std::clamp(min, value, max);
+    // std::clamp expects (value, low, high)
+    F64 clamped    = std::clamp(value, min, max);
     F64 normalized = (clamped - min) / (max - min);
     return static_cast<U32>(normalized * std::numeric_limits<U16>::max());
 }
 
 U64 morton_f32_to_u64_as_u32(F32 value, F32 min, F32 max) {
-    F64 clamped    = std::clamp(min, value, max);
-    F64 normalized = (clamped - min) / (max - min);
+    // std::clamp expects (value, low, high)
+    F64 clamped = std::clamp(static_cast<F64>(value), static_cast<F64>(min), static_cast<F64>(max));
+    F64 normalized =
+        (clamped - static_cast<F64>(min)) / (static_cast<F64>(max) - static_cast<F64>(min));
     return static_cast<U64>(normalized * std::numeric_limits<U32>::max());
 }
 
 U64 morton_f64_to_u64_as_u32(F64 value, F64 min, F64 max) {
-    F64 clamped    = std::clamp(min, value, max);
+    // std::clamp expects (value, low, high)
+    F64 clamped    = std::clamp(value, min, max);
     F64 normalized = (clamped - min) / (max - min);
     return static_cast<U64>(normalized * std::numeric_limits<U32>::max());
 }
@@ -121,4 +126,6 @@ template U32 morton_encode2(F64 x, F64 y, F64 min, F64 max);
 template U64 morton_encode2(F32 x, F32 y, F32 min, F32 max);
 template U64 morton_encode2(F64 x, F64 y, F64 min, F64 max);
 }  // namespace impl
+
+// Forwarding template moved to the header; keep implementation details in impl.
 }  // namespace nbody::math

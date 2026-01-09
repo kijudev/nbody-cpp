@@ -27,11 +27,27 @@ U64 morton_expand_bits_u32(U32 value);
 
 U32 morton_encode2_u32_f32(F32 x, F32 y, F32 min, F32 max);
 U32 morton_encode2_u32_f64(F64 x, F64 y, F64 min, F64 max);
-U64 morton_encode2_u64_f32(F32 x, F32 y, F32 min, F64 max);
+U64 morton_encode2_u64_f32(F32 x, F32 y, F32 min, F32 max);
 U64 morton_encode2_u64_f64(F64 x, F64 y, F64 min, F64 max);
 }  // namespace impl
 
 template <FloatT Float, UintT Uint>
     requires(std::same_as<Uint, U32> || std::same_as<Uint, U64>)
-Uint morton_encode2(Float x, Float y, Float min, Float max);
+Uint morton_encode2(Float x, Float y, Float min, Float max) {
+    if constexpr (std::same_as<Uint, U32>) {
+        if constexpr (std::same_as<Float, F32>) {
+            return impl::morton_encode2_u32_f32(x, y, static_cast<F32>(min), static_cast<F32>(max));
+        } else {
+            return impl::morton_encode2_u32_f64(static_cast<F64>(x), static_cast<F64>(y),
+                                                static_cast<F64>(min), static_cast<F64>(max));
+        }
+    } else {
+        if constexpr (std::same_as<Float, F32>) {
+            return impl::morton_encode2_u64_f32(x, y, static_cast<F32>(min), static_cast<F32>(max));
+        } else {
+            return impl::morton_encode2_u64_f64(static_cast<F64>(x), static_cast<F64>(y),
+                                                static_cast<F64>(min), static_cast<F64>(max));
+        }
+    }
+}
 }  // namespace nbody::math
