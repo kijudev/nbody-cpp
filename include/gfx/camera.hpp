@@ -4,6 +4,7 @@
 
 #include "base/type.hpp"
 #include "gfx/point.hpp"
+#include "gfx/window.hpp"
 #include "math/vec.hpp"
 
 namespace nbody::gfx {
@@ -13,8 +14,8 @@ template <FloatT Float>
 struct Camera {
     using Vec2 = math::Vec2T<Float>;
 
-    I32   screen_width{800};
-    I32   screen_height{600};
+    I32   screen_width{Window::DEAFULT_WITDH};
+    I32   screen_height{Window::DEAFULT_HEIGHT};
     Vec2  pos{0.0, 0.0};
     Float zoom{1.0};
     Float movement_speed{1.0};

@@ -27,9 +27,8 @@ bool layout_is_left(Layout layout);
 bool layout_is_right(Layout layout);
 
 template <FloatT Float>
-void ui_draw_ruler(const Camera<Float>& camera, const std::string& text);
+void draw_ui_ruler(const Camera<Float>& camera, const std::string& text);
 
-void ui_draw_grid(const Grid& grid);
-
-void ui_draw_text(const Box& box, Layout layout, I32 size, const std::string& text);
+void draw_ui_grid(const Grid& grid);
+void draw_ui_text(const Box& box, Layout layout, I32 size, const std::string& text);
 }  // namespace nbody::gfx

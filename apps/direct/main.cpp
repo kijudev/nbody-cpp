@@ -135,25 +135,25 @@ int main() {
         }
 
         // --- UI ---
-        nbody::gfx::ui_draw_text(grid.row(0, 3)
+        nbody::gfx::draw_ui_text(grid.row(0, 3)
                                      .with_padding(16)
-                                     .with_border(WHITE, 0)
-                                     .with_background(BLACK, 0)
+                                     .with_draw_border(WHITE)
+                                     .with_draw_background(BLACK)
                                      .with_padding_left(8)
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::CenterLeft, font_big, "NBody");
 
-        nbody::gfx::ui_draw_text(grid.span(0, 1, 2, 2)
+        nbody::gfx::draw_ui_text(grid.span(0, 1, 2, 2)
                                      .with_padding(16)
-                                     .with_border(WHITE, 0)
-                                     .with_background(BLACK, 0)
+                                     .with_draw_border(WHITE)
+                                     .with_draw_background(BLACK)
                                      .with_padding_left(8)
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::TopLeft, font_regular,
                                  "FPS: " + std::to_string(GetFPS()) + "\n" +
                                      "Bodies: " + std::to_string(sim.bodies().size()));
 
-        nbody::gfx::ui_draw_ruler(camera, " AU");
+        nbody::gfx::draw_ui_ruler(camera, " AU");
 
         EndDrawing();
     }

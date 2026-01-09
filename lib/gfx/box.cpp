@@ -1,8 +1,9 @@
+#include "gfx/box.hpp"
+
 #include <raylib.h>
 
 #include "base/assert.hpp"
 #include "base/type.hpp"
-#include "gfx/box.hpp"
 #include "gfx/point.hpp"
 
 namespace nbody::gfx {
@@ -110,75 +111,49 @@ Box Box::with_padding_bottom(I32 padding) const {
     };
 }
 
-Box Box::with_background(Color color = WHITE, I32 radius = 0) const {
+Box Box::with_draw_background(Color color = WHITE) const {
     ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleRounded(rectangle(), static_cast<float>(radius), 32, color);
-
+    DrawRectangleRec(rectangle(), color);
     return *this;
 }
 
-Box Box::with_border(Color color = WHITE, I32 radius = 0) const {
+Box Box::with_draw_border(Color color = WHITE) const {
     ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleRoundedLines(rectangle(), static_cast<float>(radius) / 8.0, 32, color);
-
+    DrawRectangleLines(x, y, width, height, color);
     return *this;
 }
 
-Box Box::with_border_x(Color color = WHITE, I32 radius = 0) const {
+Box Box::with_draw_border_x(Color color = WHITE) const {
     ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
+    return with_draw_border_left(color).with_draw_border_right(color);
+}
 
-    DrawRectangleLinesEx(rectangle(), static_cast<float>(radius) / 8.0, color);
+Box Box::with_draw_border_y(Color color = WHITE) const {
+    ASSERT(check(), "Bad dimentions");
+    return with_draw_border_top(color).with_draw_border_bottom(color);
+}
 
+Box Box::with_draw_border_left(Color color = WHITE) const {
+    ASSERT(check(), "Bad dimentions");
+    DrawLine(x, y, x, y + height, color);
     return *this;
 }
 
-Box Box::with_border_y(Color color = WHITE, I32 radius = 0) const {
+Box Box::with_draw_border_right(Color color = WHITE) const {
     ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleLinesEx(rectangle(), static_cast<float>(radius) / 8.0, color);
-
+    DrawLine(x + width, y, x + width, y + height, color);
     return *this;
 }
 
-Box Box::with_border_left(Color color = WHITE, I32 radius = 0) const {
+Box Box::with_draw_border_top(Color color = WHITE) const {
     ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleLinesEx(rectangle(), static_cast<float>(radius) / 8.0, color);
-
+    DrawLine(x, y, x + width, y, color);
     return *this;
 }
 
-Box Box::with_border_right(Color color = WHITE, I32 radius = 0) const {
+Box Box::with_draw_border_bottom(Color color = WHITE) const {
     ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleLinesEx(rectangle(), static_cast<float>(radius) / 8.0, color);
-
-    return *this;
-}
-
-Box Box::with_border_top(Color color = WHITE, I32 radius = 0) const {
-    ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleLinesEx(rectangle(), static_cast<float>(radius) / 8.0, color);
-
-    return *this;
-}
-
-Box Box::with_border_bottom(Color color = WHITE, I32 radius = 0) const {
-    ASSERT(check(), "Bad dimentions");
-    ASSERT(radius >= 0, "Bad radius");
-
-    DrawRectangleLinesEx(rectangle(), static_cast<float>(radius) / 8.0, color);
-
+    DrawLine(x, y + height, x + width, y + height, color);
     return *this;
 }
 

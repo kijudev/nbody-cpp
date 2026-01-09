@@ -31,7 +31,7 @@ bool layout_is_left(Layout layout) {
 }
 
 template <FloatT Float>
-void ui_draw_ruler(const Camera<Float>& camera, const std::string& text) {
+void draw_ui_ruler(const Camera<Float>& camera, const std::string& text) {
     I32               width   = 256;
     nbody::gfx::Point point_a = {(camera.screen_width / 2) - (width / 2),
                                  camera.screen_height - 32};
@@ -50,10 +50,10 @@ void ui_draw_ruler(const Camera<Float>& camera, const std::string& text) {
     DrawText(display_text.c_str(), point_a.x + 48, point_a.y - 32, 24, WHITE);
 }
 
-template void ui_draw_ruler(const Camera<F32>& camera, const std::string& text);
-template void ui_draw_ruler(const Camera<F64>& camera, const std::string& text);
+template void draw_ui_ruler(const Camera<F32>& camera, const std::string& text);
+template void draw_ui_ruler(const Camera<F64>& camera, const std::string& text);
 
-void ui_draw_grid(const Grid& grid) {
+void draw_ui_grid(const Grid& grid) {
     for (I32 i = 0; i < grid.cols; ++i) {
         DrawLine(i * grid.col_size(), 0, i * grid.col_size(), grid.height, WHITE);
     }
@@ -63,7 +63,7 @@ void ui_draw_grid(const Grid& grid) {
     }
 }
 
-void ui_draw_text(const Box& box, Layout layout, I32 size, const std::string& text) {
+void draw_ui_text(const Box& box, Layout layout, I32 size, const std::string& text) {
     I32 text_width = MeasureText(text.c_str(), size);
     I32 padding_x  = 0;
     I32 padding_y  = 0;

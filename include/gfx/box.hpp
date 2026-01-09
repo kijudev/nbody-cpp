@@ -24,15 +24,14 @@ struct Box {
     Box with_padding_top(I32 padding) const;
     Box with_padding_bottom(I32 padding) const;
 
-    Box with_background(Color color, I32 radius) const;
-    Box with_border(Color color, I32 radius) const;
-    Box with_border_x(Color color, I32 radius) const;
-    Box with_border_y(Color color, I32 radius) const;
-    Box with_border_left(Color color, I32 radius) const;
-    Box with_border_right(Color color, I32 radius) const;
-    Box with_border_top(Color color, I32 radius) const;
-    Box with_border_bottom(Color color, I32 radius) const;
-
+    Box with_draw_background(Color color) const;
+    Box with_draw_border(Color color) const;
+    Box with_draw_border_x(Color color) const;
+    Box with_draw_border_y(Color color) const;
+    Box with_draw_border_left(Color color) const;
+    Box with_draw_border_right(Color color) const;
+    Box with_draw_border_top(Color color) const;
+    Box with_draw_border_bottom(Color color) const;
 
     Rectangle rectangle() const;
 };

@@ -8,13 +8,14 @@ namespace nbody::gfx {
 using namespace nbody::base::type;
 
 struct Window {
-    I32         width{800};
-    I32         height{600};
+    static constexpr I32 DEAFULT_WITDH = 800;
+    static constexpr I32 DEAFULT_HEIGHT = 800;
+
+    I32         width{DEAFULT_WITDH};
+    I32         height{DEAFULT_HEIGHT};
     std::string title{};
 
     void init() const;
-
-    // TODO: Implement.
     void handle_resize();
 };
 }  // namespace nbody::gfx
