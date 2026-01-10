@@ -8,6 +8,7 @@
 #include "base/type.hpp"
 #include "sim/barnes_hut.hpp"
 #include "sim/barnes_hut_linear.hpp"
+#include "sim/barnes_hut_morton.hpp"
 #include "sim/direct.hpp"
 #include "sim/generator.hpp"
 #include "sim/type.hpp"
@@ -19,7 +20,8 @@ int main() {
     static constexpr Float DT = 1.0;
 
     ankerl::nanobench::Bench bench;
-    bench.title("N-Body: Direct vs Barnes-Hut (pointer) vs Barnes-Hut (linear)");
+    bench.title(
+        "N-Body: Direct vs Barnes-Hut (pointer) vs Barnes-Hut (linear) vs Barnes-Hut (Morton)");
     bench.minEpochTime(std::chrono::milliseconds(50));
     bench.warmup(3);
 
@@ -48,9 +50,15 @@ int main() {
             .reserve_nodes = n * 2,
         });
 
+        BarnesHutMorton<Float, U64> bhm(BarnesHutMorton<Float, U64>::Config{
+            .bodies = bodies,
+            .theta  = 0.5,
+        });
+
         direct.step(DT);
         bh.step(DT);
         bhl.step(DT);
+        bhm.step(DT);
 
         {
             std::string label = "Direct N=" + std::to_string(n);
@@ -65,6 +73,11 @@ int main() {
         {
             std::string label = "BarnesHutLinear N=" + std::to_string(n);
             bench.run(label.c_str(), [&] { bhl.step(DT); });
+        }
+
+        {
+            std::string label = "BarnesHutMorton N=" + std::to_string(n);
+            bench.run(label.c_str(), [&] { bhm.step(DT); });
         }
 
         std::cout << "Completed benchmarks for N = " << n << std::endl;

@@ -8,21 +8,22 @@
 #include "base/type.hpp"
 #include "sim/barnes_hut.hpp"
 #include "sim/barnes_hut_linear.hpp"
+#include "sim/barnes_hut_morton.hpp"
 #include "sim/generator.hpp"
 #include "sim/type.hpp"
 
 int main() {
     using namespace nbody::base::type;
     using namespace nbody::sim;
-    using Float = F64;
+    using Float               = F64;
     static constexpr Float DT = 1.0;
 
     ankerl::nanobench::Bench bench;
-    bench.title("N-Body: BarnesHut vs BarnesHutLinear");
+    bench.title("N-Body: BarnesHut vs BarnesHutLinear vs BarnesHutMorton");
     bench.minEpochTime(std::chrono::milliseconds(50));
     bench.warmup(3);
 
-    std::vector<USize> sizes = {128, 512, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
+    std::vector<USize> sizes = {128, 512, 2048, 4096, 8192, 16384, 32768, 65536};
 
     for (USize n : sizes) {
         std::vector<BodyT<Float>> bodies = generate_distribution(GenerateDistributionConfig<Float>{
@@ -40,13 +41,19 @@ int main() {
         });
 
         BarnesHutLinear<Float> bhl(BarnesHutLinear<Float>::Config{
+            .bodies        = bodies,
+            .theta         = 0.5,
+            .reserve_nodes = n * 2,
+        });
+
+        BarnesHutMorton<Float, U64> bhm(BarnesHutMorton<Float, U64>::Config{
             .bodies = bodies,
             .theta  = 0.5,
-            .reserve_nodes = n * 2,
         });
 
         bh.step(DT);
         bhl.step(DT);
+        bhm.step(DT);
 
         {
             std::string label = "BarnesHut N=" + std::to_string(n);
@@ -56,6 +63,11 @@ int main() {
         {
             std::string label = "BarnesHutLinear N=" + std::to_string(n);
             bench.run(label.c_str(), [&] { bhl.step(DT); });
+        }
+
+        {
+            std::string label = "BarnesHutMorton N=" + std::to_string(n);
+            bench.run(label.c_str(), [&] { bhm.step(DT); });
         }
 
         std::cout << "Completed benchmarks for N = " << n << std::endl;

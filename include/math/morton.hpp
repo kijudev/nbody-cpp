@@ -20,6 +20,9 @@
 namespace nbody::math {
 using namespace nbody::base::type;
 
+template <typename MortonCode>
+concept MortonCodeT = std::same_as<MortonCode, U32> || std::same_as<MortonCode, U64>;
+
 namespace impl {
 // NOTE: Does not use templates to ease leter intrisics optmization.
 
