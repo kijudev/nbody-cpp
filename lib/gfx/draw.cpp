@@ -9,6 +9,7 @@
 #include "base/type.hpp"
 #include "gfx/grid.hpp"
 #include "math/vec.hpp"
+#include "sim/type.hpp"
 
 namespace nbody::gfx {
 using namespace nbody::base::type;
@@ -31,29 +32,6 @@ bool layout_is_left(Layout layout) {
            layout == Layout::BottomLeft;
 }
 
-template <FloatT Float>
-void draw_ui_ruler(const Camera<Float>& camera, const std::string& text) {
-    I32               width   = 256;
-    nbody::gfx::Point point_a = {(camera.screen_width / 2) - (width / 2),
-                                 camera.screen_height - 32};
-    nbody::gfx::Point point_b = {(camera.screen_width / 2) + (width / 2),
-                                 camera.screen_height - 32};
-
-    DrawRectangle(point_a.x, point_a.y, width, 2, WHITE);
-    DrawRectangle(point_a.x, point_a.y - 16, 2, 32, WHITE);
-    DrawRectangle(point_b.x, point_b.y - 16, 2, 32, WHITE);
-
-    math::Vec2T<Float> world_a      = camera.screen_to_world(point_a);
-    math::Vec2T<Float> world_b      = camera.screen_to_world(point_b);
-    Float              distance     = world_a.distance(world_b);
-    std::string        display_text = std::to_string(distance) + text;
-
-    DrawText(display_text.c_str(), point_a.x + 48, point_a.y - 32, 24, WHITE);
-}
-
-template void draw_ui_ruler(const Camera<F32>& camera, const std::string& text);
-template void draw_ui_ruler(const Camera<F64>& camera, const std::string& text);
-
 void draw_ui_grid(const Grid& grid) {
     for (I32 i = 0; i < grid.cols; ++i) {
         DrawLine(i * grid.col_size(), 0, i * grid.col_size(), grid.height, WHITE);
@@ -64,7 +42,7 @@ void draw_ui_grid(const Grid& grid) {
     }
 }
 
-void draw_ui_text(const Box& box, Layout layout, I32 size, const std::string& text) {
+void draw_ui_text(const Box& box, Layout layout, I32 size, const std::string& text, Color color) {
     I32 text_width = MeasureText(text.c_str(), size);
     I32 padding_x  = 0;
     I32 padding_y  = 0;
@@ -85,6 +63,41 @@ void draw_ui_text(const Box& box, Layout layout, I32 size, const std::string& te
         padding_y = (box.height - size) / 2;
     }
 
-    DrawText(text.c_str(), box.x + padding_x, box.y + padding_y, size, WHITE);
+    DrawText(text.c_str(), box.x + padding_x, box.y + padding_y, size, color);
 }
+
+void draw_ui_text_fit(const Box& box, Layout layout, const std::string& text, Color color) {
+    I32 size       = 1;
+    I32 text_width = MeasureText(text.c_str(), size);
+
+    while (text_width < box.width && size < box.height) {
+        size += 1;
+        text_width = MeasureText(text.c_str(), size);
+    }
+
+    size = std::max(1, size - 1);
+
+    draw_ui_text(box, layout, size, text, color);
+}
+
+template <FloatT Float>
+void draw_sim_bodies(const Camera<Float> camera, Float scale,
+                     std::span<sim::BodyT<Float>, std::dynamic_extent> bodies) {
+    for (const sim::BodyT<Float>& body : bodies) {
+        const math::Vec2T<Float> center = camera.world_to_screen_vec(body.pos);
+        const math::Vec2T<Float> edge   = camera.world_to_screen_vec(
+            math::Vec2T<Float>{body.pos.x + std::cbrt(body.mass), body.pos.y});
+
+        const Float radius = center.distance(edge) * scale;
+
+        if (radius > 0.5) {
+            DrawCircleV(center.as_raylib_vector(), radius, WHITE);
+        }
+    }
+}
+
+template void draw_sim_bodies<F32>(const Camera<F32> camera, F32 scale,
+                                   std::span<sim::BodyT<F32>, std::dynamic_extent> bodies);
+template void draw_sim_bodies<F64>(const Camera<F64> camera, F64 scale,
+                                   std::span<sim::BodyT<F64>, std::dynamic_extent> bodies);
 }  // namespace nbody::gfx
