@@ -13,37 +13,37 @@
 #include "gfx/grid.hpp"
 #include "gfx/window.hpp"
 #include "math/vec.hpp"
+#include "sim/barnes_hut_morton.hpp"
 #include "sim/const.hpp"
-#include "sim/direct.hpp"
 #include "sim/generator.hpp"
 #include "sim/integrator.hpp"
 #include "sim/type.hpp"
 
 using namespace nbody::base::type;
-using Float = F64;
+using Float = F32;
 using Body  = nbody::sim::BodyT<Float>;
 using Vec2  = nbody::math::Vec2T<Float>;
 
 int main() {
     nbody::sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 1000,
+        .n           = 20000,
         .min_mass    = nbody::sim::scale_au::MASS_HYGIEA,
         .max_mass    = nbody::sim::scale_au::MASS_SOL * 10,
-        .radius      = nbody::sim::scale_au::DISTANCE_AU * 20,
+        .radius      = nbody::sim::scale_au::DISTANCE_AU * 50,
         .position_fn = nbody::sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = nbody::sim::generate_mass_distribution_salpeter_imf<Float>,
     };
 
     std::vector<Body> bodies = nbody::sim::generate_distribution(generate_distribution_config);
 
-    nbody::sim::Direct<Float>::Config sim_config{
+    nbody::sim::BarnesHutMorton<Float, U64>::Config sim_config{
         .bodies       = std::move(bodies),
         .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
         .g            = nbody::sim::scale_au::G,
         .softening    = nbody::sim::scale_au::SOFTENING,
     };
 
-    nbody::sim::Direct<Float> sim(sim_config);
+    nbody::sim::BarnesHutMorton<Float, U64> sim(sim_config);
 
     I32 target_fps = 60;
 
