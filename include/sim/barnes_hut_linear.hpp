@@ -30,6 +30,7 @@ class BarnesHutLinear {
     static constexpr QuadId QUAD_SE                = 2;
     static constexpr QuadId QUAD_SW                = 3;
     static constexpr Float  M_MIN_ROOT_QUAD_RADIUS = 1.0;
+    static constexpr USize  M_EMPTY_NODE_ID        = std::numeric_limits<USize>::max();
 
     enum class NodeKind { EMPTY, REGION, LEAF };
 

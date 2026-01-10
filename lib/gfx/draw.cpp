@@ -1,11 +1,12 @@
 
+#include "gfx/draw.hpp"
+
 #include <raylib.h>
 
 #include <cstdlib>
 #include <string>
 
 #include "base/type.hpp"
-#include "gfx/draw.hpp"
 #include "gfx/grid.hpp"
 #include "math/vec.hpp"
 
