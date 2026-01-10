@@ -1,9 +1,50 @@
 #include "sim/barnes_hut.hpp"
 
+#include <algorithm>
+
 #include "base/type.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;
+
+template <FloatT Float>
+BarnesHut<Float>::BarnesHut(const Config& config)
+    : m_bodies(std::move(config.bodies)),
+      m_g(config.g),
+      m_softening(config.softening),
+      m_theta(config.theta),
+      m_integrate_fn(config.integrate_fn) {}
+
+template <FloatT Float>
+void BarnesHut<Float>::step(Float dt) {
+    for (Body& body : m_bodies) {
+        body.acc = Vec2::make_zero();
+    }
+
+    Quad root_quad = Quad::make_containing_bodies(m_bodies);
+    m_quad_tree.clear(root_quad);
+
+    for (const Body& body : m_bodies) {
+        m_quad_tree.insert(body.pm.pos, body.pm.mass);
+    }
+
+    m_quad_tree.propagate_up_pos_mass();
+
+    for (const Body& body : m_bodies) {
+        Vec2 acc = m_quad_tree.propagate_down_acc(body.pm.pos, m_g, m_softening, m_theta);
+        body.acc = body.acc.add(acc);
+    }
+
+    for (Body& body : m_bodies) {
+        m_integrate_fn(body, dt);
+    }
+}
+
+template <FloatT Float>
+std::span<const typename BarnesHut<Float>::Body, std::dynamic_extent> BarnesHut<Float>::bodies()
+    const {
+    return m_bodies;
+}
 
 template <FloatT Float>
 typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::make_containing_bodies(

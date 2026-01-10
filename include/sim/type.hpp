@@ -22,4 +22,14 @@ using BodyF64 = BodyT<F64>;
 
 template <FloatT Float>
 using IntegrateBodyFnT = std::function<void(BodyT<Float>& body, Float dt)>;
+
+template <FloatT Float>
+class SimInterface {
+   public:
+    virtual ~SimInterface() = default;
+
+    virtual void step(Float dt) = 0;
+
+    virtual std::span<const BodyT<Float>, std::dynamic_extent> bodies() const = 0;
+};
 };  // namespace nbody::sim
