@@ -1,10 +1,9 @@
-#include "math/morton.hpp"
-
 #include <algorithm>
 #include <limits>
 
 #include "base/assert.hpp"
 #include "base/type.hpp"
+#include "math/morton.hpp"
 
 namespace nbody::math {
 using namespace nbody::base::type;

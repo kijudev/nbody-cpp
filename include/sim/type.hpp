@@ -27,7 +27,8 @@ struct BodyT {
     math::Vec2T<Float> acc{0.0, 0.0};
 
     std::string to_string() const {
-        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.to_string(), vel.to_string(), acc.to_string());
+        return std::format("{{point_mass {}, vel: {}, acc: {}}}", pm.to_string(), vel.to_string(),
+                           acc.to_string());
     }
 };
 

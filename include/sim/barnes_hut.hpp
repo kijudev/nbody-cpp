@@ -33,9 +33,9 @@ class BarnesHut {
     enum class NodeKind { EMPTY, REGION, LEAF };
     class Node;
 
-    // --- Deafults ---
-    static constexpr Float DEAFULT_G         = sim::scale_toy::G;
-    static constexpr Float DEAFULT_SOFTENING = sim::scale_toy::SOFTENING;
+    // --- Defaults ---
+    static constexpr Float DEFAULT_G         = sim::scale_toy::G;
+    static constexpr Float DEFAULT_SOFTENING = sim::scale_toy::SOFTENING;
 
     // --- Config ---
     // NOTE: The Config struct is used to configure the BarnesHut simulation. It can be the one and
@@ -51,8 +51,8 @@ class BarnesHut {
     struct Config {
         Layout          bodies{};
         IntegrateBodyFn integrate_fn{integrate_body_euler<Float>};
-        Float           g{DEAFULT_G};
-        Float           softening{DEAFULT_SOFTENING};
+        Float           g{DEFAULT_G};
+        Float           softening{DEFAULT_SOFTENING};
         Float           theta{0.5};
         U16             depth{64};
     };
@@ -79,8 +79,8 @@ class BarnesHut {
 
     const IntegrateBodyFn m_integrate{
         integrate_body_euler<Float>};  // NOTE: Integrates the bodies' positions and velocities.
-    const Float m_g{DEAFULT_G};        // NOTE: Gravitational constant. can be changed at runtime.
-    Float m_softening{DEAFULT_SOFTENING};  // NOTE: Softening parameter; can be changed at runtime.
+    const Float m_g{DEFAULT_G};        // NOTE: Gravitational constant. can be changed at runtime.
+    Float m_softening{DEFAULT_SOFTENING};  // NOTE: Softening parameter; can be changed at runtime.
     Float m_theta{0.5};                    // NOTE: Theta parameter for Barnes-Hut approximation.
     U16   m_depth{64};
 
