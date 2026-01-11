@@ -53,7 +53,7 @@ void BarnesHut<Float>::step(Float dt) {
 
     if (m_parallel) {
         base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                          [this, dt](Body& body) { m_integrate_fn(body, dt); });
+                                [this, dt](Body& body) { m_integrate_fn(body, dt); });
     } else {
         for (Body& body : m_bodies) {
             m_integrate_fn(body, dt);
@@ -109,14 +109,14 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::into_quad(QuadIndex quad
                 .center = Vec2(center.x - half / 2.0, center.y + half / 2.0),
                 .size   = half,
             };
-        case 2:  // SW
-            return Quad{
-                .center = Vec2(center.x - half / 2.0, center.y - half / 2.0),
-                .size   = half,
-            };
-        case 3:  // SE
+        case 2:  // SE
             return Quad{
                 .center = Vec2(center.x + half / 2.0, center.y - half / 2.0),
+                .size   = half,
+            };
+        case 3:  // SW
+            return Quad{
+                .center = Vec2(center.x - half / 2.0, center.y - half / 2.0),
                 .size   = half,
             };
         default:
@@ -141,11 +141,11 @@ std::array<typename BarnesHut<Float>::Quad, 4> BarnesHut<Float>::Quad::into_quad
              .size   = half,
              },
         Quad{
-             .center = Vec2(center.x - half / 2.0,center.y - half / 2.0),
+             .center = Vec2(center.x + half / 2.0,center.y - half / 2.0),
              .size   = half,
              },
         Quad{
-             .center = Vec2(center.x + half / 2.0,                                                  center.y - half / 2.0),
+             .center = Vec2(center.x - half / 2.0,                                                  center.y - half / 2.0),
              .size   = half,
              },
     };
