@@ -3,48 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <thread>
-#include <vector>
 
+#include "base/parallel.hpp"
 #include "base/type.hpp"
-
-namespace {
-template <typename Iterator, typename Func>
-void parallel_for_each(Iterator first, Iterator last, Func func) {
-    const std::size_t length = std::distance(first, last);
-
-    constexpr std::size_t min_per_thread = 1000;
-    const std::size_t     num_threads    = std::thread::hardware_concurrency();
-
-    if (length < min_per_thread || num_threads <= 1) {
-        std::for_each(first, last, func);
-        return;
-    }
-
-    const std::size_t actual_threads = std::min(num_threads, length / min_per_thread);
-    const std::size_t chunk_size     = length / actual_threads;
-
-    std::vector<std::thread> threads;
-    threads.reserve(actual_threads);
-
-    auto chunk_start = first;
-    for (std::size_t i = 0; i < actual_threads - 1; ++i) {
-        auto chunk_end = chunk_start;
-        std::advance(chunk_end, chunk_size);
-
-        threads.emplace_back(
-            [chunk_start, chunk_end, &func]() { std::for_each(chunk_start, chunk_end, func); });
-
-        chunk_start = chunk_end;
-    }
-
-    threads.emplace_back([chunk_start, last, &func]() { std::for_each(chunk_start, last, func); });
-
-    for (auto& thread : threads) {
-        thread.join();
-    }
-}
-}  // namespace
 
 namespace nbody::sim {
 using namespace nbody::base::type;
@@ -61,8 +22,8 @@ BarnesHut<Float>::BarnesHut(const Config& config)
 template <FloatT Float>
 void BarnesHut<Float>::step(Float dt) {
     if (m_parallel) {
-        parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                          [](Body& body) { body.acc = Vec2::make_zero(); });
+        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                                [](Body& body) { body.acc = Vec2::make_zero(); });
     } else {
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
@@ -79,7 +40,7 @@ void BarnesHut<Float>::step(Float dt) {
     m_quad_tree.propagate_up_pos_mass();
 
     if (m_parallel) {
-        parallel_for_each(m_bodies.begin(), m_bodies.end(), [this](Body& body) {
+        base::parallel_for_each(m_bodies.begin(), m_bodies.end(), [this](Body& body) {
             Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
             body.acc = body.acc.add(acc);
         });
@@ -91,7 +52,7 @@ void BarnesHut<Float>::step(Float dt) {
     }
 
     if (m_parallel) {
-        parallel_for_each(m_bodies.begin(), m_bodies.end(),
+        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
                           [this, dt](Body& body) { m_integrate_fn(body, dt); });
     } else {
         for (Body& body : m_bodies) {
