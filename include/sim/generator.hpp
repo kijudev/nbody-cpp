@@ -1,6 +1,7 @@
+#pragma once
+
 #include <math.h>
 #include <raylib.h>
-
 
 #include <cmath>
 #include <functional>

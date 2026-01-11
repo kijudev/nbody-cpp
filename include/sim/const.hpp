@@ -6,12 +6,12 @@ namespace nbody::sim {
 using namespace nbody::base::type;
 
 namespace scale_toy {
-static constexpr F64 DISTANCE_UNIT = 1.0;
-static constexpr F64 MASS_UNIT     = 1.0;
-static constexpr F64 TIME_UNIT     = 1.0;
+static constexpr F64 DISTANCE = 1.0;
+static constexpr F64 MASS     = 1.0;
+static constexpr F64 TIME     = 1.0;
 
 static constexpr F64 G         = 0.00029591220828;
-static constexpr F64 SOFTENING = DISTANCE_UNIT * 5.0e-5;
+static constexpr F64 SOFTENING = DISTANCE * 5.0e-5;
 }  // namespace scale_toy
 
 namespace scale_au {
