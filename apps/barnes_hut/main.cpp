@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "base/type.hpp"
-#include "base/log.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/draw.hpp"
 #include "gfx/grid.hpp"
@@ -25,10 +24,10 @@ using Vec2  = nbody::math::Vec2T<Float>;
 
 int main() {
     nbody::sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 5000,
+        .n           = 60000,
         .min_mass    = nbody::sim::scale_au::MASS_HYGIEA,
         .max_mass    = nbody::sim::scale_au::MASS_SOL * 10,
-        .radius      = nbody::sim::scale_au::DISTANCE_AU * 10,
+        .radius      = nbody::sim::scale_au::DISTANCE_AU * 200.0,
         .position_fn = nbody::sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = nbody::sim::generate_mass_distribution_salpeter_imf<Float>,
     };
@@ -39,6 +38,7 @@ int main() {
         .bodies       = std::move(bodies),
         .g            = nbody::sim::scale_au::G,
         .softening    = nbody::sim::scale_au::SOFTENING,
+        .parallel     = true,
         .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
     };
 
@@ -73,7 +73,6 @@ int main() {
     SetTargetFPS(target_fps);
 
     while (!WindowShouldClose()) {
-        LOG_APP_DEBUG("GAME LOOP");
         Float dt = static_cast<Float>(GetFrameTime());
 
         window.handle_resize();
@@ -112,23 +111,26 @@ int main() {
         nbody::gfx::draw_sim_bodies(camera, scale_factor, sim.bodies());
 
         // --- UI ---
-        nbody::gfx::draw_ui_text(grid.row(0, 3)
-                                     .with_padding(16)
+        nbody::gfx::draw_ui_text(grid.row(0, 4)
+                                     .with_padding(8)
                                      .with_draw_border(WHITE)
                                      .with_draw_background(BLACK)
                                      .with_padding_left(8)
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::CenterLeft, 24, "NBody");
 
-        nbody::gfx::draw_ui_text(grid.span(0, 1, 2, 2)
-                                     .with_padding(16)
+        nbody::gfx::draw_ui_text(grid.span(0, 1, 3, 4)
+                                     .with_padding(8)
                                      .with_draw_border(WHITE)
                                      .with_draw_background(BLACK)
                                      .with_padding_left(8)
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::TopLeft, 16,
                                  "FPS: " + std::to_string(GetFPS()) + "\n" +
-                                     "Bodies: " + std::to_string(sim.bodies().size()));
+                                     "Bodies: " + std::to_string(sim.bodies().size()) + "\n" +
+                                     "Camera Zoom: " + std::to_string(camera.zoom) +
+                                     "\nCamera X: " + std::to_string(camera.pos.x) +
+                                     "\nCamera Y: " + std::to_string(camera.pos.y));
 
         EndDrawing();
     }

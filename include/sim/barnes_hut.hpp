@@ -21,7 +21,7 @@ class BarnesHut : public SimInterface<Float> {
     using NodeIndex = USize;
 
     // --- Quad Tree ---
-    static constexpr NodeIndex NODE_INDEX_EMPTY = 0;
+    static constexpr NodeIndex NODE_INDEX_EMPTY = std::numeric_limits<NodeIndex>::max();
 
     struct Quad {
         Vec2  center;
@@ -66,6 +66,7 @@ class BarnesHut : public SimInterface<Float> {
         Float                   g{sim::scale_toy::G};
         Float                   softening{sim::scale_toy::SOFTENING};
         Float                   theta{0.5};
+        bool                    parallel{false};
         IntegrateBodyFnT<Float> integrate_fn{integrate_body_euler<Float>};
     };
 
@@ -84,6 +85,7 @@ class BarnesHut : public SimInterface<Float> {
     Float                   m_g;
     Float                   m_softening;
     Float                   m_theta;
+    bool                    m_parallel;
     IntegrateBodyFnT<Float> m_integrate_fn;
 };
 }  // namespace nbody::sim

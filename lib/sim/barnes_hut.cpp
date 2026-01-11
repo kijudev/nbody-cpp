@@ -1,8 +1,50 @@
 #include "sim/barnes_hut.hpp"
 
 #include <algorithm>
+#include <array>
+#include <iostream>
+#include <thread>
+#include <vector>
 
 #include "base/type.hpp"
+
+namespace {
+template <typename Iterator, typename Func>
+void parallel_for_each(Iterator first, Iterator last, Func func) {
+    const std::size_t length = std::distance(first, last);
+
+    constexpr std::size_t min_per_thread = 1000;
+    const std::size_t     num_threads    = std::thread::hardware_concurrency();
+
+    if (length < min_per_thread || num_threads <= 1) {
+        std::for_each(first, last, func);
+        return;
+    }
+
+    const std::size_t actual_threads = std::min(num_threads, length / min_per_thread);
+    const std::size_t chunk_size     = length / actual_threads;
+
+    std::vector<std::thread> threads;
+    threads.reserve(actual_threads);
+
+    auto chunk_start = first;
+    for (std::size_t i = 0; i < actual_threads - 1; ++i) {
+        auto chunk_end = chunk_start;
+        std::advance(chunk_end, chunk_size);
+
+        threads.emplace_back(
+            [chunk_start, chunk_end, &func]() { std::for_each(chunk_start, chunk_end, func); });
+
+        chunk_start = chunk_end;
+    }
+
+    threads.emplace_back([chunk_start, last, &func]() { std::for_each(chunk_start, last, func); });
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+}  // namespace
 
 namespace nbody::sim {
 using namespace nbody::base::type;
@@ -13,12 +55,18 @@ BarnesHut<Float>::BarnesHut(const Config& config)
       m_g(config.g),
       m_softening(config.softening),
       m_theta(config.theta),
+      m_parallel(config.parallel),
       m_integrate_fn(config.integrate_fn) {}
 
 template <FloatT Float>
 void BarnesHut<Float>::step(Float dt) {
-    for (Body& body : m_bodies) {
-        body.acc = Vec2::make_zero();
+    if (m_parallel) {
+        parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                          [](Body& body) { body.acc = Vec2::make_zero(); });
+    } else {
+        for (Body& body : m_bodies) {
+            body.acc = Vec2::make_zero();
+        }
     }
 
     Quad root_quad = Quad::make_containing_bodies(m_bodies);
@@ -30,13 +78,25 @@ void BarnesHut<Float>::step(Float dt) {
 
     m_quad_tree.propagate_up_pos_mass();
 
-    for (Body& body : m_bodies) {
-        Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
-        body.acc = body.acc.add(acc);
+    if (m_parallel) {
+        parallel_for_each(m_bodies.begin(), m_bodies.end(), [this](Body& body) {
+            Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
+            body.acc = body.acc.add(acc);
+        });
+    } else {
+        for (Body& body : m_bodies) {
+            Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
+            body.acc = body.acc.add(acc);
+        }
     }
 
-    for (Body& body : m_bodies) {
-        m_integrate_fn(body, dt);
+    if (m_parallel) {
+        parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                          [this, dt](Body& body) { m_integrate_fn(body, dt); });
+    } else {
+        for (Body& body : m_bodies) {
+            m_integrate_fn(body, dt);
+        }
     }
 }
 
@@ -198,17 +258,19 @@ template <FloatT Float>
 typename BarnesHut<Float>::NodeIndex BarnesHut<Float>::QuadTree::subdivide(NodeIndex node_index) {
     parent_indices.push_back(node_index);
 
-    const NodeIndex children_index   = nodes.size();
+    const NodeIndex children_index = nodes.size();
+
+    const NodeIndex           parent_next_index = nodes[node_index].next_index;
+    const std::array<Quad, 4> quads             = nodes[node_index].quad.into_quads();
+
     nodes[node_index].children_index = children_index;
 
     const std::array<NodeIndex, 4> next_indices = {
         children_index + 1,
         children_index + 2,
         children_index + 3,
-        nodes[node_index].next_index,
+        parent_next_index,
     };
-
-    const std::array<Quad, 4> quads = nodes[node_index].quad.into_quads();
 
     for (USize i = 0; i < 4; ++i) {
         nodes.push_back(Node::make_empty(next_indices[i], quads[i]));
@@ -219,7 +281,7 @@ typename BarnesHut<Float>::NodeIndex BarnesHut<Float>::QuadTree::subdivide(NodeI
 
 template <FloatT Float>
 void BarnesHut<Float>::QuadTree::insert(Vec2 pos, Float mass) {
-    NodeIndex node_index = NODE_INDEX_EMPTY;
+    NodeIndex node_index = 0;
 
     while (nodes[node_index].is_internal()) {
         QuadIndex q = nodes[node_index].quad.quad_index_from_pos(pos);
@@ -240,13 +302,23 @@ void BarnesHut<Float>::QuadTree::insert(Vec2 pos, Float mass) {
         return;
     }
 
+    constexpr USize max_depth = 50;
+    USize           depth     = 0;
+
     while (true) {
+        if (depth++ >= max_depth) {
+            nodes[node_index].mass += mass;
+            return;
+        }
+
+        const Quad node_quad = nodes[node_index].quad;
+
         const NodeIndex children_index = subdivide(node_index);
 
-        const QuadIndex q1    = nodes[node_index].quad.quad_index_from_pos(ex_pos);
-        const QuadIndex q2    = nodes[node_index].quad.quad_index_from_pos(pos);
-        const Quad      quad1 = nodes[node_index].quad.quad_from_pos(ex_pos);
-        const Quad      quad2 = nodes[node_index].quad.quad_from_pos(pos);
+        const QuadIndex q1    = node_quad.quad_index_from_pos(ex_pos);
+        const QuadIndex q2    = node_quad.quad_index_from_pos(pos);
+        const Quad      quad1 = node_quad.quad_from_pos(ex_pos);
+        const Quad      quad2 = node_quad.quad_from_pos(pos);
 
         if (quad1.center.is_approx_equal(quad2.center)) {
             node_index = children_index + q1;
@@ -266,17 +338,23 @@ void BarnesHut<Float>::QuadTree::insert(Vec2 pos, Float mass) {
 
 template <FloatT Float>
 void BarnesHut<Float>::QuadTree::propagate_up_pos_mass() {
-    for (NodeIndex parent_index : parent_indices) {
-        const NodeIndex i = nodes[parent_index].children_index;
+    for (auto it = parent_indices.rbegin(); it != parent_indices.rend(); ++it) {
+        const NodeIndex parent_index = *it;
+        const NodeIndex i            = nodes[parent_index].children_index;
+
+        nodes[parent_index].mass =
+            nodes[i].mass + nodes[i + 1].mass + nodes[i + 2].mass + nodes[i + 3].mass;
+
+        if (nodes[parent_index].mass == 0.0) {
+            nodes[parent_index].pos = Vec2::make_zero();
+            continue;
+        }
 
         nodes[parent_index].pos = nodes[i]
                                       .pos.scale(nodes[i].mass)
                                       .add(nodes[i + 1].pos.scale(nodes[i + 1].mass))
                                       .add(nodes[i + 2].pos.scale(nodes[i + 2].mass))
                                       .add(nodes[i + 3].pos.scale(nodes[i + 3].mass));
-
-        nodes[parent_index].mass =
-            nodes[i].mass + nodes[i + 1].mass + nodes[i + 2].mass + nodes[i + 3].mass;
 
         nodes[parent_index].pos = nodes[parent_index].pos.scale(1.0 / nodes[parent_index].mass);
     }
@@ -294,18 +372,38 @@ BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(Vec2 pos, 
     // NOTE: Start from the root node.
     NodeIndex node_index = 0;
 
+    const USize max_iterations  = nodes.size() * 10;
+    USize       iteration_count = 0;
+
     while (true) {
+        if (node_index >= nodes.size()) {
+            break;
+        }
+
+        if (iteration_count++ > max_iterations) {
+            std::cerr << "ERROR: Exceeded max iterations (" << max_iterations
+                      << ") in tree traversal. Current node_index=" << node_index
+                      << ", nodes.size()=" << nodes.size() << std::endl;
+            break;
+        }
+
         const Node& node            = nodes[node_index];
-        const Float dist            = node.pos.sub(pos).length();
-        const Float dist_sq         = node.pos.sub(pos).length_sq();
+        const Vec2  delta           = node.pos.sub(pos);
+        const Float dist_sq         = delta.length_sq();
         const bool  is_sd_satisfied = (node.quad.size * node.quad.size) < (theta_sq * dist_sq);
 
-        if (node.is_leaf() || is_sd_satisfied) {
-            const Float dist_norm = (dist_sq + softening_sq) * std::sqrt(dist_sq);
+        if (node.is_empty()) {
+            if (node.next_index == NODE_INDEX_EMPTY) {
+                break;
+            }
 
-            acc.x += std::min(g * node.mass * dist / dist_norm, std::numeric_limits<Float>::max());
+            node_index = node.next_index;
+        } else if (node.is_leaf() || is_sd_satisfied) {
+            const Float dist_norm = (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
+            const Float factor    = g * node.mass / dist_norm;
 
-            acc.y += std::min(g * node.mass * dist / dist_norm, std::numeric_limits<Float>::max());
+            acc.x += factor * delta.x;
+            acc.y += factor * delta.y;
 
             if (node.next_index == NODE_INDEX_EMPTY) {
                 break;

@@ -90,7 +90,8 @@ void draw_sim_bodies(const Camera<Float> camera, Float scale,
 
         const Float radius = center.distance(edge) * scale;
 
-        if (radius > 0.5) {
+        if (radius > 0.5 && center.x + radius >= 0 && center.x - radius <= camera.screen_width &&
+            center.y + radius >= 0 && center.y - radius <= camera.screen_height) {
             DrawCircleV(center.as_raylib_vector(), radius, WHITE);
         }
     }
