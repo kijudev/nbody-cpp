@@ -2,6 +2,7 @@
 #pragma once
 
 #include <functional>
+#include <span>
 
 #include "base/type.hpp"
 #include "math/vec.hpp"

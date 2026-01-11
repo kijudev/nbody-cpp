@@ -82,7 +82,7 @@ void draw_ui_text_fit(const Box& box, Layout layout, const std::string& text, Co
 
 template <FloatT Float>
 void draw_sim_bodies(const Camera<Float> camera, Float scale,
-                     std::span<sim::BodyT<Float>, std::dynamic_extent> bodies) {
+                     std::span<const sim::BodyT<Float>, std::dynamic_extent> bodies) {
     for (const sim::BodyT<Float>& body : bodies) {
         const math::Vec2T<Float> center = camera.world_to_screen_vec(body.pos);
         const math::Vec2T<Float> edge   = camera.world_to_screen_vec(
@@ -97,7 +97,7 @@ void draw_sim_bodies(const Camera<Float> camera, Float scale,
 }
 
 template void draw_sim_bodies<F32>(const Camera<F32> camera, F32 scale,
-                                   std::span<sim::BodyT<F32>, std::dynamic_extent> bodies);
+                                   std::span<const sim::BodyT<F32>, std::dynamic_extent> bodies);
 template void draw_sim_bodies<F64>(const Camera<F64> camera, F64 scale,
-                                   std::span<sim::BodyT<F64>, std::dynamic_extent> bodies);
+                                   std::span<const sim::BodyT<F64>, std::dynamic_extent> bodies);
 }  // namespace nbody::gfx

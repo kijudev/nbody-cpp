@@ -153,7 +153,8 @@ std::vector<BodyT<Float>> generate_distribution(const GenerateDistributionConfig
 
     for (USize i = 0; i < config.n; ++i) {
         bodies.push_back(BodyT<Float>{
-            .pm = {.pos = positions[i], .mass = masses[i]}
+            .pos  = positions[i],
+            .mass = masses[i],
         });
     }
 

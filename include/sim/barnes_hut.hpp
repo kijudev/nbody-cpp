@@ -32,6 +32,7 @@ class BarnesHut : public SimInterface<Float> {
         Quad                into_quad(QuadIndex quad_index) const;
         std::array<Quad, 4> into_quads() const;
         Quad                quad_from_pos(Vec2 pos) const;
+        QuadIndex           quad_index_from_pos(Vec2 pos) const;
     };
 
     struct Node {
@@ -44,7 +45,7 @@ class BarnesHut : public SimInterface<Float> {
         static Node make_empty(NodeIndex next_index, Quad quad);
 
         bool is_empty() const;
-        bool is_inernal() const;
+        bool is_internal() const;
         bool is_leaf() const;
     };
 

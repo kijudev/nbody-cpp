@@ -25,13 +25,13 @@ void BarnesHut<Float>::step(Float dt) {
     m_quad_tree.clear(root_quad);
 
     for (const Body& body : m_bodies) {
-        m_quad_tree.insert(body.pm.pos, body.pm.mass);
+        m_quad_tree.insert(body.pos, body.mass);
     }
 
     m_quad_tree.propagate_up_pos_mass();
 
-    for (const Body& body : m_bodies) {
-        Vec2 acc = m_quad_tree.propagate_down_acc(body.pm.pos, m_g, m_softening, m_theta);
+    for (Body& body : m_bodies) {
+        Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
         body.acc = body.acc.add(acc);
     }
 
@@ -55,10 +55,10 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::make_containing_bodies(
     Float y_max = std::numeric_limits<Float>::lowest();
 
     for (const Body& body : bodies) {
-        x_min = std::min(x_min, body.pm.pos.x);
-        x_max = std::max(x_max, body.pm.pos.x);
-        y_min = std::min(y_min, body.pm.pos.y);
-        y_max = std::max(y_max, body.pm.pos.y);
+        x_min = std::min(x_min, body.pos.x);
+        x_max = std::max(x_max, body.pos.x);
+        y_min = std::min(y_min, body.pos.y);
+        y_max = std::max(y_max, body.pos.y);
     }
 
     Vec2 center = Vec2{
@@ -80,22 +80,22 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::into_quad(QuadIndex quad
     switch (quad_index) {
         case 0:  // NE
             return Quad{
-                .center = Vec2{center.x + half / 2.0, center.y + half / 2.0},
+                .center = Vec2(center.x + half / 2.0, center.y + half / 2.0),
                 .size   = half,
             };
         case 1:  // NW
             return Quad{
-                .center = Vec2{center.x - half / 2.0, center.y + half / 2.0},
+                .center = Vec2(center.x - half / 2.0, center.y + half / 2.0),
                 .size   = half,
             };
         case 2:  // SW
             return Quad{
-                .center = Vec2{center.x - half / 2.0, center.y - half / 2.0},
+                .center = Vec2(center.x - half / 2.0, center.y - half / 2.0),
                 .size   = half,
             };
         case 3:  // SE
             return Quad{
-                .center = Vec2{center.x + half / 2.0, center.y - half / 2.0},
+                .center = Vec2(center.x + half / 2.0, center.y - half / 2.0),
                 .size   = half,
             };
         default:
@@ -112,19 +112,19 @@ std::array<typename BarnesHut<Float>::Quad, 4> BarnesHut<Float>::Quad::into_quad
 
     return std::array<Quad, 4>{
         Quad{
-             .center = Vec2{center.x + half / 2.0, center.y + half / 2.0},
+             .center = Vec2(center.x + half / 2.0, center.y + half / 2.0),
              .size   = half,
              },
         Quad{
-             .center = Vec2{center.x - half / 2.0, center.y + half / 2.0},
+             .center = Vec2(center.x - half / 2.0,                                    center.y + half / 2.0),
              .size   = half,
              },
         Quad{
-             .center = Vec2{center.x - half / 2.0, center.y - half / 2.0},
+             .center = Vec2(center.x - half / 2.0,center.y - half / 2.0),
              .size   = half,
              },
         Quad{
-             .center = Vec2{center.x + half / 2.0, center.y - half / 2.0},
+             .center = Vec2(center.x + half / 2.0,                                                  center.y - half / 2.0),
              .size   = half,
              },
     };
@@ -147,6 +147,21 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::quad_from_pos(Vec2 pos) 
 }
 
 template <FloatT Float>
+BarnesHut<Float>::QuadIndex BarnesHut<Float>::Quad::quad_index_from_pos(Vec2 pos) const {
+    QuadIndex index = 0;
+
+    if (pos.x < center.x) {
+        index |= 1;
+    }
+
+    if (pos.y < center.y) {
+        index |= 2;
+    }
+
+    return index;
+}
+
+template <FloatT Float>
 BarnesHut<Float>::Node BarnesHut<Float>::Node::make_empty(NodeIndex next_index, Quad quad) {
     return Node{
         .children_index = NODE_INDEX_EMPTY,
@@ -163,13 +178,13 @@ bool BarnesHut<Float>::Node::is_empty() const {
 }
 
 template <FloatT Float>
-bool BarnesHut<Float>::Node::is_inernal() const {
+bool BarnesHut<Float>::Node::is_internal() const {
     return children_index != NODE_INDEX_EMPTY;
 }
 
 template <FloatT Float>
 bool BarnesHut<Float>::Node::is_leaf() const {
-    return !is_empty() && !is_inernal();
+    return !is_empty() && !is_internal();
 }
 
 template <FloatT Float>
@@ -207,8 +222,8 @@ void BarnesHut<Float>::QuadTree::insert(Vec2 pos, Float mass) {
     NodeIndex node_index = NODE_INDEX_EMPTY;
 
     while (nodes[node_index].is_internal()) {
-        Quad q     = nodes[node_index].quad.quad_from_pos(pos);
-        node_index = nodes[node_index].children_index + q;
+        QuadIndex q = nodes[node_index].quad.quad_index_from_pos(pos);
+        node_index  = nodes[node_index].children_index + q;
     }
 
     if (nodes[node_index].is_empty()) {
@@ -220,7 +235,7 @@ void BarnesHut<Float>::QuadTree::insert(Vec2 pos, Float mass) {
     const Vec2  ex_pos  = nodes[node_index].pos;
     const Float ex_mass = nodes[node_index].mass;
 
-    if (pos == ex_pos) {
+    if (pos.is_approx_equal(ex_pos)) {
         nodes[node_index].mass += mass;
         return;
     }
@@ -228,10 +243,12 @@ void BarnesHut<Float>::QuadTree::insert(Vec2 pos, Float mass) {
     while (true) {
         const NodeIndex children_index = subdivide(node_index);
 
-        const Quad q1 = nodes[node_index].quad.quad_from_pos(ex_pos);
-        const Quad q2 = nodes[node_index].quad.quad_from_pos(pos);
+        const QuadIndex q1    = nodes[node_index].quad.quad_index_from_pos(ex_pos);
+        const QuadIndex q2    = nodes[node_index].quad.quad_index_from_pos(pos);
+        const Quad      quad1 = nodes[node_index].quad.quad_from_pos(ex_pos);
+        const Quad      quad2 = nodes[node_index].quad.quad_from_pos(pos);
 
-        if (q1 == q2) {
+        if (quad1.center.is_approx_equal(quad2.center)) {
             node_index = children_index + q1;
         } else {
             const NodeIndex n1 = children_index + q1;
@@ -252,9 +269,11 @@ void BarnesHut<Float>::QuadTree::propagate_up_pos_mass() {
     for (NodeIndex parent_index : parent_indices) {
         const NodeIndex i = nodes[parent_index].children_index;
 
-        nodes[parent_index].pos =
-            nodes[i].pos.scale(nodes[i].mass) + nodes[i + 1].pos.scale(nodes[i + 1].mass) +
-            nodes[i + 2].pos.scale(nodes[i + 2].mass) + nodes[i + 3].pos.scale(nodes[i + 3].mass);
+        nodes[parent_index].pos = nodes[i]
+                                      .pos.scale(nodes[i].mass)
+                                      .add(nodes[i + 1].pos.scale(nodes[i + 1].mass))
+                                      .add(nodes[i + 2].pos.scale(nodes[i + 2].mass))
+                                      .add(nodes[i + 3].pos.scale(nodes[i + 3].mass));
 
         nodes[parent_index].mass =
             nodes[i].mass + nodes[i + 1].mass + nodes[i + 2].mass + nodes[i + 3].mass;
@@ -277,18 +296,16 @@ BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(Vec2 pos, 
 
     while (true) {
         const Node& node            = nodes[node_index];
-        const Float dist            = node.pos.sub(pos);
-        const Float dist_sq         = dist.length_sq();
+        const Float dist            = node.pos.sub(pos).length();
+        const Float dist_sq         = node.pos.sub(pos).length_sq();
         const bool  is_sd_satisfied = (node.quad.size * node.quad.size) < (theta_sq * dist_sq);
 
         if (node.is_leaf() || is_sd_satisfied) {
             const Float dist_norm = (dist_sq + softening_sq) * std::sqrt(dist_sq);
 
-            acc.x +=
-                std::min(g * node.mass * dist.x / dist_norm, std::numeric_limits<Float>::max());
+            acc.x += std::min(g * node.mass * dist / dist_norm, std::numeric_limits<Float>::max());
 
-            acc.y +=
-                std::min(g * node.mass * dist.y / dist_norm, std::numeric_limits<Float>::max());
+            acc.y += std::min(g * node.mass * dist / dist_norm, std::numeric_limits<Float>::max());
 
             if (node.next_index == NODE_INDEX_EMPTY) {
                 break;
@@ -302,4 +319,7 @@ BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(Vec2 pos, 
 
     return acc;
 }
+
+template class BarnesHut<F32>;
+template class BarnesHut<F64>;
 }  // namespace nbody::sim
