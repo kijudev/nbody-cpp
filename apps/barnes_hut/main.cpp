@@ -13,7 +13,9 @@
 #include "gfx/window.hpp"
 #include "math/vec.hpp"
 #include "sim/barnes_hut.hpp"
+#include "sim/barnes_hut_morton.hpp"
 #include "sim/const.hpp"
+#include "sim/direct.hpp"
 #include "sim/generator.hpp"
 #include "sim/type.hpp"
 
@@ -24,15 +26,35 @@ using Vec2  = nbody::math::Vec2T<Float>;
 
 int main() {
     nbody::sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 60000,
+        .n           = 6000,
         .min_mass    = nbody::sim::scale_au::MASS_HYGIEA,
         .max_mass    = nbody::sim::scale_au::MASS_SOL * 10,
-        .radius      = nbody::sim::scale_au::DISTANCE_AU * 200.0,
+        .radius      = nbody::sim::scale_au::DISTANCE_AU * 50.0,
         .position_fn = nbody::sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = nbody::sim::generate_mass_distribution_salpeter_imf<Float>,
     };
 
     std::vector<Body> bodies = nbody::sim::generate_distribution(generate_distribution_config);
+
+    // nbody::sim::BarnesHutMorton<Float, U64>::Config sim_config{
+    //     .bodies       = std::move(bodies),
+    //     .g            = nbody::sim::scale_au::G,
+    //     .softening    = nbody::sim::scale_au::SOFTENING,
+    //     .parallel     = true,
+    //     .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
+    // };
+
+    // nbody::sim::BarnesHutMorton<Float, U64> sim(sim_config);
+
+    // nbody::sim::Direct<Float>::Config sim_config{
+    //     .bodies       = std::move(bodies),
+    //     .g            = nbody::sim::scale_au::G,
+    //     .softening    = nbody::sim::scale_au::SOFTENING,
+    //     .parallel     = true,
+    //     .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
+    // };
+
+    // nbody::sim::Direct<Float> sim(sim_config);
 
     nbody::sim::BarnesHut<Float>::Config sim_config{
         .bodies       = std::move(bodies),
