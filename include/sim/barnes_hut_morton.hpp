@@ -63,7 +63,7 @@ class BarnesHutMorton : public SimInterface<Float> {
     };
 
     // --- Public Interface ---
-    explicit BarnesHutMorton(const Config& config);
+    explicit BarnesHutMorton(const Config& config = Config{});
 
     void step(Float dt) override;
     void insert(Body&& body);

@@ -10,15 +10,13 @@
 #include "gfx/camera.hpp"
 #include "gfx/draw.hpp"
 #include "gfx/grid.hpp"
+#include "gfx/layout.hpp"
 #include "gfx/window.hpp"
 #include "math/vec.hpp"
-#include "sim/barnes_hut.hpp"
 #include "sim/barnes_hut_morton.hpp"
 #include "sim/const.hpp"
-#include "sim/direct.hpp"
 #include "sim/generator.hpp"
 #include "sim/type.hpp"
-#include "gfx/layout.hpp"
 
 using namespace nbody::base::type;
 using Float = F64;
