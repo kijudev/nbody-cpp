@@ -1,10 +1,12 @@
 #include "sim/barnes_hut_morton.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 
 #include "base/parallel.hpp"
+#include "base/radix.hpp"
 #include "math/morton.hpp"
 
 namespace nbody::sim {
@@ -17,6 +19,7 @@ BarnesHutMorton<Float, MortonCode>::BarnesHutMorton(const Config& config)
       m_softening(config.softening),
       m_theta(config.theta),
       m_parallel(config.parallel),
+      m_radix(config.radix),
       m_bounds_min(0),
       m_bounds_max(1),
       m_integrate_fn(config.integrate_fn) {
@@ -39,6 +42,8 @@ void BarnesHutMorton<Float, MortonCode>::step(Float dt) {
     if (m_parallel) {
         std::vector<Vec2> accelerations(m_bodies.size(), Vec2::make_zero());
 
+        // Note: bodies have been reordered to match m_morton_bodies order, so this access pattern
+        // is now linear in memory.
         base::parallel_for_each(m_morton_bodies.begin(), m_morton_bodies.end(),
                                 [this, &accelerations](const MortonBody& mb) {
                                     accelerations[mb.body_idx] = compute_acceleration(mb.body_idx);
@@ -86,6 +91,19 @@ void BarnesHutMorton<Float, MortonCode>::build_tree() {
     compute_morton_codes();
     sort_by_morton();
 
+    // NOTE: Reorder bodies to match Morton order for better cache coherence.
+    std::vector<Body> ordered_bodies;
+    ordered_bodies.reserve(m_bodies.size());
+
+    for (const MortonBody& mb : m_morton_bodies) {
+        ordered_bodies.push_back(m_bodies[mb.body_idx]);
+    }
+    m_bodies = std::move(ordered_bodies);
+
+    for (USize i = 0; i < m_morton_bodies.size(); ++i) {
+        m_morton_bodies[i].body_idx = i;
+    }
+
     m_nodes.clear();
     m_nodes.reserve(m_bodies.size() * 2);
 
@@ -128,7 +146,12 @@ void BarnesHutMorton<Float, MortonCode>::compute_morton_codes() {
 
 template <FloatT Float, math::MortonCodeT MortonCode>
 void BarnesHutMorton<Float, MortonCode>::sort_by_morton() {
-    std::sort(m_morton_bodies.begin(), m_morton_bodies.end());
+    if (m_radix) {
+        base::radix_sort(m_morton_bodies.begin(), m_morton_bodies.end(),
+                         [](const MortonBody& a) { return a.morton; });
+    } else {
+        std::sort(m_morton_bodies.begin(), m_morton_bodies.end());
+    }
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
@@ -158,10 +181,6 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
 
     const USize          bits_to_shift   = MORTON_BITS - 2 * (level + 1);
     std::array<USize, 5> quadrant_bounds = {first, first, first, first, last};
-    for (USize i = first; i < last; ++i) {
-        U8 quadrant = get_quadrant(m_morton_bodies[i].morton, level);
-        (void)quadrant;
-    }
 
     USize current_pos = first;
     for (U8 q = 0; q < 4; ++q) {
@@ -175,6 +194,9 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
             [](MortonCode val, const MortonBody& mb) { return val < mb.morton; });
 
         quadrant_bounds[q + 1] = static_cast<USize>(it - m_morton_bodies.begin());
+
+        // Optimization: Advance current_pos to avoid searching already processed range
+        current_pos = quadrant_bounds[q + 1];
     }
 
     Float child_size     = node_size / 2;
@@ -255,25 +277,22 @@ BarnesHutMorton<Float, MortonCode>::compute_acceleration(USize body_idx) const {
 
 template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Vec2
-BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize node_idx, Vec2 pos) const {
-    const Node& node = m_nodes[node_idx];
+BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize root_node_idx,
+                                                                   Vec2  pos) const {
+    // WHY: Use an explicit stack to avoid recursion overhead.
+    std::array<USize, 256> stack{0};
+    USize                  stack_top      = 0;
+    constexpr USize        STACK_CAPACITY = 256;
 
-    if (node.total_mass == 0) {
-        return Vec2::make_zero();
-    }
+    stack[stack_top++] = root_node_idx;
 
     Vec2        acc          = Vec2::make_zero();
     const Float softening_sq = m_softening * m_softening;
     const Float theta_sq     = m_theta * m_theta;
 
-    std::vector<USize> stack;
-    stack.reserve(MAX_DEPTH * 4);
-    stack.push_back(node_idx);
-
-    while (!stack.empty()) {
-        USize       current_idx  = stack.back();
+    while (stack_top > 0) {
+        USize       current_idx  = stack[--stack_top];
         const Node& current_node = m_nodes[current_idx];
-        stack.pop_back();
 
         if (current_node.total_mass == 0) {
             continue;
@@ -298,9 +317,13 @@ BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize node_id
             acc.x += factor * delta.x;
             acc.y += factor * delta.y;
         } else {
+            if (stack_top + 4 >= STACK_CAPACITY) {
+                continue;
+            }
+
             for (USize i = 0; i < 4; ++i) {
                 if (current_node.children[i] != Node::NODE_EMPTY) {
-                    stack.push_back(current_node.children[i]);
+                    stack[stack_top++] = current_node.children[i];
                 }
             }
         }

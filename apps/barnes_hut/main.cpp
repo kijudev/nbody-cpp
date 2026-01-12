@@ -20,31 +20,32 @@
 #include "sim/type.hpp"
 
 using namespace nbody::base::type;
-using Float = F32;
+using Float = F64;
 using Body  = nbody::sim::BodyT<Float>;
 using Vec2  = nbody::math::Vec2T<Float>;
 
 int main() {
     nbody::sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 6000,
+        .n           = 60000,
         .min_mass    = nbody::sim::scale_au::MASS_HYGIEA,
         .max_mass    = nbody::sim::scale_au::MASS_SOL * 10,
-        .radius      = nbody::sim::scale_au::DISTANCE_AU * 50.0,
+        .radius      = nbody::sim::scale_au::DISTANCE_AU * 2000.0,
         .position_fn = nbody::sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = nbody::sim::generate_mass_distribution_salpeter_imf<Float>,
     };
 
     std::vector<Body> bodies = nbody::sim::generate_distribution(generate_distribution_config);
 
-    // nbody::sim::BarnesHutMorton<Float, U64>::Config sim_config{
-    //     .bodies       = std::move(bodies),
-    //     .g            = nbody::sim::scale_au::G,
-    //     .softening    = nbody::sim::scale_au::SOFTENING,
-    //     .parallel     = true,
-    //     .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
-    // };
+    nbody::sim::BarnesHutMorton<Float, U64>::Config sim_config{
+        .bodies       = std::move(bodies),
+        .g            = nbody::sim::scale_au::G,
+        .softening    = nbody::sim::scale_au::SOFTENING,
+        .parallel     = true,
+        .radix        = true,
+        .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
+    };
 
-    // nbody::sim::BarnesHutMorton<Float, U64> sim(sim_config);
+    nbody::sim::BarnesHutMorton<Float, U64> sim(sim_config);
 
     // nbody::sim::Direct<Float>::Config sim_config{
     //     .bodies       = std::move(bodies),
@@ -56,18 +57,18 @@ int main() {
 
     // nbody::sim::Direct<Float> sim(sim_config);
 
-    nbody::sim::BarnesHut<Float>::Config sim_config{
-        .bodies       = std::move(bodies),
-        .g            = nbody::sim::scale_au::G,
-        .softening    = nbody::sim::scale_au::SOFTENING,
-        .parallel     = true,
-        .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
-    };
+    // nbody::sim::BarnesHut<Float>::Config sim_config{
+    //     .bodies       = std::move(bodies),
+    //     .g            = nbody::sim::scale_au::G,
+    //     .softening    = nbody::sim::scale_au::SOFTENING,
+    //     .parallel     = true,
+    //     .integrate_fn = nbody::sim::integrate_body_verlet<Float>,
+    // };
 
-    nbody::sim::BarnesHut<Float> sim(sim_config);
+    // nbody::sim::BarnesHut<Float> sim(sim_config);
 
     I32   target_fps   = 60;
-    Float scale_factor = nbody::sim::scale_au::DISTANCE_AU * 100.0;
+    Float scale_factor = nbody::sim::scale_au::DISTANCE_AU * 1000.00;
     Float time_factor  = nbody::sim::scale_au::TIME_YEAR * 100.0;
     bool  is_running   = true;
 

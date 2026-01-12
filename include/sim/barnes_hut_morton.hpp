@@ -58,6 +58,7 @@ class BarnesHutMorton : public SimInterface<Float> {
         Float                   softening{sim::scale_toy::SOFTENING};
         Float                   theta{0.5};
         bool                    parallel{false};
+        bool                    radix{false};
         IntegrateBodyFnT<Float> integrate_fn{integrate_body_euler<Float>};
     };
 
@@ -98,6 +99,7 @@ class BarnesHutMorton : public SimInterface<Float> {
     Float m_softening;
     Float m_theta;
     bool  m_parallel;
+    bool  m_radix;
 
     Float m_bounds_min;
     Float m_bounds_max;
