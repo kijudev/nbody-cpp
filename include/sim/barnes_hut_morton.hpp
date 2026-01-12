@@ -106,10 +106,4 @@ class BarnesHutMorton : public SimInterface<Float> {
 
     IntegrateBodyFnT<Float> m_integrate_fn;
 };
-
-extern template class BarnesHutMorton<F32, U32>;
-extern template class BarnesHutMorton<F32, U64>;
-extern template class BarnesHutMorton<F64, U32>;
-extern template class BarnesHutMorton<F64, U64>;
-
 }  // namespace nbody::sim

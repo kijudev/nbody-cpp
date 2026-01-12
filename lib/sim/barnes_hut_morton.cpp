@@ -1,5 +1,3 @@
-#include "sim/barnes_hut_morton.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -8,6 +6,7 @@
 #include "base/parallel.hpp"
 #include "base/radix.hpp"
 #include "math/morton.hpp"
+#include "sim/barnes_hut_morton.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;
