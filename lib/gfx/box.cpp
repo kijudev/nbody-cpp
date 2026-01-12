@@ -4,7 +4,9 @@
 
 #include "base/assert.hpp"
 #include "base/type.hpp"
+#include "gfx/layout.hpp"
 #include "gfx/point.hpp"
+#include "gfx/layout.hpp"
 
 namespace nbody::gfx {
 using namespace nbody::base::type;
@@ -117,43 +119,93 @@ Box Box::with_draw_background(Color color = WHITE) const {
     return *this;
 }
 
-Box Box::with_draw_border(Color color = WHITE) const {
+Box Box::with_draw_border(Color color = WHITE, I32 thinkness) const {
     ASSERT(check(), "Bad dimentions");
-    DrawRectangleLines(x, y, width, height, color);
+    return with_draw_border_left(color, thinkness)
+        .with_draw_border_right(color, thinkness)
+        .with_draw_border_top(color, thinkness)
+        .with_draw_border_bottom(color, thinkness);
+}
+
+Box Box::with_draw_border_left(Color color = WHITE, I32 thinkness) const {
+    ASSERT(check(), "Bad dimentions");
+    DrawRectangle(x, y, thinkness, height, color);
     return *this;
 }
 
-Box Box::with_draw_border_x(Color color = WHITE) const {
+Box Box::with_draw_border_right(Color color = WHITE, I32 thinkness) const {
     ASSERT(check(), "Bad dimentions");
-    return with_draw_border_left(color).with_draw_border_right(color);
-}
-
-Box Box::with_draw_border_y(Color color = WHITE) const {
-    ASSERT(check(), "Bad dimentions");
-    return with_draw_border_top(color).with_draw_border_bottom(color);
-}
-
-Box Box::with_draw_border_left(Color color = WHITE) const {
-    ASSERT(check(), "Bad dimentions");
-    DrawLine(x, y, x, y + height, color);
+    DrawRectangle(x + width - thinkness, y, thinkness, height, color);
     return *this;
 }
 
-Box Box::with_draw_border_right(Color color = WHITE) const {
+Box Box::with_draw_border_top(Color color = WHITE, I32 thinkness) const {
     ASSERT(check(), "Bad dimentions");
-    DrawLine(x + width, y, x + width, y + height, color);
+    DrawRectangle(x, y, width, thinkness, color);
     return *this;
 }
 
-Box Box::with_draw_border_top(Color color = WHITE) const {
+Box Box::with_draw_border_bottom(Color color = WHITE, I32 thinkness) const {
     ASSERT(check(), "Bad dimentions");
-    DrawLine(x, y, x + width, y, color);
+    DrawRectangle(x, y + height - thinkness, width, thinkness, color);
     return *this;
 }
 
-Box Box::with_draw_border_bottom(Color color = WHITE) const {
+Box Box::with_draw_line_horizontal(Layout layout, Color color, I32 thinkness) const {
     ASSERT(check(), "Bad dimentions");
-    DrawLine(x, y + height, x + width, y + height, color);
+
+    I32 lx = x;
+    I32 ly = y;
+    I32 lw = width;
+    I32 lh = thinkness;
+
+    if (layout_is_left(layout)) {
+        lx = x;
+    } else if (layout_is_right(layout)) {
+        lx = x + width - lh;
+    } else {
+        lx = x + (width - lh) / 2;
+    }
+
+    if (layout_is_top(layout)) {
+        ly = y;
+    } else if (layout_is_bottom(layout)) {
+        ly = y + height - lh;
+    } else {
+        ly = y + (height - lh) / 2;
+    }
+
+    DrawRectangle(lx, ly, lx + lw, ly + lh, color);
+
+    return *this;
+}
+
+Box Box::with_draw_line_vertical(Layout layout, Color color, I32 thinkness) const {
+    ASSERT(check(), "Bad dimentions");
+
+    I32 lx = x;
+    I32 ly = y;
+    I32 lw = thinkness;
+    I32 lh = height;
+
+    if (layout_is_left(layout)) {
+        lx = x;
+    } else if (layout_is_right(layout)) {
+        lx = x + width - lw;
+    } else {
+        lx = x + (width - lw) / 2;
+    }
+
+    if (layout_is_top(layout)) {
+        ly = y;
+    } else if (layout_is_bottom(layout)) {
+        ly = y + height - lh;
+    } else {
+        ly = y + (height - lh) / 2;
+    }
+
+    DrawRectangle(lx, ly, lx + lw, ly + lh, color);
+
     return *this;
 }
 

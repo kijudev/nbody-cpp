@@ -18,6 +18,7 @@
 #include "sim/direct.hpp"
 #include "sim/generator.hpp"
 #include "sim/type.hpp"
+#include "gfx/layout.hpp"
 
 using namespace nbody::base::type;
 using Float = F64;
@@ -137,7 +138,6 @@ int main() {
         nbody::gfx::draw_ui_text(grid.row(0, 4)
                                      .with_padding(8)
                                      .with_draw_border(WHITE)
-                                     .with_draw_background(BLACK)
                                      .with_padding_left(8)
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::CenterLeft, 24, "NBody");
@@ -145,7 +145,6 @@ int main() {
         nbody::gfx::draw_ui_text(grid.span(0, 1, 3, 4)
                                      .with_padding(8)
                                      .with_draw_border(WHITE)
-                                     .with_draw_background(BLACK)
                                      .with_padding_left(8)
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::TopLeft, 16,

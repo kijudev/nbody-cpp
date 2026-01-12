@@ -14,23 +14,6 @@
 namespace nbody::gfx {
 using namespace nbody::base::type;
 
-bool layout_is_top(Layout layout) {
-    return layout == Layout::TopLeft || layout == Layout::TopCenter || layout == Layout::TopRight;
-}
-
-bool layout_is_bottom(Layout layout) {
-    return layout == Layout::BottomLeft || layout == Layout::BottomCenter ||
-           layout == Layout::BottomRight;
-}
-
-bool layout_is_right(Layout layout) {
-    return layout == Layout::TopRight || layout == Layout::CenterRight ||
-           layout == Layout::BottomRight;
-}
-bool layout_is_left(Layout layout) {
-    return layout == Layout::TopLeft || layout == Layout::CenterLeft ||
-           layout == Layout::BottomLeft;
-}
 
 void draw_ui_grid(const Grid& grid) {
     for (I32 i = 0; i < grid.cols; ++i) {

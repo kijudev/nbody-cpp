@@ -3,6 +3,7 @@
 #include <raylib.h>
 
 #include "base/type.hpp"
+#include "gfx/layout.hpp"
 #include "gfx/point.hpp"
 
 namespace nbody::gfx {
@@ -25,13 +26,15 @@ struct Box {
     Box with_padding_bottom(I32 padding) const;
 
     Box with_draw_background(Color color) const;
-    Box with_draw_border(Color color) const;
-    Box with_draw_border_x(Color color) const;
-    Box with_draw_border_y(Color color) const;
-    Box with_draw_border_left(Color color) const;
-    Box with_draw_border_right(Color color) const;
-    Box with_draw_border_top(Color color) const;
-    Box with_draw_border_bottom(Color color) const;
+
+    Box with_draw_border(Color color, I32 thinkness = 1) const;
+    Box with_draw_border_left(Color color, I32 thinkness = 1) const;
+    Box with_draw_border_right(Color color, I32 thinkness = 1) const;
+    Box with_draw_border_top(Color color, I32 thinkness = 1) const;
+    Box with_draw_border_bottom(Color color, I32 thinkness = 1) const;
+
+    Box with_draw_line_horizontal(Layout layout, Color color, I32 thinkness = 1) const;
+    Box with_draw_line_vertical(Layout layout, Color color, I32 thinkness = 1) const;
 
     Rectangle rectangle() const;
 };
