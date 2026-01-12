@@ -13,7 +13,8 @@ struct Grid {
     I32 rows{1};
 
     // NOTE: Columns and rows are indexed from 0.
-    Box span(I32 col_a, I32 row_a, I32 col_b, I32 row_b) const;
+    Box region(I32 col_a, I32 row_a, I32 col_b, I32 row_b) const;
+    Box span(I32 start_col, I32 end_col, I32 start_row, I32 end_row) const;
 
     Box col(I32 col, I32 rows) const;
     Box row(I32 row, I32 cols) const;

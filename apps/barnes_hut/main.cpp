@@ -142,7 +142,7 @@ int main() {
                                      .with_padding_y(8),
                                  nbody::gfx::Layout::CenterLeft, 24, "NBody");
 
-        nbody::gfx::draw_ui_text(grid.span(0, 1, 3, 4)
+        nbody::gfx::draw_ui_text(grid.region(0, 1, 3, 4)
                                      .with_padding(8)
                                      .with_draw_border(WHITE)
                                      .with_padding_left(8)
