@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cmath>
 #include <span>
+#include <vector>
 
 #include "base/type.hpp"
 #include "sim/const.hpp"
@@ -12,38 +12,38 @@ namespace nbody::sim {
 using namespace nbody::base::type;
 
 template <FloatT Float>
-class Direct {
+class Direct : public SimInterface<Float> {
    public:
-    using Vec2            = math::Vec2T<Float>;
-    using Body            = BodyT<Float>;
-    using Layout          = std::vector<Body>;
-    using IntegrateBodyFn = IntegrateBodyFnT<Float>;
+    // --- General Typedefs ---
+    using Vec2 = math::Vec2T<Float>;
+    using Body = BodyT<Float>;
 
-    static constexpr Float DEAFULT_G         = sim::scale_toy::G;
-    static constexpr Float DEAFULT_SOFTENING = sim::scale_toy::SOFTENING;
-
+    // --- Config ---
     struct Config {
-        Layout          bodies{};
-        IntegrateBodyFn integrate_fn = integrate_body_euler<Float>;
-        Float           g            = DEAFULT_G;
-        Float           softening    = DEAFULT_SOFTENING;
+        std::vector<Body>       bodies{};
+        Float                   g{sim::scale_toy::G};
+        Float                   softening{sim::scale_toy::SOFTENING};
+        bool                    parallel{false};
+        IntegrateBodyFnT<Float> integrate_fn{integrate_body_euler<Float>};
     };
 
-   public:
+    // --- Public Interface ---
     Direct(const Config& config);
 
-    void                                                     step(Float dt);
+    void step(Float dt);
+    void insert(Body&& body);
+
     [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const;
-    void                                                     insert_body(Body&& body);
 
    private:
-    Layout m_bodies{};
+    void impl_compute_acc();
+    void impl_compute_acc_par();
+    void impl_compute_acc_seq();
 
-    const IntegrateBodyFn m_integrate_body{integrate_body_euler<Float>};
-    const Float           m_g{DEAFULT_G};
-    const Float           m_softening{DEAFULT_SOFTENING};
-
-    void impl_apply_gravity();
-    void impl_apply_gravity_body_pair(Body& a, Body& b);
+    std::vector<Body>       m_bodies;
+    Float                   m_g;
+    Float                   m_softening;
+    bool                    m_parallel;
+    IntegrateBodyFnT<Float> m_integrate_fn;
 };
 }  // namespace nbody::sim

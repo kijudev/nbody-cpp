@@ -1,34 +1,22 @@
 #pragma once
 
+#include <raylib.h>
+
 #include <string>
 
 #include "base/type.hpp"
-#include "gfx/camera.hpp"
 #include "gfx/grid.hpp"
+#include "gfx/layout.hpp"
 
 namespace nbody::gfx {
 using namespace nbody::base::type;
 
-enum class Layout {
-    TopLeft,
-    TopCenter,
-    TopRight,
-    CenterLeft,
-    Center,
-    CenterRight,
-    BottomLeft,
-    BottomCenter,
-    BottomRight,
-};
+void draw_grid(const Grid& grid);
 
-bool layout_is_top(Layout layout);
-bool layout_is_bottom(Layout layout);
-bool layout_is_left(Layout layout);
-bool layout_is_right(Layout layout);
+void draw_text(const Box& box, Layout layout, I32 size, const std::string& text,
+               Color color = WHITE);
 
-template <FloatT Float>
-void draw_ui_ruler(const Camera<Float>& camera, const std::string& text);
+void draw_text_fit(const Box& box, Layout layout, const std::string& text,
+                   Color color = WHITE);
 
-void draw_ui_grid(const Grid& grid);
-void draw_ui_text(const Box& box, Layout layout, I32 size, const std::string& text);
 }  // namespace nbody::gfx

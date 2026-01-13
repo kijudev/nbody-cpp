@@ -42,14 +42,9 @@
               clang-tools
               cppcheck
 
-              # Raylib
+              # Raylib bullshit
               raylib
-
-              # Testing
-              doctest
-
-              # Benchmarking
-              nanobench
+              raygui
             ];
 
             shellHook = ''

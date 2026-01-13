@@ -1,13 +1,11 @@
-// This file contains basic assert macros. When an assertion fails the message is
-// augmented with the source file and line number where the ASSERT was invoked.
-
 #pragma once
 
 #include <cstdlib>
 #include <string>
 #include <string_view>
 
-#include "log.hpp"  // IWYU pragma: export
+#include "assert.h"  // IWYU pragma: export
+#include "log.hpp"   // IWYU pragma: export
 
 namespace nbody::base {
 using namespace nbody::base::type;
@@ -28,6 +26,7 @@ std::string assert_format_message(std::string_view message, const char* file, in
             std::abort();                                                         \
         }                                                                         \
     } while (false)
+#define STATIC_ASSERT(condition, message) static_assert((condition))
 #define PANIC(message)                                                                        \
     do {                                                                                      \
         std::string _nbody_panic_msg =                                                        \
@@ -36,6 +35,7 @@ std::string assert_format_message(std::string_view message, const char* file, in
         std::abort();                                                                         \
     } while (false)
 #else
-#define ASSERT(condition, message) ((void)0)
-#define PANIC(message)             ((void)0)
+#define ASSERT(condition, message)        ((void)0)
+#define STATIC_ASSERT(condition, message) static_assert((condition))
+#define PANIC(message)                    ((void)0)
 #endif

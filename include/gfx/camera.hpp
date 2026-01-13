@@ -27,13 +27,14 @@ struct Camera {
 
     std::tuple<Vec2, Vec2> viewport_extent_world() const;
     bool                   is_pos_in_viewport(const Vec2& pos) const;
-    bool                   is_circle_in_viewport(const Vec2& center, Float radius) const;
+    bool is_circle_in_viewport(const Vec2& center, Float radius) const;
 
     // NOTE: Handles basic camera controls:
     // - UP, DOWN, RIGHT, LEFT (arrows, WSAD).
     // - Scolling.
     // WARNING: This method need to be called on every game loop interation.
-    void handle_controls(Float dt);
+    void handle_controls_movement(Float dt);
+    void handle_controls_zoom(Float dt);
 };
 
 }  // namespace nbody::gfx

@@ -5,66 +5,22 @@
 namespace nbody::gfx {
 using namespace nbody::base::type;
 
-Box Grid::span(I32 col_a, I32 row_a, I32 col_b, I32 row_b) const {
-    ASSERT(col_a >= 0, "Column index has to be greater or equal to 0");
-    ASSERT(col_b >= 0, "Column index has to be greater or equal to 0");
-    ASSERT(row_a >= 0, "Row index has to be greater or equal to 0");
-    ASSERT(row_b >= 0, "Row index has to be greater or equal to 0");
-    ASSERT(col_a <= col_b, "Invalid params");
-    ASSERT(row_a <= row_b, "Invalid params");
-
-    return Box{
-        .x = col_a * col_size(),
-        .y = row_a * row_size(),
-        .width = (col_b - col_a + 1) * col_size(),
-        .height = (row_b - row_a + 1) * row_size()
+Grid Grid::from_box(const Box& box, I32 cols, I32 rows) {
+    return Grid{
+        .x      = box.x,
+        .y      = box.y,
+        .width  = box.width,
+        .height = box.height,
+        .cols   = cols,
+        .rows   = rows,
     };
 }
 
-Box Grid::col(I32 col, I32 rows) const {
-    ASSERT(col >= 0, "Column index has to be greater or equal to 0");
-    ASSERT(rows > 0, "The number of rows has to be greater than 0");
-
-    return Box{
-        .x = col * col_size(),
-        .y = 0,
-        .width = col_size(),
-        .height = rows * row_size()
-    };
-}
-
-Box Grid::row(I32 row, I32 cols) const {
-    ASSERT(row >= 0, "Row index has to be greater or equal to 0");
-    ASSERT(cols > 0, "The number of columns has to be greater than 0");
-
-    return Box{
-        .x = 0,
-        .y = row * row_size(),
-        .width = cols * col_size(),
-        .height = row_size()
-    };
-}
-
-std::vector<Box> Grid::all_cols() const {
-    std::vector<Box> cols_vec{};
-    cols_vec.reserve(cols);
-
-    for (I32 i = 0; i < cols; ++i) {
-        cols_vec.push_back(col(i, rows));
-    }
-
-    return cols_vec;
-}
-
-std::vector<Box> Grid::all_rows() const {
-    std::vector<Box> rows_vec{};
-    rows_vec.reserve(rows);
-
-    for (I32 i = 0; i < rows; ++i) {
-        rows_vec.push_back(row(i, cols));
-    }
-
-    return rows_vec;
+Box Grid::span(I32 start_col, I32 end_col, I32 start_row, I32 end_row) const {
+    return Box{.x      = start_col * col_size() + x,
+               .y      = start_row * row_size() + y,
+               .width  = (end_col - start_col + 1) * col_size(),
+               .height = (end_row - start_row + 1) * row_size()};
 }
 
 I32 Grid::col_size() const {
@@ -75,5 +31,39 @@ I32 Grid::col_size() const {
 I32 Grid::row_size() const {
     ASSERT(rows > 0, "The number of rows has to be greater than 0");
     return height / rows;
+}
+
+std::vector<Box> Grid::row_boxes() const {
+    std::vector<Box> boxes;
+    boxes.reserve(rows);
+
+    I32 row_height = height / rows;
+    for (I32 i = 0; i < cols; ++i) {
+        boxes.emplace_back(Box{
+            .x      = x,
+            .y      = y + (row_height * i),
+            .width  = width,
+            .height = row_height,
+        });
+    }
+
+    return boxes;
+}
+
+std::vector<Box> Grid::col_boxes() const {
+    std::vector<Box> boxes;
+    boxes.reserve(cols);
+
+    I32 col_width = height / rows;
+    for (I32 i = 0; i < cols; ++i) {
+        boxes.emplace_back(Box{
+            .x      = x + (col_width * i),
+            .y      = y,
+            .width  = col_width,
+            .height = height,
+        });
+    }
+
+    return boxes;
 }
 }  // namespace nbody::gfx

@@ -26,7 +26,8 @@ struct Vec2T {
     Float y = 0.0;
 
     constexpr Vec2T() noexcept = default;
-    constexpr Vec2T(Float x, Float y) noexcept : x(x), y(y) {}
+    constexpr Vec2T(Float x, Float y) noexcept
+        : x(static_cast<Float>(x)), y(static_cast<Float>(y)) {}
 
     [[nodiscard]] static constexpr Vec2T make_zero() noexcept { return Vec2T{0.0, 0.0}; }
     [[nodiscard]] static constexpr Vec2T make_one() noexcept { return Vec2T{1.0, 1.0}; }

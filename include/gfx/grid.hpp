@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "base/type.hpp"
 #include "gfx/box.hpp"
 
@@ -7,21 +9,21 @@ namespace nbody::gfx {
 using namespace nbody::base::type;
 
 struct Grid {
+    I32 x{0};
+    I32 y{0};
     I32 width{0};
     I32 height{0};
     I32 cols{1};
     I32 rows{1};
 
-    // NOTE: Columns and rows are indexed from 0.
-    Box span(I32 col_a, I32 row_a, I32 col_b, I32 row_b) const;
+    static Grid from_box(const Box& box, I32 cols = 1, I32 rows = 1);
 
-    Box col(I32 col, I32 rows) const;
-    Box row(I32 row, I32 cols) const;
-
-    std::vector<Box> all_cols() const;
-    std::vector<Box> all_rows() const;
+    Box span(I32 start_col, I32 end_col, I32 start_row, I32 end_row) const;
 
     I32 col_size() const;
     I32 row_size() const;
+
+    std::vector<Box> row_boxes() const;
+    std::vector<Box> col_boxes() const;
 };
 }  // namespace nbody::gfx
