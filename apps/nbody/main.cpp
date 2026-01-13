@@ -82,7 +82,7 @@ int main() {
 
             gfx::Box back_box =
                 scenario_grid.span(scenario_grid.cols - 1, scenario_grid.cols - 1, 0, 0)
-                    .with_padding(8)
+                    .with_padding(12)
                     .with_draw_border(WHITE);
 
             if (GuiButton(back_box.rectangle(), "Back to Menu")) {

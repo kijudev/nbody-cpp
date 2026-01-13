@@ -1,10 +1,14 @@
 #include <raylib.h>
 
 #include <array>
+#include <ranges>
 #include <string>
+#include <utility>
 
 #include "base/type.hpp"
+#include "gfx/box.hpp"
 #include "gfx/camera.hpp"
+#include "gfx/grid.hpp"
 #include "scenario/draw.hpp"
 #include "sim/type.hpp"
 
@@ -114,4 +118,23 @@ void draw_cross_center(const gfx::Camera<Float>& camera, I32 size,
 
 template void draw_cross_center(const gfx::Camera<F32>&, I32, I32, Color);
 template void draw_cross_center(const gfx::Camera<F64>&, I32, I32, Color);
+
+void draw_label_pairs(
+    const gfx::Box&                                        box,
+    const std::vector<std::pair<std::string, std::string>> label_pairs,
+    I32 font_size, I32 gap, I32 offset, Color color_a, Color color_b) {
+    gfx::Grid grid = gfx::Grid::from_box(box, 2, 1);
+
+    gfx::Box a = grid.span(0, 0, 0, 0);
+    gfx::Box b = grid.span(1, 1, 0, 0);
+    b.x += offset;
+
+    draw_labels_vertical(
+        a, label_pairs | std::views::keys | std::ranges::to<std::vector>(),
+        font_size, gap, color_a);
+
+    draw_labels_vertical(
+        b, label_pairs | std::views::values | std::ranges::to<std::vector>(),
+        font_size, gap, color_b);
+}
 }  // namespace nbody::scenario::impl

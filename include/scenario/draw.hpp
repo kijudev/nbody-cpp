@@ -1,6 +1,8 @@
 #pragma once
 
 #include <span>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "base/type.hpp"
@@ -29,4 +31,9 @@ void draw_labels_vertical(const gfx::Box&                box,
 template <FloatT Float>
 void draw_cross_center(const gfx::Camera<Float>& camera, I32 size,
                        I32 thickness, Color color);
+
+void draw_label_pairs(
+    const gfx::Box&                                        box,
+    const std::vector<std::pair<std::string, std::string>> label_pairs,
+    I32 font_size, I32 gap, I32 offset, Color color_a, Color color_b);
 }  // namespace nbody::scenario::impl
