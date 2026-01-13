@@ -44,10 +44,8 @@ void parallel_for_each(Iterator first, Iterator last, Func func, USize min_per_t
         chunk_start = chunk_end;
     }
 
-    // Last thread handles remainder
     threads.emplace_back([chunk_start, last, &func]() { std::for_each(chunk_start, last, func); });
 
-    // Wait for all threads to complete
     for (auto& thread : threads) {
         thread.join();
     }

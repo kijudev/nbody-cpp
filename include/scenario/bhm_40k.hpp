@@ -1,8 +1,11 @@
 #include "base/type.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/grid.hpp"
+#include "gfx/window.hpp"
+#include "math/vec.hpp"
 #include "scenario/type.hpp"
 #include "sim/barnes_hut_morton.hpp"
+#include "sim/const.hpp"
 #include "sim/type.hpp"
 
 namespace nbody::scenario {
@@ -11,6 +14,7 @@ using namespace nbody::base::type;
 class BHM40K : public ScenarioInterface {
    public:
     using Float = F64;
+    using Vec2  = math::Vec2T<Float>;
     using Body  = sim::BodyT<F64>;
 
     BHM40K()  = default;
@@ -20,16 +24,27 @@ class BHM40K : public ScenarioInterface {
     void step(const gfx::Window& window) override;
 
    private:
-    void controls();
-    void ui();
+    void handle_input();
+    void update_sim(Float dt);
+    void update_camera(Float dt, const gfx::Window& window);
+    void draw_sim();
+    void draw_ui(const gfx::Window& window);
 
-    sim::BarnesHutMorton<F64> m_sim_bhm{};
-    gfx::Camera<Float>        m_camera{};
-    gfx::Grid                 m_ui_grid{};
+    // --- Simulation ---
+    sim::BarnesHutMorton<F64, U64> m_sim{};
+    Float                          m_time_factor{sim::scale_au::TIME_YEAR};
+    Float                          m_scale_factor{50.0};
+    Float                          m_simulation_time{0.0};
 
-    bool  m_is_paused     = false;
-    bool  m_is_ui_visible = true;
-    Float m_time_factor   = 1.0;
-    Float m_scale_factor  = 1.0;
+    // --- Drawing ---
+    gfx::Camera<Float> m_camera{};
+    gfx::Grid          m_grid{};
+
+    // --- State ---
+    bool  m_is_sim_running{true};
+    bool  m_is_ui_visible{true};
+    bool  m_is_sim_visible{true};
+    bool  m_is_tracking_body{false};
+    USize m_tracked_body_index{0};
 };
 }  // namespace nbody::scenario
