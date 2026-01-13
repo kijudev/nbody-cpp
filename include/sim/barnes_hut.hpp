@@ -71,7 +71,7 @@ class BarnesHut : public SimInterface<Float> {
     };
 
     // --- Public Interface ---
-    BarnesHut(const Config& config);
+    BarnesHut(const Config& config = {});
 
     void step(Float dt);
     void insert(Body&& body);

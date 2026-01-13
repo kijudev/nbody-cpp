@@ -8,7 +8,7 @@
 #include "base/type.hpp"
 #include "gfx/grid.hpp"
 #include "gfx/window.hpp"
-#include "scenario/bhm_40k.hpp"
+#include "scenario/barnes_hut_10k.hpp"
 
 using namespace nbody::base::type;
 using namespace nbody;
@@ -32,7 +32,7 @@ int main() {
 
     AppState app_state = AppState::Menu;
 
-    scenario::BHM40K bhm40k_scenario;
+    scenario::BarnesHut10K bhm40k_scenario;
 
     std::vector<std::string> scenarios = {
         "Barnes-Hut algorithm with Morton ordering for 40K particles"};

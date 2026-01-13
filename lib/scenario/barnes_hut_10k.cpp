@@ -1,3 +1,5 @@
+#include "scenario/barnes_hut_10k.hpp"
+
 #include <raygui.h>
 #include <raylib.h>
 
@@ -5,21 +7,20 @@
 #include <format>
 #include <vector>
 
-#include "base/type.hpp"
 #include "gfx/box.hpp"
 #include "gfx/const.hpp"
 #include "gfx/draw.hpp"
 #include "gfx/window.hpp"
-#include "scenario/bhm_40k.hpp"
 #include "scenario/draw.hpp"
 #include "scenario/impl.hpp"
+#include "sim/barnes_hut.hpp"
 #include "sim/const.hpp"
 #include "sim/generator.hpp"
 
 namespace nbody::scenario {
 using namespace nbody::base::type;
 
-void BHM40K::init(const gfx::Window& window) {
+void BarnesHut10K::init(const gfx::Window& window) {
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
         .n           = 10000,
         .min_mass    = sim::scale_au::MASS_HYGIEA,
@@ -32,16 +33,15 @@ void BHM40K::init(const gfx::Window& window) {
     std::vector<Body> bodies =
         sim::generate_distribution(generate_distribution_config);
 
-    sim::BarnesHutMorton<Float, U64>::Config sim_config{
+    sim::BarnesHut<Float>::Config sim_config{
         .bodies       = std::move(bodies),
         .g            = sim::scale_au::G,
         .softening    = sim::scale_au::SOFTENING,
         .parallel     = true,
-        .radix        = true,
         .integrate_fn = sim::integrate_body_verlet<Float>,
     };
 
-    m_sim = sim::BarnesHutMorton<Float, U64>(sim_config);
+    m_sim = sim::BarnesHut<Float>(sim_config);
 
     m_camera = {
         .screen_width   = window.width,
@@ -59,7 +59,7 @@ void BHM40K::init(const gfx::Window& window) {
     };
 }
 
-void BHM40K::step(const gfx::Window& window) {
+void BarnesHut10K::step(const gfx::Window& window) {
     Float dt = static_cast<Float>(GetFrameTime());
 
     handle_input();
@@ -69,7 +69,7 @@ void BHM40K::step(const gfx::Window& window) {
     draw_ui(window);
 }
 
-void BHM40K::handle_input() {
+void BarnesHut10K::handle_input() {
     if (IsKeyPressed(KEY_SPACE)) {
         m_is_sim_running = !m_is_sim_running;
     }
@@ -104,16 +104,16 @@ void BHM40K::handle_input() {
     }
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        auto maybe_idx = impl::get_body_at_mouse_position_au(
-            m_camera, m_sim.bodies());
+        auto maybe_idx =
+            impl::get_body_at_mouse_position_au(m_camera, m_sim.bodies());
         if (maybe_idx.has_value()) {
             m_tracked_body_index = maybe_idx.value();
-            m_is_tracking_body = true;
+            m_is_tracking_body   = true;
         }
     }
 }
 
-void BHM40K::update_sim(Float dt) {
+void BarnesHut10K::update_sim(Float dt) {
     if (!m_is_sim_running) {
         return;
     }
@@ -123,7 +123,7 @@ void BHM40K::update_sim(Float dt) {
     m_simulation_time += sim_dt;
 }
 
-void BHM40K::update_camera(Float dt, const gfx::Window& window) {
+void BarnesHut10K::update_camera(Float dt, const gfx::Window& window) {
     m_camera.screen_width  = window.width;
     m_camera.screen_height = window.height;
 
@@ -139,7 +139,7 @@ void BHM40K::update_camera(Float dt, const gfx::Window& window) {
     }
 }
 
-void BHM40K::draw_sim() {
+void BarnesHut10K::draw_sim() {
     if (!m_is_sim_visible) {
         return;
     }
@@ -148,7 +148,7 @@ void BHM40K::draw_sim() {
                                 WHITE);
 }
 
-void BHM40K::draw_ui(const gfx::Window& window) {
+void BarnesHut10K::draw_ui(const gfx::Window& window) {
     if (!m_is_ui_visible) {
         return;
     }
@@ -170,7 +170,7 @@ void BHM40K::draw_ui(const gfx::Window& window) {
                                        .with_padding_top(gfx::L)
                                        .with_draw_background(BLACK);
 
-    gfx::Box body_info_box = m_grid.span(0, 2, 6, 7)
+    gfx::Box body_info_box = m_grid.span(0, m_is_tracking_body ? 3 : 2, 6, 7)
                                  .with_padding_left(gfx::S)
                                  .with_padding_top(gfx::L)
                                  .with_draw_background(BLACK);

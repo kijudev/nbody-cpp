@@ -4,21 +4,21 @@
 #include "gfx/window.hpp"
 #include "math/vec.hpp"
 #include "scenario/type.hpp"
-#include "sim/barnes_hut_morton.hpp"
+#include "sim/barnes_hut.hpp"
 #include "sim/const.hpp"
 #include "sim/type.hpp"
 
 namespace nbody::scenario {
 using namespace nbody::base::type;
 
-class BHM40K : public ScenarioInterface {
+class BarnesHut10K : public ScenarioInterface {
    public:
     using Float = F64;
     using Vec2  = math::Vec2T<Float>;
     using Body  = sim::BodyT<F64>;
 
-    BHM40K()  = default;
-    ~BHM40K() = default;
+    BarnesHut10K()  = default;
+    ~BarnesHut10K() = default;
 
     void init(const gfx::Window& window) override;
     void step(const gfx::Window& window) override;
@@ -31,7 +31,7 @@ class BHM40K : public ScenarioInterface {
     void draw_ui(const gfx::Window& window);
 
     // --- Simulation ---
-    sim::BarnesHutMorton<F64, U64> m_sim{};
+    sim::BarnesHut<F64> m_sim{};
     Float                          m_time_factor{sim::scale_au::TIME_YEAR};
     Float                          m_scale_factor{50.0};
     Float                          m_simulation_time{0.0};
