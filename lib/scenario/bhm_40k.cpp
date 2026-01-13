@@ -1,12 +1,18 @@
+#include "scenario/bhm_40k.hpp"
+
 #include <raygui.h>
 #include <raylib.h>
 
 #include <cstring>
+#include <format>
+#include <vector>
 
 #include "base/type.hpp"
+#include "gfx/box.hpp"
+#include "gfx/draw.hpp"
 #include "gfx/window.hpp"
-#include "scenario/bhm_40k.hpp"
 #include "scenario/draw.hpp"
+#include "scenario/impl.hpp"
 #include "sim/const.hpp"
 #include "sim/generator.hpp"
 
@@ -143,5 +149,145 @@ void BHM40K::draw_ui(const gfx::Window& window) {
 
     impl::draw_cross_center(m_camera, 20, 2, WHITE);
     impl::draw_ruler_au(m_camera, 32, 32, 0.5);
+
+    Color property_color = Color{255, 180, 120, 255};  // NOTE: Warm orange.
+    Color value_color    = Color{255, 230, 180, 255};  // NOTE: Warm yellow.
+    Color header_color   = WHITE;
+
+    gfx::Box general_info_box = m_grid.span(0, 2, 0, 2)
+                                    .with_padding_left(12)
+                                    .with_padding_top(24)
+                                    .with_draw_background(BLACK);
+
+    gfx::Box simulation_info_box = m_grid.span(0, 2, 3, 5)
+                                       .with_padding_left(12)
+                                       .with_padding_top(24)
+                                       .with_draw_background(BLACK);
+
+    gfx::Box body_info_box = m_grid.span(0, 2, 6, 7)
+                                 .with_padding_left(12)
+                                 .with_padding_top(24)
+                                 .with_draw_background(BLACK);
+
+    gfx::Box control_info_box = m_grid.span(0, 2, 8, 11)
+                                    .with_padding_left(12)
+                                    .with_padding_top(24)
+                                    .with_padding_bottom(24)
+                                    .with_draw_background(BLACK);
+
+    GuiGroupBox(general_info_box.rectangle(), "General Info");
+    GuiGroupBox(simulation_info_box.rectangle(), "Simulation Info");
+    GuiGroupBox(body_info_box.rectangle(), "Body Info");
+    GuiGroupBox(control_info_box.rectangle(), "Control Info");
+
+    I32 y_offset = general_info_box.y + 32;
+    I32 line_gap = 8;
+    nbody::gfx::draw_text(
+        general_info_box.with_padding_top(16).with_padding_left(12),
+        nbody::gfx::Layout::TopLeft, 28, "Barnes-Hut Morton 40k", header_color);
+    y_offset += 36;
+
+    std::vector<std::pair<std::string, std::string>> general_info{
+        {"Particles", std::to_string(m_sim.bodies().size())},
+        {"Status", m_is_sim_running ? "Running" : "Paused"},
+        {"Sim Time",
+         std::format("{:.2f} years",
+         m_simulation_time / sim::scale_au::TIME_YEAR)}
+    };
+    for (const auto& [prop, val] : general_info) {
+        nbody::gfx::draw_text(gfx::Box{general_info_box.x + 16, y_offset,
+                                       general_info_box.width - 20, 24},
+                              nbody::gfx::Layout::TopLeft, 20, prop + ":",
+                              property_color);
+        nbody::gfx::draw_text(gfx::Box{general_info_box.x + 172, y_offset,
+                                       general_info_box.width - 176, 24},
+                              nbody::gfx::Layout::TopLeft, 20, val,
+                              value_color);
+        y_offset += 24 + line_gap;
+    }
+
+    // --- Simulation Info ---
+    y_offset = simulation_info_box.y + 32;
+    std::vector<std::pair<std::string, std::string>> simulation_info{
+        {"Time Factor",
+         nbody::scenario::impl::format_time(
+             m_time_factor, sim::scale_au::TIME_YEAR, sim::scale_au::TIME_DAY,
+         sim::scale_au::TIME_HOUR, sim::scale_au::TIME_MINUTE)},
+        {"Scale Factor", std::format("{:.2f}", m_scale_factor)},
+        {"FPS", std::to_string(GetFPS())},
+        {"Integrator", "Verlet"},
+    };
+    for (const auto& [prop, val] : simulation_info) {
+        nbody::gfx::draw_text(gfx::Box{simulation_info_box.x + 16, y_offset,
+                                       simulation_info_box.width - 20, 24},
+                              nbody::gfx::Layout::TopLeft, 18, prop + ":",
+                              property_color);
+        nbody::gfx::draw_text(gfx::Box{simulation_info_box.x + 152, y_offset,
+                                       simulation_info_box.width - 156, 24},
+                              nbody::gfx::Layout::TopLeft, 18, val,
+                              value_color);
+        y_offset += 22 + line_gap;
+    }
+
+    // --- Body Info ---
+    y_offset = body_info_box.y + 32;
+    if (m_is_tracking_body && m_tracked_body_index < m_sim.bodies().size()) {
+        const Body& body = m_sim.bodies()[m_tracked_body_index];
+        std::vector<std::pair<std::string, std::string>> body_info{
+            {"Tracking Body", std::to_string(m_tracked_body_index)},
+            {"Mass", std::format("{:.3e} kg", body.mass)},
+            {"Position",
+             std::format("({:.3e}, {:.3e}) AU", body.pos.x, body.pos.y)},
+            {"Velocity",
+             std::format("({:.3e}, {:.3e}) AU/yr", body.vel.x, body.vel.y)}
+        };
+        for (const auto& [prop, val] : body_info) {
+            nbody::gfx::draw_text(gfx::Box{body_info_box.x + 16, y_offset,
+                                           body_info_box.width - 20, 24},
+                                  nbody::gfx::Layout::TopLeft, 18, prop + ":",
+                                  property_color);
+            nbody::gfx::draw_text(gfx::Box{body_info_box.x + 152, y_offset,
+                                           body_info_box.width - 156, 24},
+                                  nbody::gfx::Layout::TopLeft, 18, val,
+                                  value_color);
+            y_offset += 22 + line_gap;
+        }
+    } else {
+        nbody::gfx::draw_text(gfx::Box{body_info_box.x + 16, y_offset,
+                                       body_info_box.width - 20, 24},
+                              nbody::gfx::Layout::TopLeft, 18,
+                              "Not tracking any body.", property_color);
+        y_offset += 22 + line_gap;
+        nbody::gfx::draw_text(gfx::Box{body_info_box.x + 16, y_offset,
+                                       body_info_box.width - 20, 24},
+                              nbody::gfx::Layout::TopLeft, 18,
+                              "Click a body to track.", value_color);
+    }
+
+    // --- Control Info ---
+    y_offset = control_info_box.y + 32;
+    std::vector<std::pair<std::string, std::string>> control_info{
+        {"[Space]",       "Pause/Resume"        },
+        {"[H]",           "Toggle UI"           },
+        {"[Arrows/WASD]", "Move Camera"         },
+        {"[Mouse Wheel]", "Zoom"                },
+        {"[= / +]",       "Increase Time Factor"},
+        {"[-]",           "Decrease Time Factor"},
+        {"[[ / ]]",       "Scale Factor"        },
+        {"[T]",           "Stop Tracking Body"  },
+        {"[ESC]",         "Stop Tracking Body"  },
+        {"[Click]",       "Track Body"          }
+    };
+
+    for (const auto& [key, desc] : control_info) {
+        nbody::gfx::draw_text(
+            gfx::Box{control_info_box.x + 16, y_offset, 120, 22},
+            nbody::gfx::Layout::TopLeft, 16, key, property_color);
+        nbody::gfx::draw_text(gfx::Box{control_info_box.x + 142, y_offset,
+                                       control_info_box.width - 146, 22},
+                              nbody::gfx::Layout::TopLeft, 16, desc,
+                              value_color);
+        y_offset += 20 + 2;
+    }
 }
 }  // namespace nbody::scenario
