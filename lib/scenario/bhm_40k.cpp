@@ -102,6 +102,15 @@ void BHM40K::handle_input() {
             m_scale_factor = 1.0;
         }
     }
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        auto maybe_idx = impl::get_body_at_mouse_position_au(
+            m_camera, m_sim.bodies());
+        if (maybe_idx.has_value()) {
+            m_tracked_body_index = maybe_idx.value();
+            m_is_tracking_body = true;
+        }
+    }
 }
 
 void BHM40K::update_sim(Float dt) {

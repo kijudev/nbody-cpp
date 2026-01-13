@@ -1,3 +1,5 @@
+#include "scenario/impl.hpp"
+
 #include <raygui.h>
 #include <raylib.h>
 
@@ -6,7 +8,6 @@
 #include <string>
 
 #include "base/type.hpp"
-#include "scenario/impl.hpp"
 #include "sim/const.hpp"
 
 namespace nbody::scenario::impl {
@@ -50,8 +51,6 @@ std::optional<USize> get_body_at_mouse_position_au(
         }
     }
 
-    // NOTE: This is set for now and it works fine. May paramaterize later if
-    // needed.
     Float threshold = sim::scale_au::DISTANCE_AU * 50.0 / camera.zoom;
 
     if (min_distance < threshold) {
@@ -60,4 +59,10 @@ std::optional<USize> get_body_at_mouse_position_au(
 
     return std::nullopt;
 }
+
+template std::optional<USize> get_body_at_mouse_position_au(
+    gfx::Camera<F32>, std::span<const sim::BodyT<F32>, std::dynamic_extent>);
+template std::optional<USize> get_body_at_mouse_position_au(
+    gfx::Camera<F64>, std::span<const sim::BodyT<F64>, std::dynamic_extent>);
+
 }  // namespace nbody::scenario::impl
