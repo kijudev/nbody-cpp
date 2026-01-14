@@ -1,7 +1,5 @@
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <limits>
 
 #include "base/parallel.hpp"
 #include "base/radix.hpp"
@@ -18,49 +16,49 @@ BarnesHutMorton<Float, MortonCode>::BarnesHutMorton(const Config& config)
       m_softening(config.softening),
       m_theta(config.theta),
       m_parallel(config.parallel),
-      m_radix(config.radix),
-      m_bounds_min(0),
-      m_bounds_max(1),
       m_integrate_fn(config.integrate_fn) {
-    m_morton_bodies.reserve(m_bodies.size());
+    m_codes.reserve(m_bodies.size());
+    m_nodes.reserve(m_bodies.size() * 2);
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
 void BarnesHutMorton<Float, MortonCode>::step(Float dt) {
+    // NOTE: Reset accelerations.
     if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                [](Body& body) { body.acc = Vec2::make_zero(); });
+        base::parallel_for_each(
+            m_bodies.begin(), m_bodies.end(),
+            [](Body& body) { body.acc = Vec2::make_zero(); });
     } else {
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
         }
     }
 
+    // NOTE: Build the tree from current body positions.
+    compute_extent();
+    compute_codes();
+    sort_codes();
     build_tree();
 
+    // NOTE: Compute accelerations using tree traversal.
     if (m_parallel) {
-        std::vector<Vec2> accelerations(m_bodies.size(), Vec2::make_zero());
-
-        // Note: bodies have been reordered to match m_morton_bodies order, so this access pattern
-        // is now linear in memory.
-        base::parallel_for_each(m_morton_bodies.begin(), m_morton_bodies.end(),
-                                [this, &accelerations](const MortonBody& mb) {
-                                    accelerations[mb.body_idx] = compute_acceleration(mb.body_idx);
+        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                                [this, idx = USize{0}](Body& body) mutable {
+                                    body.acc =
+                                        compute_acceleration(body.pos, idx);
+                                    ++idx;
                                 });
-
-        for (USize i = 0; i < m_bodies.size(); ++i) {
-            m_bodies[i].acc = m_bodies[i].acc.add(accelerations[i]);
-        }
     } else {
-        for (const MortonBody& mb : m_morton_bodies) {
-            Vec2 acc                  = compute_acceleration(mb.body_idx);
-            m_bodies[mb.body_idx].acc = m_bodies[mb.body_idx].acc.add(acc);
+        for (USize i = 0; i < m_bodies.size(); ++i) {
+            m_bodies[i].acc = compute_acceleration(m_bodies[i].pos, i);
         }
     }
 
+    // NOTE: Integrate bodies.
     if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                [this, dt](Body& body) { m_integrate_fn(body, dt); });
+        base::parallel_for_each(
+            m_bodies.begin(), m_bodies.end(),
+            [this, dt](Body& body) { m_integrate_fn(body, dt); });
     } else {
         for (Body& body : m_bodies) {
             m_integrate_fn(body, dt);
@@ -69,54 +67,32 @@ void BarnesHutMorton<Float, MortonCode>::step(Float dt) {
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::insert(Body&& body) {
+void BarnesHutMorton<Float, MortonCode>::insert_body(Body&& body) {
     m_bodies.push_back(std::move(body));
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-std::span<const typename BarnesHutMorton<Float, MortonCode>::Body, std::dynamic_extent>
+std::span<const typename BarnesHutMorton<Float, MortonCode>::Body,
+          std::dynamic_extent>
 BarnesHutMorton<Float, MortonCode>::bodies() const {
     return m_bodies;
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::build_tree() {
-    if (m_bodies.empty()) {
-        m_nodes.clear();
-        m_morton_bodies.clear();
-        return;
-    }
-
-    compute_morton_codes();
-    sort_by_morton();
-
-    // NOTE: Reorder bodies to match Morton order for better cache coherence.
-    std::vector<Body> ordered_bodies;
-    ordered_bodies.reserve(m_bodies.size());
-
-    for (const MortonBody& mb : m_morton_bodies) {
-        ordered_bodies.push_back(m_bodies[mb.body_idx]);
-    }
-    m_bodies = std::move(ordered_bodies);
-
-    for (USize i = 0; i < m_morton_bodies.size(); ++i) {
-        m_morton_bodies[i].body_idx = i;
-    }
-
-    m_nodes.clear();
-    m_nodes.reserve(m_bodies.size() * 2);
-
-    Vec2 root_center = Vec2{
-        static_cast<Float>((m_bounds_min + m_bounds_max) / 2.0),
-        static_cast<Float>((m_bounds_min + m_bounds_max) / 2.0),
-    };
-    Float root_size = static_cast<Float>(m_bounds_max - m_bounds_min);
-
-    build_nodes_recursive(0, m_morton_bodies.size(), 0, 0, root_size, root_center);
+const std::vector<typename BarnesHutMorton<Float, MortonCode>::Node>&
+BarnesHutMorton<Float, MortonCode>::nodes() const {
+    return m_nodes;
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::compute_morton_codes() {
+void BarnesHutMorton<Float, MortonCode>::compute_extent() {
+    if (m_bodies.empty()) {
+        m_extent_min = 0.0;
+        m_extent_max = 1.0;
+        m_root_size  = 1.0;
+        return;
+    }
+
     Float x_min = std::numeric_limits<Float>::max();
     Float x_max = std::numeric_limits<Float>::lowest();
     Float y_min = std::numeric_limits<Float>::max();
@@ -129,252 +105,390 @@ void BarnesHutMorton<Float, MortonCode>::compute_morton_codes() {
         y_max = std::max(y_max, body.pos.y);
     }
 
-    Float padding = std::max(static_cast<Float>(1e-6), (x_max - x_min + y_max - y_min) * 0.01f);
-    m_bounds_min  = std::min(x_min, y_min) - padding;
-    m_bounds_max  = std::max(x_max, y_max) + padding;
+    // NOTE: Use square bounding box for Morton encoding.
+    const Float range_x = x_max - x_min;
+    const Float range_y = y_max - y_min;
+    const Float range   = std::max(range_x, range_y);
 
-    m_morton_bodies.clear();
-    m_morton_bodies.reserve(m_bodies.size());
+    // NOTE: Add small padding to avoid edge cases.
+    const Float padding =
+        range * static_cast<Float>(0.01) + static_cast<Float>(1e-10);
+
+    m_extent_min = std::min(x_min, y_min) - padding;
+    m_extent_max = m_extent_min + range + 2 * padding;
+    m_root_size  = m_extent_max - m_extent_min;
+}
+
+template <FloatT Float, math::MortonCodeT MortonCode>
+void BarnesHutMorton<Float, MortonCode>::compute_codes() {
+    m_codes.clear();
+    m_codes.reserve(m_bodies.size());
 
     for (USize i = 0; i < m_bodies.size(); ++i) {
-        MortonCode code = math::morton_encode2<Float, MortonCode>(
-            m_bodies[i].pos.x, m_bodies[i].pos.y, m_bounds_min, m_bounds_max);
-        m_morton_bodies.push_back(MortonBody{.morton = code, .body_idx = i});
+        m_codes.push_back(BodyCode{
+            .index = i,
+            .code  = math::morton_encode2<Float, MortonCode>(
+                m_bodies[i].pos.x, m_bodies[i].pos.y, m_extent_min,
+                m_extent_max),
+        });
     }
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::sort_by_morton() {
-    if (m_radix) {
-        base::radix_sort(m_morton_bodies.begin(), m_morton_bodies.end(),
-                         [](const MortonBody& a) { return a.morton; });
-    } else {
-        std::sort(m_morton_bodies.begin(), m_morton_bodies.end());
-    }
+void BarnesHutMorton<Float, MortonCode>::sort_codes() {
+    base::radix_sort(m_codes.begin(), m_codes.end(),
+                     [](const BodyCode& bc) { return bc.code; });
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USize last, U8 level,
-                                                               MortonCode prefix, Float node_size,
-                                                               Vec2 node_center) {
-    if (first >= last) {
+void BarnesHutMorton<Float, MortonCode>::build_tree() {
+    m_nodes.clear();
+
+    if (m_bodies.empty()) {
         return;
     }
 
-    USize node_idx = m_nodes.size();
-    m_nodes.push_back(Node{
-        .prefix         = prefix,
-        .level          = level,
-        .center_of_mass = Vec2::make_zero(),
-        .total_mass     = 0,
-        .size           = node_size,
-        .first_idx      = first,
-        .last_idx       = last,
-        .children       = {Node::NODE_EMPTY, Node::NODE_EMPTY, Node::NODE_EMPTY, Node::NODE_EMPTY},
-    });
+    // NOTE: Create leaf nodes from sorted codes.
+    build_leaves();
 
-    if (last - first <= 1 || level >= MAX_DEPTH) {
-        compute_node_properties(node_idx);
+    if (m_nodes.empty()) {
         return;
     }
 
-    const USize          bits_to_shift   = MORTON_BITS - 2 * (level + 1);
-    std::array<USize, 5> quadrant_bounds = {first, first, first, first, last};
-
-    USize current_pos = first;
-    for (U8 q = 0; q < 4; ++q) {
-        MortonCode quadrant_prefix = prefix | (static_cast<MortonCode>(q) << bits_to_shift);
-        MortonCode quadrant_max =
-            quadrant_prefix | ((static_cast<MortonCode>(1) << bits_to_shift) - 1);
-
-        auto it = std::upper_bound(
-            m_morton_bodies.begin() + static_cast<std::ptrdiff_t>(current_pos),
-            m_morton_bodies.begin() + static_cast<std::ptrdiff_t>(last), quadrant_max,
-            [](MortonCode val, const MortonBody& mb) { return val < mb.morton; });
-
-        quadrant_bounds[q + 1] = static_cast<USize>(it - m_morton_bodies.begin());
-
-        // Optimization: Advance current_pos to avoid searching already processed range
-        current_pos = quadrant_bounds[q + 1];
+    if (m_nodes.size() == 1) {
+        return;
     }
 
-    Float child_size     = node_size / 2;
-    Float quarter_offset = node_size / 4;
+    // NOTE: Build internal nodes level by level, from fine to coarse.
+    // We track which nodes at each level need to be grouped into parents.
+    USize children_start = 0;
+    USize children_end   = m_nodes.size();
 
-    std::array<Vec2, 4> child_centers = {
-        Vec2{node_center.x - quarter_offset, node_center.y - quarter_offset}, // SW (00)
-        Vec2{node_center.x + quarter_offset, node_center.y - quarter_offset}, // SE (01)
-        Vec2{node_center.x - quarter_offset, node_center.y + quarter_offset}, // NW (10)
-        Vec2{node_center.x + quarter_offset, node_center.y + quarter_offset}, // NE (11)
+    for (USize level = MAX_DEPTH; level > 0; --level) {
+        auto [new_start, new_end] =
+            build_level(level - 1, children_start, children_end);
+
+        if (new_start < new_end) {
+            if (level == 1 && (new_end - new_start) == 1) {
+                break;
+            }
+            children_start = new_start;
+            children_end   = new_end;
+        }
+    }
+
+    propagate_com_up();
+}
+
+template <FloatT Float, math::MortonCodeT MortonCode>
+void BarnesHutMorton<Float, MortonCode>::build_leaves() {
+    // NOTE: Create leaf nodes from sorted body codes.
+    // Bodies with identical Morton codes are merged into a single leaf.
+
+    if (m_codes.empty()) {
+        return;
+    }
+
+    MortonCode current_code = m_codes[0].code;
+    Vec2       current_com  = m_bodies[m_codes[0].index].pos;
+    Float      current_mass = m_bodies[m_codes[0].index].mass;
+    USize      current_body = m_codes[0].index;
+
+    auto flush_leaf = [&]() {
+        Node leaf{};
+        leaf.prefix     = current_code;
+        leaf.level      = MAX_DEPTH;
+        leaf.com        = current_com;
+        leaf.mass       = current_mass;
+        leaf.size       = size_at_level(MAX_DEPTH);
+        leaf.is_leaf    = true;
+        leaf.body_index = current_body;
+        m_nodes.push_back(leaf);
     };
 
-    for (U8 q = 0; q < 4; ++q) {
-        USize q_first = quadrant_bounds[q];
-        USize q_last  = quadrant_bounds[q + 1];
+    for (USize i = 1; i < m_codes.size(); ++i) {
+        const BodyCode& bc   = m_codes[i];
+        const Body&     body = m_bodies[bc.index];
 
-        if (q_first < q_last) {
-            MortonCode child_prefix       = prefix | (static_cast<MortonCode>(q) << bits_to_shift);
-            m_nodes[node_idx].children[q] = m_nodes.size();
-            build_nodes_recursive(q_first, q_last, level + 1, child_prefix, child_size,
-                                  child_centers[q]);
+        if (bc.code == current_code) {
+            // NOTE: Merge bodies with identical Morton codes.
+            const Float new_mass = current_mass + body.mass;
+            current_com.x =
+                (current_com.x * current_mass + body.pos.x * body.mass) /
+                new_mass;
+            current_com.y =
+                (current_com.y * current_mass + body.pos.y * body.mass) /
+                new_mass;
+            current_mass = new_mass;
+        } else {
+            // NOTE: Flush current leaf and start new one.
+            flush_leaf();
+
+            current_code = bc.code;
+            current_com  = body.pos;
+            current_mass = body.mass;
+            current_body = bc.index;
         }
     }
 
-    compute_node_properties(node_idx);
+    // NOTE: Flush final leaf.
+    flush_leaf();
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::compute_node_properties(USize node_idx) {
-    Node& node = m_nodes[node_idx];
+std::pair<USize, USize> BarnesHutMorton<Float, MortonCode>::build_level(
+    USize level, USize children_start, USize children_end) {
+    // NOTE: Build internal nodes at `level` by grouping children from
+    // [children_start, children_end). Children are nodes at level+1 (or deeper)
+    // that share the same prefix at `level`.
 
-    if (node.is_leaf()) {
-        Float total_mass   = 0;
-        Vec2  weighted_pos = Vec2::make_zero();
+    if (children_start >= children_end) {
+        return {m_nodes.size(), m_nodes.size()};
+    }
 
-        for (USize i = node.first_idx; i < node.last_idx; ++i) {
-            const Body& body = m_bodies[m_morton_bodies[i].body_idx];
-            total_mass += body.mass;
-            weighted_pos = weighted_pos.add(body.pos.scale(body.mass));
+    const USize nodes_before = m_nodes.size();
+
+    // NOTE: Group children by their prefix at this level.
+    MortonCode current_prefix =
+        prefix_at_level(m_nodes[children_start].prefix, level);
+    USize group_start = children_start;
+
+    auto flush_internal = [&](USize group_end) {
+        if (group_start >= group_end) {
+            return;
         }
 
-        node.total_mass = total_mass;
-        if (total_mass > 0) {
-            node.center_of_mass = weighted_pos.scale(1 / total_mass);
-        } else {
-            node.center_of_mass = Vec2::make_zero();
-        }
-    } else {
-        Float total_mass   = 0;
-        Vec2  weighted_pos = Vec2::make_zero();
+        Node internal{};
+        internal.prefix  = current_prefix;
+        internal.level   = level;
+        internal.com     = Vec2::make_zero();
+        internal.mass    = 0.0;
+        internal.size    = size_at_level(level);
+        internal.is_leaf = false;
 
-        for (USize i = 0; i < 4; ++i) {
-            if (node.children[i] != Node::NODE_EMPTY) {
-                const Node& child = m_nodes[node.children[i]];
-                total_mass += child.total_mass;
-                weighted_pos = weighted_pos.add(child.center_of_mass.scale(child.total_mass));
+        // NOTE: Link children to this internal node and accumulate mass/COM.
+        Float total_mass = 0.0;
+        Vec2  weighted_com{0.0, 0.0};
+
+        for (USize i = group_start; i < group_end; ++i) {
+            Node&    child    = m_nodes[i];
+            const U8 quadrant = quadrant_at_level(child.prefix, level);
+
+            // NOTE: Store first child in each quadrant.
+            if (internal.children[quadrant] == NODE_INDEX_NULL) {
+                internal.children[quadrant] = i;
+                child.parent                = m_nodes.size();
             }
+
+            // NOTE: Accumulate for COM calculation.
+            weighted_com.x += child.com.x * child.mass;
+            weighted_com.y += child.com.y * child.mass;
+            total_mass += child.mass;
         }
 
-        node.total_mass = total_mass;
-        if (total_mass > 0) {
-            node.center_of_mass = weighted_pos.scale(1 / total_mass);
-        } else {
-            node.center_of_mass = Vec2::make_zero();
+        // NOTE: Compute center of mass.
+        if (total_mass > 0.0) {
+            internal.com.x = weighted_com.x / total_mass;
+            internal.com.y = weighted_com.y / total_mass;
+        }
+        internal.mass = total_mass;
+
+        m_nodes.push_back(internal);
+    };
+
+    for (USize i = children_start; i < children_end; ++i) {
+        const MortonCode prefix = prefix_at_level(m_nodes[i].prefix, level);
+
+        if (prefix != current_prefix) {
+            flush_internal(i);
+            current_prefix = prefix;
+            group_start    = i;
         }
     }
+
+    // NOTE: Flush final group.
+    flush_internal(children_end);
+
+    return {nodes_before, m_nodes.size()};
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-typename BarnesHutMorton<Float, MortonCode>::Vec2
-BarnesHutMorton<Float, MortonCode>::compute_acceleration(USize body_idx) const {
-    if (m_nodes.empty()) {
-        return Vec2::make_zero();
-    }
+void BarnesHutMorton<Float, MortonCode>::propagate_com_up() {
+    // NOTE: COM is already computed during build_level, but we recompute
+    // to ensure correctness after all nodes are created.
+    // Process nodes in reverse order (children before parents).
 
-    return compute_acceleration_from_node(0, m_bodies[body_idx].pos);
-}
+    for (auto it = m_nodes.rbegin(); it != m_nodes.rend(); ++it) {
+        Node& node = *it;
 
-template <FloatT Float, math::MortonCodeT MortonCode>
-typename BarnesHutMorton<Float, MortonCode>::Vec2
-BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize root_node_idx,
-                                                                   Vec2  pos) const {
-    // WHY: Use an explicit stack to avoid recursion overhead.
-    std::array<USize, 256> stack{0};
-    USize                  stack_top      = 0;
-    constexpr USize        STACK_CAPACITY = 256;
-
-    stack[stack_top++] = root_node_idx;
-
-    Vec2        acc          = Vec2::make_zero();
-    const Float softening_sq = m_softening * m_softening;
-    const Float theta_sq     = m_theta * m_theta;
-
-    while (stack_top > 0) {
-        USize       current_idx  = stack[--stack_top];
-        const Node& current_node = m_nodes[current_idx];
-
-        if (current_node.total_mass == 0) {
+        if (node.is_leaf || node.is_empty()) {
             continue;
         }
 
-        Vec2        delta   = current_node.center_of_mass.sub(pos);
-        const Float dist_sq = delta.length_sq();
+        // NOTE: Recompute COM from children.
+        Vec2  weighted_com{0.0, 0.0};
+        Float total_mass = 0.0;
 
-        if (current_node.is_leaf() && current_node.body_count() == 1) {
-            if (dist_sq < softening_sq * 0.01f) {
-                continue;
+        for (USize i = 0; i < 4; ++i) {
+            if (node.children[i] != NODE_INDEX_NULL) {
+                const Node& child = m_nodes[node.children[i]];
+                weighted_com.x += child.com.x * child.mass;
+                weighted_com.y += child.com.y * child.mass;
+                total_mass += child.mass;
             }
         }
 
-        const Float size_sq       = current_node.size * current_node.size;
-        const bool  is_far_enough = size_sq < theta_sq * dist_sq;
+        if (total_mass > 0.0) {
+            node.com.x = weighted_com.x / total_mass;
+            node.com.y = weighted_com.y / total_mass;
+        }
+        node.mass = total_mass;
+    }
+}
 
-        if (current_node.is_leaf() || is_far_enough) {
-            const Float dist_norm = (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
-            const Float factor    = m_g * current_node.total_mass / dist_norm;
+template <FloatT Float, math::MortonCodeT MortonCode>
+typename BarnesHutMorton<Float, MortonCode>::Vec2
+BarnesHutMorton<Float, MortonCode>::compute_acceleration(
+    Vec2 pos, USize skip_body_index) const {
+    (void)skip_body_index;  // NOTE: We use position-based self-interaction
+                            // detection instead.
 
-            acc.x += factor * delta.x;
-            acc.y += factor * delta.y;
-        } else {
-            if (stack_top + 4 >= STACK_CAPACITY) {
-                continue;
-            }
+    Vec2 acc = Vec2::make_zero();
 
-            for (USize i = 0; i < 4; ++i) {
-                if (current_node.children[i] != Node::NODE_EMPTY) {
-                    stack[stack_top++] = current_node.children[i];
-                }
-            }
+    if (m_nodes.empty()) {
+        return acc;
+    }
+
+    const Float softening_sq = m_softening * m_softening;
+
+    // NOTE: Find root node - the node with the lowest level (closest to 0).
+    // After tree construction, the root should be the last internal node added.
+    NodeIndex root_idx   = NODE_INDEX_NULL;
+    USize     root_level = MAX_DEPTH + 1;
+
+    for (USize i = 0; i < m_nodes.size(); ++i) {
+        const Node& node = m_nodes[i];
+        if (node.level < root_level) {
+            root_level = node.level;
+            root_idx   = i;
         }
     }
 
+    // NOTE: If we only have leaves (no internal nodes), iterate through all.
+    if (root_idx == NODE_INDEX_NULL ||
+        (m_nodes.size() > 1 && m_nodes[root_idx].is_leaf)) {
+        for (USize i = 0; i < m_nodes.size(); ++i) {
+            const Node& node = m_nodes[i];
+            if (!node.is_leaf) {
+                continue;
+            }
+
+            const Vec2  delta   = node.com.sub(pos);
+            const Float dist_sq = delta.length_sq();
+
+            // NOTE: Skip self-interaction based on distance (position match).
+            if (dist_sq < static_cast<Float>(1e-20)) {
+                continue;
+            }
+
+            const Float dist_norm =
+                (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
+            const Float factor = m_g * node.mass / dist_norm;
+
+            acc.x += factor * delta.x;
+            acc.y += factor * delta.y;
+        }
+        return acc;
+    }
+
+    compute_acceleration_recursive(pos, root_idx, acc);
     return acc;
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-typename BarnesHutMorton<Float, MortonCode>::Vec2
-BarnesHutMorton<Float, MortonCode>::get_node_center_from_prefix(MortonCode prefix, U8 level) const {
-    Float size   = static_cast<Float>(m_bounds_max - m_bounds_min);
-    Vec2  center = Vec2{
-        static_cast<Float>((m_bounds_min + m_bounds_max) / 2.0),
-        static_cast<Float>((m_bounds_min + m_bounds_max) / 2.0),
-    };
+void BarnesHutMorton<Float, MortonCode>::compute_acceleration_recursive(
+    Vec2 pos, NodeIndex node_idx, Vec2& acc) const {
+    const Node& node = m_nodes[node_idx];
 
-    for (U8 l = 0; l < level; ++l) {
-        size /= 2;
-        Float offset = size / 2;
-
-        U8 quadrant = get_quadrant(prefix, l);
-
-        if (quadrant & 1) {
-            center.x += offset;
-        } else {
-            center.x -= offset;
-        }
-
-        if (quadrant & 2) {
-            center.y += offset;
-        } else {
-            center.y -= offset;
-        }
+    if (node.is_empty()) {
+        return;
     }
 
-    return center;
+    const Vec2  delta   = node.com.sub(pos);
+    const Float dist_sq = delta.length_sq();
+
+    // NOTE: Skip self-interaction based on distance (position match).
+    if (dist_sq < static_cast<Float>(1e-20)) {
+        // NOTE: For internal nodes, recurse into children.
+        if (!node.is_leaf) {
+            for (USize i = 0; i < 4; ++i) {
+                if (node.children[i] != NODE_INDEX_NULL) {
+                    compute_acceleration_recursive(pos, node.children[i], acc);
+                }
+            }
+        }
+        return;
+    }
+
+    const Float dist = std::sqrt(dist_sq);
+
+    // NOTE: Barnes-Hut opening criterion: s/d < theta.
+    // If satisfied (or node is leaf), use this node's COM directly.
+    const Float ratio = node.size / dist;
+
+    if (node.is_leaf || ratio < m_theta) {
+        // NOTE: Compute gravitational acceleration.
+        const Float softening_sq = m_softening * m_softening;
+        const Float dist_norm =
+            (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
+        const Float factor = m_g * node.mass / dist_norm;
+
+        acc.x += factor * delta.x;
+        acc.y += factor * delta.y;
+    } else {
+        // NOTE: Node is too close, recurse into children.
+        for (USize i = 0; i < 4; ++i) {
+            if (node.children[i] != NODE_INDEX_NULL) {
+                compute_acceleration_recursive(pos, node.children[i], acc);
+            }
+        }
+    }
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-Float BarnesHutMorton<Float, MortonCode>::get_node_size(U8 level) const {
-    Float size = static_cast<Float>(m_bounds_max - m_bounds_min);
-    for (U8 l = 0; l < level; ++l) {
-        size /= 2;
-    }
-    return size;
-}
-
-template <FloatT Float, math::MortonCodeT MortonCode>
-U8 BarnesHutMorton<Float, MortonCode>::get_quadrant(MortonCode code, U8 level) const {
-    USize shift = MORTON_BITS - 2 * (level + 1);
+U8 BarnesHutMorton<Float, MortonCode>::quadrant_at_level(MortonCode code,
+                                                         USize      level) {
+    // NOTE: Extract 2 bits at the given level.
+    // Level 0 = top 2 bits, level 1 = next 2 bits, etc.
+    // For 2D Morton codes, each level uses 2 bits (one for x, one for y
+    // interleaved).
+    const USize shift = MORTON_BITS - 2 * (level + 1);
     return static_cast<U8>((code >> shift) & 0x3);
+}
+
+template <FloatT Float, math::MortonCodeT MortonCode>
+MortonCode BarnesHutMorton<Float, MortonCode>::prefix_at_level(MortonCode code,
+                                                               USize level) {
+    // NOTE: Mask out bits below the given level.
+    // Level 0 = root (all nodes share the same prefix: 0)
+    // Level 1 = top 2 bits, level 2 = top 4 bits, etc.
+    if (level == 0) {
+        return 0;  // Root level - all nodes share prefix 0
+    }
+    if (level >= MAX_DEPTH) {
+        return code;
+    }
+    const USize      bits_to_keep = 2 * level;
+    const USize      shift        = MORTON_BITS - bits_to_keep;
+    const MortonCode mask         = (~MortonCode{0}) << shift;
+    return code & mask;
+}
+
+template <FloatT Float, math::MortonCodeT MortonCode>
+Float BarnesHutMorton<Float, MortonCode>::size_at_level(USize level) const {
+    // NOTE: Root (level 0) has size = m_root_size.
+    // Each level halves the size.
+    return m_root_size / static_cast<Float>(USize{1} << level);
 }
 
 template class BarnesHutMorton<F32, U32>;

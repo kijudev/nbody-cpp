@@ -73,10 +73,10 @@ class BarnesHut : public SimInterface<Float> {
     // --- Public Interface ---
     BarnesHut(const Config& config = {});
 
-    void step(Float dt);
-    void insert(Body&& body);
+    void step(Float dt) override;
+    void insert_body(Body&& body) override;
 
-    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const;
+    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const override;
     [[nodiscard]] std::vector<Quad>                          quads() const;
 
    private:

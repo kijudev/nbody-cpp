@@ -1,3 +1,5 @@
+#include "scenario/draw.hpp"
+
 #include <raylib.h>
 
 #include <array>
@@ -9,7 +11,6 @@
 #include "gfx/box.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/grid.hpp"
-#include "scenario/draw.hpp"
 #include "sim/type.hpp"
 
 namespace nbody::scenario::impl {
@@ -17,13 +18,13 @@ using namespace nbody::base::type;
 
 template <FloatT Float>
 void draw_ruler_au(const gfx::Camera<Float>& camera, I32 ruler_padding,
-                   I32 ruler_height, Float max_screen_fraction) {
+                   I32 ruler_height, Float max_screen_fraction, Color color) {
     constexpr std::array<Float, 15> lengths = {
         0.001, 0.01, 0.1,  0.5,  1,     5,     10,    50,
         100,   500,  1000, 5000, 10000, 50000, 100000};
 
     Float world_len = lengths[0];
-    I32   ruler_len = 0;
+    I32 ruler_len = 0;
 
     for (Float len : lengths) {
         I32 candidate = len * camera.zoom;
@@ -46,31 +47,31 @@ void draw_ruler_au(const gfx::Camera<Float>& camera, I32 ruler_padding,
     F32 rw = ruler_len, rh = ruler_height;
 
     DrawLineEx(Vector2{rx, ry + rh / 2}, Vector2{rx + rw, ry + rh / 2}, 2,
-               WHITE);
+               color);
 
-    DrawLineEx(Vector2{rx, ry + 8}, Vector2{rx, ry + rh - 8}, 8, WHITE);
+    DrawLineEx(Vector2{rx, ry + 8}, Vector2{rx, ry + rh - 8}, 2, color);
 
     DrawLineEx(Vector2{rx + rw, ry + 8}, Vector2{rx + rw, ry + rh - 8}, 2,
-               WHITE);
+               color);
 
-    std::string label       = std::format("{:.3g} AU", world_len);
-    I32         label_width = MeasureText(label.c_str(), 16);
+    std::string label = std::format("{:.3g} AU", world_len);
+    I32 label_width = MeasureText(label.c_str(), 16);
 
     DrawText(label.c_str(), ruler_x + (ruler_len - label_width) / 2,
-             ruler_y + ruler_height / 2 + 12, 24, WHITE);
+             ruler_y + ruler_height / 2 + 12, 24, color);
 }
 
-template void draw_ruler_au(const gfx::Camera<F32>&, I32, I32, F32);
-template void draw_ruler_au(const gfx::Camera<F64>&, I32, I32, F64);
+template void draw_ruler_au(const gfx::Camera<F32>&, I32, I32, F32, Color);
+template void draw_ruler_au(const gfx::Camera<F64>&, I32, I32, F64, Color);
 
 template <FloatT Float>
 void draw_bodies_monocolor(
     const gfx::Camera<Float> camera, Float scale_factor,
     std::span<const sim::BodyT<Float>, std::dynamic_extent> bodies,
-    Color                                                   color) {
+    Color color) {
     for (const sim::BodyT<Float>& body : bodies) {
         const math::Vec2T<Float> center = camera.world_to_screen_vec(body.pos);
-        const math::Vec2T<Float> edge   = camera.world_to_screen_vec(
+        const math::Vec2T<Float> edge = camera.world_to_screen_vec(
             math::Vec2T<Float>{body.pos.x + std::cbrt(body.mass), body.pos.y});
 
         const Float radius = center.distance(edge) * scale_factor;
@@ -91,7 +92,7 @@ template void draw_bodies_monocolor(
     const gfx::Camera<F64>, F64,
     std::span<const sim::BodyT<F64>, std::dynamic_extent>, Color);
 
-void draw_labels_vertical(const gfx::Box&                box,
+void draw_labels_vertical(const gfx::Box& box,
                           const std::vector<std::string> labels, I32 font_size,
                           I32 gap, Color color) {
     for (USize i = 0; i < labels.size(); ++i) {
@@ -120,7 +121,7 @@ template void draw_cross_center(const gfx::Camera<F32>&, I32, I32, Color);
 template void draw_cross_center(const gfx::Camera<F64>&, I32, I32, Color);
 
 void draw_label_pairs(
-    const gfx::Box&                                        box,
+    const gfx::Box& box,
     const std::vector<std::pair<std::string, std::string>> label_pairs,
     I32 font_size, I32 gap, I32 offset, Color color_a, Color color_b) {
     gfx::Grid grid = gfx::Grid::from_box(box, 2, 1);

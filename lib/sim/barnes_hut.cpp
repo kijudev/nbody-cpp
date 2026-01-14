@@ -20,10 +20,16 @@ BarnesHut<Float>::BarnesHut(const Config& config)
       m_integrate_fn(config.integrate_fn) {}
 
 template <FloatT Float>
+void BarnesHut<Float>::insert_body(Body&& body) {
+    m_bodies.push_back(std::move(body));
+}
+
+template <FloatT Float>
 void BarnesHut<Float>::step(Float dt) {
     if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                [](Body& body) { body.acc = Vec2::make_zero(); });
+        base::parallel_for_each(
+            m_bodies.begin(), m_bodies.end(),
+            [](Body& body) { body.acc = Vec2::make_zero(); });
     } else {
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
@@ -40,20 +46,24 @@ void BarnesHut<Float>::step(Float dt) {
     m_quad_tree.propagate_up_pos_mass();
 
     if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(), [this](Body& body) {
-            Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
-            body.acc = body.acc.add(acc);
-        });
+        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                                [this](Body& body) {
+                                    Vec2 acc = m_quad_tree.propagate_down_acc(
+                                        body.pos, m_g, m_softening, m_theta);
+                                    body.acc = body.acc.add(acc);
+                                });
     } else {
         for (Body& body : m_bodies) {
-            Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g, m_softening, m_theta);
+            Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g,
+                                                      m_softening, m_theta);
             body.acc = body.acc.add(acc);
         }
     }
 
     if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                [this, dt](Body& body) { m_integrate_fn(body, dt); });
+        base::parallel_for_each(
+            m_bodies.begin(), m_bodies.end(),
+            [this, dt](Body& body) { m_integrate_fn(body, dt); });
     } else {
         for (Body& body : m_bodies) {
             m_integrate_fn(body, dt);
@@ -62,8 +72,8 @@ void BarnesHut<Float>::step(Float dt) {
 }
 
 template <FloatT Float>
-std::span<const typename BarnesHut<Float>::Body, std::dynamic_extent> BarnesHut<Float>::bodies()
-    const {
+std::span<const typename BarnesHut<Float>::Body, std::dynamic_extent>
+BarnesHut<Float>::bodies() const {
     return m_bodies;
 }
 
@@ -95,7 +105,8 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::make_containing_bodies(
 }
 
 template <FloatT Float>
-typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::into_quad(QuadIndex quad_index) const {
+typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::into_quad(
+    QuadIndex quad_index) const {
     const Float half = size / 2.0;
 
     switch (quad_index) {
@@ -128,7 +139,8 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::into_quad(QuadIndex quad
 }
 
 template <FloatT Float>
-std::array<typename BarnesHut<Float>::Quad, 4> BarnesHut<Float>::Quad::into_quads() const {
+std::array<typename BarnesHut<Float>::Quad, 4>
+BarnesHut<Float>::Quad::into_quads() const {
     Float half = size / 2.0;
 
     return std::array<Quad, 4>{
@@ -152,7 +164,8 @@ std::array<typename BarnesHut<Float>::Quad, 4> BarnesHut<Float>::Quad::into_quad
 }
 
 template <FloatT Float>
-typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::quad_from_pos(Vec2 pos) const {
+typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::quad_from_pos(
+    Vec2 pos) const {
     const bool is_north = pos.y >= center.y;
     const bool is_east  = pos.x >= center.x;
 
@@ -168,7 +181,8 @@ typename BarnesHut<Float>::Quad BarnesHut<Float>::Quad::quad_from_pos(Vec2 pos) 
 }
 
 template <FloatT Float>
-BarnesHut<Float>::QuadIndex BarnesHut<Float>::Quad::quad_index_from_pos(Vec2 pos) const {
+BarnesHut<Float>::QuadIndex BarnesHut<Float>::Quad::quad_index_from_pos(
+    Vec2 pos) const {
     QuadIndex index = 0;
 
     if (pos.x < center.x) {
@@ -183,7 +197,8 @@ BarnesHut<Float>::QuadIndex BarnesHut<Float>::Quad::quad_index_from_pos(Vec2 pos
 }
 
 template <FloatT Float>
-BarnesHut<Float>::Node BarnesHut<Float>::Node::make_empty(NodeIndex next_index, Quad quad) {
+BarnesHut<Float>::Node BarnesHut<Float>::Node::make_empty(NodeIndex next_index,
+                                                          Quad      quad) {
     return Node{
         .children_index = NODE_INDEX_EMPTY,
         .next_index     = next_index,
@@ -216,13 +231,14 @@ void BarnesHut<Float>::QuadTree::clear(Quad quad) {
 }
 
 template <FloatT Float>
-typename BarnesHut<Float>::NodeIndex BarnesHut<Float>::QuadTree::subdivide(NodeIndex node_index) {
+typename BarnesHut<Float>::NodeIndex BarnesHut<Float>::QuadTree::subdivide(
+    NodeIndex node_index) {
     parent_indices.push_back(node_index);
 
     const NodeIndex children_index = nodes.size();
 
     const NodeIndex           parent_next_index = nodes[node_index].next_index;
-    const std::array<Quad, 4> quads             = nodes[node_index].quad.into_quads();
+    const std::array<Quad, 4> quads = nodes[node_index].quad.into_quads();
 
     nodes[node_index].children_index = children_index;
 
@@ -303,28 +319,29 @@ void BarnesHut<Float>::QuadTree::propagate_up_pos_mass() {
         const NodeIndex parent_index = *it;
         const NodeIndex i            = nodes[parent_index].children_index;
 
-        nodes[parent_index].mass =
-            nodes[i].mass + nodes[i + 1].mass + nodes[i + 2].mass + nodes[i + 3].mass;
+        nodes[parent_index].mass = nodes[i].mass + nodes[i + 1].mass +
+                                   nodes[i + 2].mass + nodes[i + 3].mass;
 
         if (nodes[parent_index].mass == 0.0) {
             nodes[parent_index].pos = Vec2::make_zero();
             continue;
         }
 
-        nodes[parent_index].pos = nodes[i]
-                                      .pos.scale(nodes[i].mass)
-                                      .add(nodes[i + 1].pos.scale(nodes[i + 1].mass))
-                                      .add(nodes[i + 2].pos.scale(nodes[i + 2].mass))
-                                      .add(nodes[i + 3].pos.scale(nodes[i + 3].mass));
+        nodes[parent_index].pos =
+            nodes[i]
+                .pos.scale(nodes[i].mass)
+                .add(nodes[i + 1].pos.scale(nodes[i + 1].mass))
+                .add(nodes[i + 2].pos.scale(nodes[i + 2].mass))
+                .add(nodes[i + 3].pos.scale(nodes[i + 3].mass));
 
-        nodes[parent_index].pos = nodes[parent_index].pos.scale(1.0 / nodes[parent_index].mass);
+        nodes[parent_index].pos =
+            nodes[parent_index].pos.scale(1.0 / nodes[parent_index].mass);
     }
 }
 
 template <FloatT Float>
-BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(Vec2 pos, Float g,
-                                                                      Float softening,
-                                                                      Float theta) const {
+BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(
+    Vec2 pos, Float g, Float softening, Float theta) const {
     Vec2 acc = Vec2::make_zero();
 
     const Float theta_sq     = theta * theta;
@@ -343,15 +360,17 @@ BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(Vec2 pos, 
 
         if (iteration_count++ > max_iterations) {
             std::cerr << "ERROR: Exceeded max iterations (" << max_iterations
-                      << ") in tree traversal. Current node_index=" << node_index
-                      << ", nodes.size()=" << nodes.size() << std::endl;
+                      << ") in tree traversal. Current node_index="
+                      << node_index << ", nodes.size()=" << nodes.size()
+                      << std::endl;
             break;
         }
 
-        const Node& node            = nodes[node_index];
-        const Vec2  delta           = node.pos.sub(pos);
-        const Float dist_sq         = delta.length_sq();
-        const bool  is_sd_satisfied = (node.quad.size * node.quad.size) < (theta_sq * dist_sq);
+        const Node& node    = nodes[node_index];
+        const Vec2  delta   = node.pos.sub(pos);
+        const Float dist_sq = delta.length_sq();
+        const bool  is_sd_satisfied =
+            (node.quad.size * node.quad.size) < (theta_sq * dist_sq);
 
         if (node.is_empty()) {
             if (node.next_index == NODE_INDEX_EMPTY) {
@@ -360,8 +379,9 @@ BarnesHut<Float>::Vec2 BarnesHut<Float>::QuadTree::propagate_down_acc(Vec2 pos, 
 
             node_index = node.next_index;
         } else if (node.is_leaf() || is_sd_satisfied) {
-            const Float dist_norm = (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
-            const Float factor    = g * node.mass / dist_norm;
+            const Float dist_norm =
+                (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
+            const Float factor = g * node.mass / dist_norm;
 
             acc.x += factor * delta.x;
             acc.y += factor * delta.y;

@@ -40,6 +40,12 @@ void Kepler<Float>::set_time(Float t) {
 }
 
 template <FloatT Float>
+void Kepler<Float>::insert_body(Body&& body) {
+    (void)body;
+    ASSERT(false, "Kepler solution only supports exactly 2 bodies - cannot insert additional bodies");
+}
+
+template <FloatT Float>
 Float Kepler<Float>::time() const {
     return m_current_time;
 }

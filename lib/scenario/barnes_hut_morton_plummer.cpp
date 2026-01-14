@@ -1,4 +1,4 @@
-#include "scenario/barnes_hut_10k.hpp"
+#include "scenario/barnes_hut_morton_plummer.hpp"
 
 #include <raygui.h>
 #include <raylib.h>
@@ -13,14 +13,14 @@
 #include "gfx/window.hpp"
 #include "scenario/draw.hpp"
 #include "scenario/impl.hpp"
-#include "sim/barnes_hut.hpp"
+#include "sim/barnes_hut_morton.hpp"
 #include "sim/const.hpp"
 #include "sim/generator.hpp"
 
 namespace nbody::scenario {
 using namespace nbody::base::type;
 
-void BarnesHut10K::init(const gfx::Window& window) {
+void BarnesHutMortonPlummer::init(const gfx::Window& window) {
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
         .n           = 10000,
         .min_mass    = sim::scale_au::MASS_HYGIEA,
@@ -33,21 +33,22 @@ void BarnesHut10K::init(const gfx::Window& window) {
     std::vector<Body> bodies =
         sim::generate_distribution(generate_distribution_config);
 
-    sim::BarnesHut<Float>::Config sim_config{
+    sim::BarnesHutMorton<Float>::Config sim_config{
         .bodies       = std::move(bodies),
         .g            = sim::scale_au::G,
         .softening    = sim::scale_au::SOFTENING,
+        .theta        = 0.5,
         .parallel     = true,
         .integrate_fn = sim::integrate_body_verlet<Float>,
     };
 
-    m_sim = sim::BarnesHut<Float>(sim_config);
+    m_sim = sim::BarnesHutMorton<Float>(sim_config);
 
     m_camera = {
         .screen_width   = window.width,
         .screen_height  = window.height,
         .zoom           = 0.1,
-        .movement_speed = sim::scale_au::DISTANCE_AU * 100.0,
+        .movement_speed = sim::scale_au::DISTANCE_AU * 200.0,
         .scaling_speed  = 10.0,
     };
 
@@ -59,17 +60,19 @@ void BarnesHut10K::init(const gfx::Window& window) {
     };
 }
 
-void BarnesHut10K::step(const gfx::Window& window) {
+void BarnesHutMortonPlummer::step(const gfx::Window& window) {
     Float dt = static_cast<Float>(GetFrameTime());
 
     handle_input();
+    handle_slingshot_input(dt);
     update_sim(dt);
     update_camera(dt, window);
     draw_sim();
+    draw_slingshot();
     draw_ui(window);
 }
 
-void BarnesHut10K::handle_input() {
+void BarnesHutMortonPlummer::handle_input() {
     if (IsKeyPressed(KEY_SPACE)) {
         m_is_sim_running = !m_is_sim_running;
     }
@@ -103,7 +106,7 @@ void BarnesHut10K::handle_input() {
         }
     }
 
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !IsKeyDown(KEY_LEFT_SHIFT)) {
         auto maybe_idx =
             impl::get_body_at_mouse_position_au(m_camera, m_sim.bodies());
         if (maybe_idx.has_value()) {
@@ -113,7 +116,24 @@ void BarnesHut10K::handle_input() {
     }
 }
 
-void BarnesHut10K::update_sim(Float dt) {
+void BarnesHutMortonPlummer::handle_slingshot_input(Float dt) {
+    (void)dt;
+
+    bool was_active = m_slingshot_state.is_active;
+
+    impl::handle_slingshot_input(m_slingshot_state, m_camera);
+
+    if (was_active && !m_slingshot_state.is_active) {
+        Float drag_distance =
+            m_slingshot_state.current_pos.distance(m_slingshot_state.start_pos);
+
+        if (drag_distance > 0.01) {
+            launch_slingshot_body();
+        }
+    }
+}
+
+void BarnesHutMortonPlummer::update_sim(Float dt) {
     if (!m_is_sim_running) {
         return;
     }
@@ -123,7 +143,8 @@ void BarnesHut10K::update_sim(Float dt) {
     m_simulation_time += sim_dt;
 }
 
-void BarnesHut10K::update_camera(Float dt, const gfx::Window& window) {
+void BarnesHutMortonPlummer::update_camera(Float              dt,
+                                           const gfx::Window& window) {
     m_camera.screen_width  = window.width;
     m_camera.screen_height = window.height;
 
@@ -139,7 +160,7 @@ void BarnesHut10K::update_camera(Float dt, const gfx::Window& window) {
     }
 }
 
-void BarnesHut10K::draw_sim() {
+void BarnesHutMortonPlummer::draw_sim() {
     if (!m_is_sim_visible) {
         return;
     }
@@ -148,7 +169,16 @@ void BarnesHut10K::draw_sim() {
                                 WHITE);
 }
 
-void BarnesHut10K::draw_ui(const gfx::Window& window) {
+void BarnesHutMortonPlummer::draw_slingshot() {
+    impl::draw_slingshot(m_slingshot_state, m_camera, m_scale_factor);
+}
+
+void BarnesHutMortonPlummer::launch_slingshot_body() {
+    Body new_body = impl::create_slingshot_body(m_slingshot_state, m_camera);
+    m_sim.insert_body(std::move(new_body));
+}
+
+void BarnesHutMortonPlummer::draw_ui(const gfx::Window& window) {
     if (!m_is_ui_visible) {
         return;
     }
@@ -156,10 +186,9 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
     m_grid.width  = window.width;
     m_grid.height = window.height;
 
-    impl::draw_cross_center(m_camera, 20, 2, WHITE);
-    impl::draw_ruler_au(m_camera, 32, 32, 0.5);
+    impl::draw_cross_center(m_camera, gfx::L, 2, gfx::YELLOW_WARM);
+    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, gfx::YELLOW_WARM);
 
-    // --- Info Boxes ---
     gfx::Box general_info_box = m_grid.span(0, 2, 0, 2)
                                     .with_padding_left(gfx::S)
                                     .with_padding_top(gfx::L)
@@ -186,10 +215,10 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
     GuiGroupBox(body_info_box.rectangle(), "Body Info");
     GuiGroupBox(control_info_box.rectangle(), "Control Info");
 
-    // --- General Info ---
     gfx::draw_text(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        gfx::Layout::TopLeft, gfx::L, "Barnes-Hut Morton 40k", WHITE);
+        gfx::Layout::TopLeft, gfx::L, "Barnes-Hut Morton Plummer",
+        gfx::YELLOW_WARM);
 
     std::vector<std::pair<std::string, std::string>> general_info{
         {"Particles", std::to_string(m_sim.bodies().size())},
@@ -201,9 +230,8 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
     impl::draw_label_pairs(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::L +
                                                                     gfx::M * 2),
-        general_info, gfx::M, gfx::XS, 0, gfx::ORANGE_PALE, gfx::YELLOW_PALE);
+        general_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
 
-    // --- Simulation Info ---
     std::vector<std::pair<std::string, std::string>> simulation_info{
         {"Time Factor",
          impl::format_time(m_time_factor, sim::scale_au::TIME_YEAR,
@@ -215,8 +243,8 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        simulation_info, gfx::M, gfx::XS, 0, gfx::ORANGE_PALE,
-        gfx::YELLOW_PALE);
+        simulation_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE,
+        gfx::YELLOW_WARM);
 
     // --- Body Info ---
     if (m_is_tracking_body && m_tracked_body_index < m_sim.bodies().size()) {
@@ -231,7 +259,7 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, gfx::ORANGE_PALE, gfx::YELLOW_PALE);
+            body_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
     } else {
         std::vector<std::pair<std::string, std::string>> body_info{
             {"Not tracking any body.", ""},
@@ -239,7 +267,7 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, gfx::ORANGE_PALE, gfx::YELLOW_PALE);
+            body_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
     }
 
     // --- Control Info ---
@@ -258,7 +286,7 @@ void BarnesHut10K::draw_ui(const gfx::Window& window) {
 
     impl::draw_label_pairs(
         control_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        control_info, gfx::M, gfx::XXS, -gfx::M, gfx::ORANGE_PALE,
-        gfx::YELLOW_PALE);
+        control_info, gfx::M, gfx::XXS, -gfx::M, gfx::YELLOW_PALE,
+        gfx::YELLOW_WARM);
 }
 }  // namespace nbody::scenario

@@ -82,8 +82,10 @@ TEST_CASE("Radix sort: sorts structs by integer key (id)") {
         {4, "Eve"  }
     };
 
-    radix_sort(people.begin(), people.end(), [](const Person& p) { return p.id; });
-    CHECK(is_sorted_by(people.begin(), people.end(), [](const Person& p) { return p.id; }));
+    radix_sort(people.begin(), people.end(),
+               [](const Person& p) { return p.id; });
+    CHECK(is_sorted_by(people.begin(), people.end(),
+                       [](const Person& p) { return p.id; }));
 }
 
 TEST_CASE("Radix sort: stable for equal keys") {

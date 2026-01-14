@@ -42,7 +42,7 @@ void Direct<Float>::step(Float dt) {
 }
 
 template <FloatT Float>
-void Direct<Float>::insert(Body&& body) {
+void Direct<Float>::insert_body(Body&& body) {
     m_bodies.push_back(std::move(body));
 }
 
