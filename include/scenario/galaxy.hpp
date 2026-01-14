@@ -7,22 +7,21 @@
 #include "math/vec.hpp"
 #include "scenario/impl.hpp"
 #include "scenario/type.hpp"
-#include "sim/barnes_hut_morton.hpp"
+#include "sim/barnes_hut.hpp"
 #include "sim/const.hpp"
 #include "sim/type.hpp"
 
 namespace nbody::scenario {
 using namespace nbody::base::type;
 
-class BarnesHutMortonPlummer : public ScenarioInterface {
+class Galaxy : public ScenarioInterface {
    public:
     using Float = F64;
     using Vec2  = math::Vec2T<Float>;
     using Body  = sim::BodyT<F64>;
-    using Sim   = sim::BarnesHutMorton<F64, U64>;
 
-    BarnesHutMortonPlummer()  = default;
-    ~BarnesHutMortonPlummer() = default;
+    Galaxy()  = default;
+    ~Galaxy() = default;
 
     void init(const gfx::Window& window) override;
     void step(const gfx::Window& window) override;
@@ -38,10 +37,10 @@ class BarnesHutMortonPlummer : public ScenarioInterface {
     void launch_slingshot_body();
 
     // --- Simulation ---
-    Sim   m_sim{};
-    Float m_time_factor{sim::scale_au::TIME_YEAR};
-    Float m_scale_factor{50.0};
-    Float m_simulation_time{0.0};
+    sim::BarnesHut<F64> m_sim{};
+    Float                          m_time_factor{sim::scale_au::TIME_YEAR};
+    Float                          m_scale_factor{15.0};
+    Float                          m_simulation_time{0.0};
 
     // --- Drawing ---
     gfx::Camera<Float> m_camera{};
@@ -56,8 +55,8 @@ class BarnesHutMortonPlummer : public ScenarioInterface {
 
     // --- Slingshot State ---
     impl::SlingshotState<Float> m_slingshot_state{
-        .base_mass      = sim::scale_au::MASS_EARTH,
-        .radius_scale   = 0.5,
+        .base_mass = sim::scale_au::MASS_EARTH,
+        .radius_scale = 0.5,
         .velocity_scale = 1.0,
     };
 };

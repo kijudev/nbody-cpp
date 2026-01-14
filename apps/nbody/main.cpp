@@ -1,8 +1,10 @@
 #include <raylib.h>
 
 #include "gfx/box.hpp"
+#include "scenario/barnes_hut_grid.hpp"
 #include "scenario/barnes_hut_morton_plummer.hpp"
 #include "scenario/barnes_hut_plummer.hpp"
+#include "scenario/galaxy.hpp"
 #include "scenario/kepler_euler_verlet.hpp"
 
 #define RAYGUI_IMPLEMENTATION
@@ -22,12 +24,13 @@ enum class AppState {
     Menu,
     BarnesHutPlummer,
     BarnesHutMortonPlummer,
+    BarnesHutGrid,
+    Galaxy,
     KeplerEulerVerlet,
 };
 
 struct ScenarioInfo {
     std::string name;
-    std::string description;
     AppState    state;
 };
 
@@ -48,23 +51,29 @@ int main() {
 
     scenario::BarnesHutPlummer       barnes_hut_plummer_scenario;
     scenario::BarnesHutMortonPlummer barnes_hut_morton_plummer_scenario;
+    scenario::BarnesHutGrid          barnes_hut_grid_scenario;
+    scenario::Galaxy                 galaxy_scenario;
     scenario::KeplerEulerVerlet      kepler_euler_verlet_scenario;
 
     std::vector<ScenarioInfo> scenarios = {
         {
-         .name        = "Barnes-Hut Plummer",
-         .description = "Barnes-Hut with the plummer model",
-         .state       = AppState::BarnesHutPlummer,
+         .name  = "Barnes-Hut Plummer model",
+         .state = AppState::BarnesHutPlummer,
          },
         {
-         .name = "Barnes-Hut Morton",
-         .description =
-                "Barnes-Hut with the plummer model and Morton ordering",                                                                                                                    .state = AppState::BarnesHutMortonPlummer,
+         .name = "Barnes-Hut Morton model",
          },
         {
-         .name        = "Kepler vs Euler vs Verlet",
-         .description = "Compare analytical (Kepler), Euler, and Verlet "
-                           "integrators for a two-body orbit",.state       = AppState::KeplerEulerVerlet,
+         .name  = "Barnes-Hut Grid Visualization",
+         .state = AppState::BarnesHutGrid,
+         },
+        {
+         .name  = "Galaxy Simulation",
+         .state = AppState::Galaxy,
+         },
+        {
+         .name  = "Kepler vs Euler vs Verlet",
+         .state = AppState::KeplerEulerVerlet,
          },
     };
 
@@ -95,8 +104,8 @@ int main() {
                            "Select a scenario to begin", WHITE);
 
             constexpr I32 card_start_row = 6;
-            constexpr I32 card_height    = 3;
-            constexpr I32 card_spacing   = 1;
+            constexpr I32 card_height    = 2;
+            constexpr I32 card_spacing   = 0;
             constexpr I32 card_col_start = 6;
             constexpr I32 card_col_end   = 18;
 
@@ -128,6 +137,14 @@ int main() {
                             barnes_hut_morton_plummer_scenario.init(window);
                             app_state = AppState::BarnesHutMortonPlummer;
                             break;
+                        case AppState::BarnesHutGrid:
+                            barnes_hut_grid_scenario.init(window);
+                            app_state = AppState::BarnesHutGrid;
+                            break;
+                        case AppState::Galaxy:
+                            galaxy_scenario.init(window);
+                            app_state = AppState::Galaxy;
+                            break;
                         case AppState::KeplerEulerVerlet:
                             kepler_euler_verlet_scenario.init(window);
                             app_state = AppState::KeplerEulerVerlet;
@@ -150,6 +167,10 @@ int main() {
             barnes_hut_plummer_scenario.step(window);
         } else if (app_state == AppState::BarnesHutMortonPlummer) {
             barnes_hut_morton_plummer_scenario.step(window);
+        } else if (app_state == AppState::BarnesHutGrid) {
+            barnes_hut_grid_scenario.step(window);
+        } else if (app_state == AppState::Galaxy) {
+            galaxy_scenario.step(window);
         } else if (app_state == AppState::KeplerEulerVerlet) {
             kepler_euler_verlet_scenario.step(window);
         }

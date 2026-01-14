@@ -149,9 +149,10 @@ sim::BodyT<Float> create_slingshot_body(const SlingshotState<Float>& state,
                                         const gfx::Camera<Float>&    camera) {
     using Vec2 = math::Vec2T<Float>;
 
-    Vec2  drag_vector = state.current_pos.sub(state.start_pos);
-    Vec2  velocity    = drag_vector.scale(-state.velocity_scale);
-    Float mass        = state.base_mass / (camera.zoom * camera.zoom);
+    Vec2 drag_vector = state.current_pos.sub(state.start_pos);
+    Vec2 velocity    = drag_vector.scale(-state.velocity_scale).scale(1 / (2 * 42.0));
+    ;
+    Float mass = 10.0 * state.base_mass / (camera.zoom * camera.zoom);
 
     return sim::BodyT<Float>{
         .pos  = state.start_pos,

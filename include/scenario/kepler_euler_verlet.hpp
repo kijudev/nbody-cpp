@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "base/type.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/grid.hpp"

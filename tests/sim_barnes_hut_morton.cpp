@@ -131,8 +131,8 @@ TEST_CASE("Barnes-Hut-Morton: tree construction sanity check") {
     // Check total mass is correct
     Float total_mass = 0.0;
     for (const auto& node : nodes) {
-        if (node.is_leaf) {
-            total_mass += node.mass;
+        if (node.is_leaf()) {
+            total_mass += node.total_mass;
         }
     }
     CHECK(total_mass == doctest::Approx(4.0).epsilon(1e-10));
@@ -169,8 +169,6 @@ TEST_CASE("Barnes-Hut-Morton: acceleration computation") {
     CHECK(sim_bodies[1].acc.x < 0.0);
     CHECK(std::abs(sim_bodies[1].acc.y) < 1e-10);
 
-    // Accelerations should be equal and opposite (by Newton's 3rd law, per unit mass)
-    // a = G * M / r^2, with r=1, G=1, M=1: a = 1
     CHECK(sim_bodies[0].acc.x == doctest::Approx(1.0).epsilon(1e-6));
     CHECK(sim_bodies[1].acc.x == doctest::Approx(-1.0).epsilon(1e-6));
 }

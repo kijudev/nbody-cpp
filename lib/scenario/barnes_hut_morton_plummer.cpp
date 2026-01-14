@@ -34,12 +34,13 @@ void BarnesHutMortonPlummer::init(const gfx::Window& window) {
         sim::generate_distribution(generate_distribution_config);
 
     sim::BarnesHutMorton<Float>::Config sim_config{
-        .bodies       = std::move(bodies),
-        .g            = sim::scale_au::G,
-        .softening    = sim::scale_au::SOFTENING,
-        .theta        = 0.5,
-        .parallel     = true,
-        .integrate_fn = sim::integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = sim::scale_au::G,
+        .softening         = sim::scale_au::SOFTENING,
+        .theta             = 0.5,
+        .parallel          = true,
+        .use_proper_verlet = true,
+        .integrate_fn      = sim::integrate_body_verlet<Float>,
     };
 
     m_sim = sim::BarnesHutMorton<Float>(sim_config);

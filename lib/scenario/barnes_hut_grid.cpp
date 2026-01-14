@@ -1,4 +1,4 @@
-#include "scenario/barnes_hut_plummer.hpp"
+#include "scenario/barnes_hut_grid.hpp"
 
 #include <raygui.h>
 #include <raylib.h>
@@ -20,13 +20,14 @@
 namespace nbody::scenario {
 using namespace nbody::base::type;
 
-void BarnesHutPlummer::init(const gfx::Window& window) {
+void BarnesHutGrid::init(const gfx::Window& window) {
+    // Generate a small number of bodies for clear grid visualization
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 10000,
+        .n           = 100,
         .min_mass    = sim::scale_au::MASS_HYGIEA,
         .max_mass    = sim::scale_au::MASS_SOL * 10,
         .radius      = sim::scale_au::DISTANCE_AU * 10.0,
-        .position_fn = sim::generate_position_distribution_plummer_model<Float>,
+        .position_fn = sim::generate_position_distribution_uniform_disk<Float>,
         .mass_fn     = sim::generate_mass_distribution_salpeter_imf<Float>,
     };
 
@@ -60,7 +61,7 @@ void BarnesHutPlummer::init(const gfx::Window& window) {
     };
 }
 
-void BarnesHutPlummer::step(const gfx::Window& window) {
+void BarnesHutGrid::step(const gfx::Window& window) {
     Float dt = static_cast<Float>(GetFrameTime());
 
     handle_input();
@@ -68,17 +69,22 @@ void BarnesHutPlummer::step(const gfx::Window& window) {
     update_sim(dt);
     update_camera(dt, window);
     draw_sim();
+    draw_grid_visualization();
     draw_slingshot();
     draw_ui(window);
 }
 
-void BarnesHutPlummer::handle_input() {
+void BarnesHutGrid::handle_input() {
     if (IsKeyPressed(KEY_SPACE)) {
         m_is_sim_running = !m_is_sim_running;
     }
 
     if (IsKeyPressed(KEY_H)) {
         m_is_ui_visible = !m_is_ui_visible;
+    }
+
+    if (IsKeyPressed(KEY_G)) {
+        m_is_grid_visible = !m_is_grid_visible;
     }
 
     if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_T)) {
@@ -116,7 +122,7 @@ void BarnesHutPlummer::handle_input() {
     }
 }
 
-void BarnesHutPlummer::handle_slingshot_input(Float dt) {
+void BarnesHutGrid::handle_slingshot_input(Float dt) {
     (void)dt;
 
     bool was_active = m_slingshot_state.is_active;
@@ -133,7 +139,7 @@ void BarnesHutPlummer::handle_slingshot_input(Float dt) {
     }
 }
 
-void BarnesHutPlummer::update_sim(Float dt) {
+void BarnesHutGrid::update_sim(Float dt) {
     if (!m_is_sim_running) {
         return;
     }
@@ -143,7 +149,7 @@ void BarnesHutPlummer::update_sim(Float dt) {
     m_simulation_time += sim_dt;
 }
 
-void BarnesHutPlummer::update_camera(Float dt, const gfx::Window& window) {
+void BarnesHutGrid::update_camera(Float dt, const gfx::Window& window) {
     m_camera.screen_width  = window.width;
     m_camera.screen_height = window.height;
 
@@ -159,7 +165,7 @@ void BarnesHutPlummer::update_camera(Float dt, const gfx::Window& window) {
     }
 }
 
-void BarnesHutPlummer::draw_sim() {
+void BarnesHutGrid::draw_sim() {
     if (!m_is_sim_visible) {
         return;
     }
@@ -168,16 +174,58 @@ void BarnesHutPlummer::draw_sim() {
                                 WHITE);
 }
 
-void BarnesHutPlummer::draw_slingshot() {
+void BarnesHutGrid::draw_grid_visualization() {
+    if (!m_is_grid_visible) {
+        return;
+    }
+
+    // Get the quad tree structure from the simulation
+    std::vector<Quad> quads = m_sim.quads();
+
+    // Draw each quad as a rectangle
+    for (const Quad& quad : quads) {
+        // Calculate the corners of the quad in world space
+        Vec2 top_left = {quad.center.x - quad.size / 2.0, 
+                         quad.center.y + quad.size / 2.0};
+        Vec2 top_right = {quad.center.x + quad.size / 2.0, 
+                          quad.center.y + quad.size / 2.0};
+        Vec2 bottom_right = {quad.center.x + quad.size / 2.0, 
+                             quad.center.y - quad.size / 2.0};
+        Vec2 bottom_left = {quad.center.x - quad.size / 2.0, 
+                            quad.center.y - quad.size / 2.0};
+
+        // Convert to screen space
+        Vec2 tl_screen = m_camera.world_to_screen_vec(top_left);
+        Vec2 tr_screen = m_camera.world_to_screen_vec(top_right);
+        Vec2 br_screen = m_camera.world_to_screen_vec(bottom_right);
+        Vec2 bl_screen = m_camera.world_to_screen_vec(bottom_left);
+
+        // Draw the quad boundaries
+        DrawLineV({static_cast<float>(tl_screen.x), static_cast<float>(tl_screen.y)},
+                  {static_cast<float>(tr_screen.x), static_cast<float>(tr_screen.y)},
+                  gfx::GREEN_PALE);
+        DrawLineV({static_cast<float>(tr_screen.x), static_cast<float>(tr_screen.y)},
+                  {static_cast<float>(br_screen.x), static_cast<float>(br_screen.y)},
+                  gfx::GREEN_PALE);
+        DrawLineV({static_cast<float>(br_screen.x), static_cast<float>(br_screen.y)},
+                  {static_cast<float>(bl_screen.x), static_cast<float>(bl_screen.y)},
+                  gfx::GREEN_PALE);
+        DrawLineV({static_cast<float>(bl_screen.x), static_cast<float>(bl_screen.y)},
+                  {static_cast<float>(tl_screen.x), static_cast<float>(tl_screen.y)},
+                  gfx::GREEN_PALE);
+    }
+}
+
+void BarnesHutGrid::draw_slingshot() {
     impl::draw_slingshot(m_slingshot_state, m_camera, m_scale_factor);
 }
 
-void BarnesHutPlummer::launch_slingshot_body() {
+void BarnesHutGrid::launch_slingshot_body() {
     Body new_body = impl::create_slingshot_body(m_slingshot_state, m_camera);
     m_sim.insert_body(std::move(new_body));
 }
 
-void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
+void BarnesHutGrid::draw_ui(const gfx::Window& window) {
     if (!m_is_ui_visible) {
         return;
     }
@@ -185,8 +233,8 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
     m_grid.width  = window.width;
     m_grid.height = window.height;
 
-    impl::draw_cross_center(m_camera, gfx::L, 2, gfx::YELLOW_WARM);
-    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, gfx::YELLOW_WARM);
+    impl::draw_cross_center(m_camera, gfx::L, 2, gfx::GREEN_WARM);
+    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, gfx::GREEN_WARM);
 
     gfx::Box general_info_box = m_grid.span(0, 2, 0, 2)
                                     .with_padding_left(gfx::S)
@@ -216,11 +264,12 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
 
     gfx::draw_text(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        gfx::Layout::TopLeft, gfx::L, "Barnes-Hut Plummer", gfx::YELLOW_WARM);
+        gfx::Layout::TopLeft, gfx::L, "Barnes-Hut Grid", gfx::GREEN_WARM);
 
     std::vector<std::pair<std::string, std::string>> general_info{
         {"Particles", std::to_string(m_sim.bodies().size())},
         {"Status", m_is_sim_running ? "Running" : "Paused"},
+        {"Grid Visible", m_is_grid_visible ? "Yes" : "No"},
         {"Sim Time",
          std::format("{:.2f} years",
          m_simulation_time / sim::scale_au::TIME_YEAR)}
@@ -228,7 +277,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
     impl::draw_label_pairs(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::L +
                                                                     gfx::M * 2),
-        general_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
+        general_info, gfx::M, gfx::XS, 0, gfx::GREEN_PALE, gfx::GREEN_WARM);
 
     std::vector<std::pair<std::string, std::string>> simulation_info{
         {"Time Factor",
@@ -241,8 +290,8 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        simulation_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE,
-        gfx::YELLOW_WARM);
+        simulation_info, gfx::M, gfx::XS, 0, gfx::GREEN_PALE,
+        gfx::GREEN_WARM);
 
     // --- Body Info ---
     if (m_is_tracking_body && m_tracked_body_index < m_sim.bodies().size()) {
@@ -257,7 +306,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
+            body_info, gfx::M, gfx::XS, 0, gfx::GREEN_PALE, gfx::GREEN_WARM);
     } else {
         std::vector<std::pair<std::string, std::string>> body_info{
             {"Not tracking any body.", ""},
@@ -265,13 +314,14 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
+            body_info, gfx::M, gfx::XS, 0, gfx::GREEN_PALE, gfx::GREEN_WARM);
     }
 
     // --- Control Info ---
     std::vector<std::pair<std::string, std::string>> control_info{
         {"[Space]",       "Pause/Resume"        },
         {"[H]",           "Toggle UI"           },
+        {"[G]",           "Toggle Grid"         },
         {"[Arrows/WASD]", "Move Camera"         },
         {"[Mouse Wheel]", "Zoom"                },
         {"[= / +]",       "Increase Time Factor"},
@@ -279,12 +329,13 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
         {"[[ / ]]",       "Scale Factor"        },
         {"[T]",           "Stop Tracking Body"  },
         {"[ESC]",         "Stop Tracking Body"  },
-        {"[Click]",       "Track Body"          }
+        {"[Click]",       "Track Body"          },
+        {"[Shift+Drag]",  "Launch Body"         }
     };
 
     impl::draw_label_pairs(
         control_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        control_info, gfx::M, gfx::XXS, -gfx::M, gfx::YELLOW_PALE,
-        gfx::YELLOW_WARM);
+        control_info, gfx::M, gfx::XXS, -gfx::M, gfx::GREEN_PALE,
+        gfx::GREEN_WARM);
 }
 }  // namespace nbody::scenario

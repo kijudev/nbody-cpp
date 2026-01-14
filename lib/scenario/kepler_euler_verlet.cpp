@@ -4,6 +4,7 @@
 #include <raylib.h>
 
 #include <format>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -45,7 +46,7 @@ void KeplerEulerVerlet::init(const gfx::Window& window) {
     };
     m_kepler = std::make_unique<sim::Kepler<Float>>(kepler_config);
 
-    std::vector<Body> bodies_newton{
+    std::vector<Body> bodies_euler{
         {.pos  = {0.0, 0.0},
          .vel  = {0.0, 0.0},
          .acc  = {0.0, 0.0},
@@ -55,13 +56,15 @@ void KeplerEulerVerlet::init(const gfx::Window& window) {
          .acc  = {0.0, 0.0},
          .mass = orbiter_mass}
     };
-    sim::Direct<Float>::Config direct_newton_config{
-        .bodies       = bodies_newton,
-        .g            = g,
-        .softening    = sim::scale_au::SOFTENING,
-        .parallel     = false,
-        .integrate_fn = sim::integrate_body_euler<Float>};
-    m_direct_newton = std::make_unique<sim::Direct<Float>>(direct_newton_config);
+
+    sim::Direct<Float>::Config direct_euler_config{
+        .bodies            = bodies_euler,
+        .g                 = g,
+        .softening         = sim::scale_au::SOFTENING,
+        .parallel          = false,
+        .use_proper_verlet = false,
+        .integrate_fn      = sim::integrate_body_euler<Float>};
+    m_direct_newton = std::make_unique<sim::Direct<Float>>(direct_euler_config);
 
     std::vector<Body> bodies_verlet{
         {.pos  = {0.0, 0.0},
@@ -74,12 +77,18 @@ void KeplerEulerVerlet::init(const gfx::Window& window) {
          .mass = orbiter_mass}
     };
     sim::Direct<Float>::Config direct_verlet_config{
-        .bodies       = bodies_verlet,
-        .g            = g,
-        .softening    = sim::scale_au::SOFTENING,
-        .parallel     = false,
-        .integrate_fn = sim::integrate_body_verlet<Float>};
-    m_direct_verlet = std::make_unique<sim::Direct<Float>>(direct_verlet_config);
+        .bodies            = bodies_verlet,
+        .g                 = g,
+        .softening         = sim::scale_au::SOFTENING,
+        .parallel          = false,
+        .use_proper_verlet = true,  // Enable proper Velocity Verlet
+        .integrate_fn      = sim::integrate_body_verlet<Float>};
+    m_direct_verlet =
+        std::make_unique<sim::Direct<Float>>(direct_verlet_config);
+
+    // Initialize accelerations for proper Verlet by computing initial forces
+    // This ensures the first timestep has valid old accelerations
+    m_direct_verlet->compute_initial_accelerations();
 
     m_camera = {
         .screen_width   = window.width,
@@ -142,9 +151,11 @@ void KeplerEulerVerlet::update_sim(Float dt) {
     if (!m_is_sim_running) return;
 
     Float sim_dt = dt * m_time_factor;
+
     m_kepler->step(sim_dt);
     m_direct_newton->step(sim_dt);
     m_direct_verlet->step(sim_dt);
+
     m_simulation_time += sim_dt;
 }
 
@@ -160,31 +171,46 @@ void KeplerEulerVerlet::draw_sim() {
     const auto& bodies_newton = m_direct_newton->bodies();
     const auto& bodies_verlet = m_direct_verlet->bodies();
 
+    // Draw orbital path (white circle for reference)
     {
         const auto&              body = bodies_kepler[0];
         const math::Vec2T<Float> center =
             m_camera.world_to_screen_vec(body.pos);
-        const math::Vec2T<Float> edge = m_camera.world_to_screen_vec(
-            math::Vec2T<Float>{body.pos.x + std::cbrt(body.mass), body.pos.y});
-        const Float radius = center.distance(edge) * 1.5;
-        DrawCircleV(center.as_raylib_vector(), radius, GRAY);
+
+        // Calculate orbital radius from Kepler's orbital elements
+        Float orbital_radius = m_kepler->orbital_elements().semi_major_axis;
+        math::Vec2T<Float> edge_pos = {body.pos.x + orbital_radius, body.pos.y};
+        gfx::Point         edge_screen = m_camera.world_to_screen(edge_pos);
+
+        Float screen_radius = std::abs(edge_screen.x - center.x);
+        DrawCircleLines(center.x, center.y, screen_radius,
+                        ColorAlpha(WHITE, 0.3f));
     }
 
+    // Draw central body (Sun) - fixed size for visibility
+    {
+        const auto&              body = bodies_kepler[0];
+        const math::Vec2T<Float> center =
+            m_camera.world_to_screen_vec(body.pos);
+        DrawCircleV(center.as_raylib_vector(), 15.0f, YELLOW);
+    }
+
+    // Draw orbiting bodies (Earth) - all three simulations
     {
         const auto&              body = bodies_kepler[1];
         const math::Vec2T<Float> center =
             m_camera.world_to_screen_vec(body.pos);
-        DrawCircleV(center.as_raylib_vector(), 8.0f, gfx::YELLOW_WARM);
+        DrawCircleV(center.as_raylib_vector(), 6.0f, gfx::YELLOW_WARM);
 
         const auto&              body_n = bodies_newton[1];
         const math::Vec2T<Float> center_n =
             m_camera.world_to_screen_vec(body_n.pos);
-        DrawCircleV(center_n.as_raylib_vector(), 8.0f, gfx::RED_WARM);
+        DrawCircleV(center_n.as_raylib_vector(), 6.0f, gfx::RED_WARM);
 
         const auto&              body_v = bodies_verlet[1];
         const math::Vec2T<Float> center_v =
             m_camera.world_to_screen_vec(body_v.pos);
-        DrawCircleV(center_v.as_raylib_vector(), 8.0f, gfx::BLUE_WARM);
+        DrawCircleV(center_v.as_raylib_vector(), 6.0f, gfx::BLUE_WARM);
     }
 }
 
@@ -194,50 +220,73 @@ void KeplerEulerVerlet::draw_ui(const gfx::Window& window) {
     m_grid.width  = window.width;
     m_grid.height = window.height;
 
-    gfx::Box info_box = m_grid.span(0, 3, 0, 3)
+    // Info panel
+    gfx::Box info_box = m_grid.span(0, 3, 0, 5)
                             .with_padding_left(gfx::S)
                             .with_padding_top(gfx::L)
                             .with_draw_background(BLACK);
 
-    GuiGroupBox(info_box.rectangle(), "Simulation Comparison Info");
+    GuiGroupBox(info_box.rectangle(), "Simulation Info");
 
     std::vector<std::pair<std::string, std::string>> info{
-        {"Integrator", "Kepler (Yellow), Newton/Euler (Red), Verlet (Blue)"},
-        {"Sim Time", std::format("{:.2f} days", m_simulation_time)},
+        {"Sim Time", std::format("{:.2f} days",
+         m_simulation_time / sim::scale_au::TIME_DAY)},
         {"Time Factor",
          impl::format_time(m_time_factor, sim::scale_au::TIME_YEAR,
          sim::scale_au::TIME_DAY, sim::scale_au::TIME_HOUR,
          sim::scale_au::TIME_MINUTE)},
         {"FPS", std::to_string(GetFPS())},
-        {"[Space]", "Pause/Resume"},
-        {"[H]", "Toggle UI"},
-        {"[Arrows/WASD]", "Move Camera"},
-        {"[Mouse Wheel]", "Zoom"},
-        {"[= / +]", "Increase Time Factor"},
-        {"[-]", "Decrease Time Factor"},
-        {"[[ / ]]", "Zoom In/Out"}
     };
 
     impl::draw_label_pairs(info_box.with_padding_left(gfx::S).with_padding_top(
                                gfx::L + gfx::M * 2),
-                           info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE,
+                           info, gfx::M, gfx::XS, 0, gfx::ORANGE_WARM,
                            gfx::YELLOW_WARM);
 
-    gfx::Box legend_box = m_grid.span(0, 2, 4, 4)
+    // Legend panel
+    gfx::Box legend_box = m_grid.span(0, 3, 6, 8)
                               .with_padding_left(gfx::S)
-                              .with_padding_top(gfx::S)
+                              .with_padding_top(gfx::L)
                               .with_draw_background(BLACK);
 
-    DrawText("Legend:", legend_box.x, legend_box.y, gfx::M, RAYWHITE);
-    DrawCircle(legend_box.x + 10, legend_box.y + 30, 8, gfx::YELLOW_WARM);
-    DrawText("Kepler (Analytical)", legend_box.x + 30, legend_box.y + 22,
-             gfx::S, RAYWHITE);
-    DrawCircle(legend_box.x + 10, legend_box.y + 55, 8, gfx::RED_WARM);
-    DrawText("Direct Newton/Euler", legend_box.x + 30, legend_box.y + 47,
-             gfx::S, RAYWHITE);
-    DrawCircle(legend_box.x + 10, legend_box.y + 80, 8, gfx::BLUE_WARM);
-    DrawText("Direct Verlet", legend_box.x + 30, legend_box.y + 72, gfx::S,
+    GuiGroupBox(legend_box.rectangle(), "Legend");
+
+    gfx::Box legend_content =
+        legend_box.with_padding_left(gfx::S).with_padding_top(gfx::L + gfx::M);
+
+    DrawCircle(legend_content.x + 8, legend_content.y + 8, 6, gfx::YELLOW_WARM);
+    DrawText("Kepler (Analytical)", legend_content.x + 25, legend_content.y,
+             gfx::M, RAYWHITE);
+
+    DrawCircle(legend_content.x + 8, legend_content.y + 30, 6, gfx::RED_WARM);
+    DrawText("Euler", legend_content.x + 25, legend_content.y + 22, gfx::M,
              RAYWHITE);
+
+    DrawCircle(legend_content.x + 8, legend_content.y + 52, 6, gfx::BLUE_WARM);
+    DrawText("Verlet", legend_content.x + 25, legend_content.y + 44, gfx::M,
+             RAYWHITE);
+
+    // Controls panel
+    gfx::Box controls_box = m_grid.span(0, 3, 9, 11)
+                                .with_padding_left(gfx::S)
+                                .with_padding_top(gfx::L)
+                                .with_draw_background(BLACK);
+
+    GuiGroupBox(controls_box.rectangle(), "Controls");
+
+    std::vector<std::pair<std::string, std::string>> controls{
+        {"[Space]",  "Pause/Resume"},
+        {"[H]",      "Toggle UI"   },
+        {"[WASD]",   "Move Camera" },
+        {"[Scroll]", "Zoom"        },
+        {"[= / -]",  "Time Factor" },
+        {"[[ / ]]",  "Zoom In/Out" }
+    };
+
+    impl::draw_label_pairs(
+        controls_box.with_padding_left(gfx::S).with_padding_top(gfx::L +
+                                                                gfx::M * 2),
+        controls, gfx::M, gfx::XS, 0, gfx::ORANGE_WARM, gfx::YELLOW_WARM);
 }
 
 }  // namespace nbody::scenario

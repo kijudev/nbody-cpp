@@ -1,4 +1,4 @@
-#include "scenario/barnes_hut_plummer.hpp"
+#include "scenario/galaxy.hpp"
 
 #include <raygui.h>
 #include <raylib.h>
@@ -20,23 +20,38 @@
 namespace nbody::scenario {
 using namespace nbody::base::type;
 
-void BarnesHutPlummer::init(const gfx::Window& window) {
+void Galaxy::init(const gfx::Window& window) {
+    // Generate a galaxy with Plummer distribution and circular orbital velocities
+    constexpr Float galaxy_radius = sim::scale_au::DISTANCE_AU * 100.0;  // 200 AU diameter
+    constexpr Float central_mass = sim::scale_au::MASS_SOL * 1e6;  // Central supermassive black hole
+
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 10000,
+        .n           = 15000,
         .min_mass    = sim::scale_au::MASS_HYGIEA,
-        .max_mass    = sim::scale_au::MASS_SOL * 10,
-        .radius      = sim::scale_au::DISTANCE_AU * 10.0,
+        .max_mass    = sim::scale_au::MASS_SOL * 50.0,
+        .radius      = galaxy_radius,
+        .velocity_center = {0.0, 0.0},
+        .central_mass    = central_mass,
         .position_fn = sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = sim::generate_mass_distribution_salpeter_imf<Float>,
+        .velocity_fn = sim::generate_velocity_distribution_circular<Float>,
     };
 
     std::vector<Body> bodies =
         sim::generate_distribution(generate_distribution_config);
 
+    // Add a central supermassive black hole
+    Body central_body{
+        .pos  = {0.0, 0.0},
+        .vel  = {0.0, 0.0},
+        .mass = central_mass,
+    };
+    bodies.insert(bodies.begin(), central_body);
+
     sim::BarnesHut<Float>::Config sim_config{
         .bodies            = std::move(bodies),
         .g                 = sim::scale_au::G,
-        .softening         = sim::scale_au::SOFTENING,
+        .softening         = sim::scale_au::SOFTENING * 2.0,
         .parallel          = true,
         .use_proper_verlet = true,
         .integrate_fn      = sim::integrate_body_verlet<Float>,
@@ -47,7 +62,7 @@ void BarnesHutPlummer::init(const gfx::Window& window) {
     m_camera = {
         .screen_width   = window.width,
         .screen_height  = window.height,
-        .zoom           = 0.1,
+        .zoom           = 0.15,
         .movement_speed = sim::scale_au::DISTANCE_AU * 200.0,
         .scaling_speed  = 10.0,
     };
@@ -60,7 +75,7 @@ void BarnesHutPlummer::init(const gfx::Window& window) {
     };
 }
 
-void BarnesHutPlummer::step(const gfx::Window& window) {
+void Galaxy::step(const gfx::Window& window) {
     Float dt = static_cast<Float>(GetFrameTime());
 
     handle_input();
@@ -72,7 +87,7 @@ void BarnesHutPlummer::step(const gfx::Window& window) {
     draw_ui(window);
 }
 
-void BarnesHutPlummer::handle_input() {
+void Galaxy::handle_input() {
     if (IsKeyPressed(KEY_SPACE)) {
         m_is_sim_running = !m_is_sim_running;
     }
@@ -116,7 +131,7 @@ void BarnesHutPlummer::handle_input() {
     }
 }
 
-void BarnesHutPlummer::handle_slingshot_input(Float dt) {
+void Galaxy::handle_slingshot_input(Float dt) {
     (void)dt;
 
     bool was_active = m_slingshot_state.is_active;
@@ -133,7 +148,7 @@ void BarnesHutPlummer::handle_slingshot_input(Float dt) {
     }
 }
 
-void BarnesHutPlummer::update_sim(Float dt) {
+void Galaxy::update_sim(Float dt) {
     if (!m_is_sim_running) {
         return;
     }
@@ -143,7 +158,7 @@ void BarnesHutPlummer::update_sim(Float dt) {
     m_simulation_time += sim_dt;
 }
 
-void BarnesHutPlummer::update_camera(Float dt, const gfx::Window& window) {
+void Galaxy::update_camera(Float dt, const gfx::Window& window) {
     m_camera.screen_width  = window.width;
     m_camera.screen_height = window.height;
 
@@ -159,25 +174,46 @@ void BarnesHutPlummer::update_camera(Float dt, const gfx::Window& window) {
     }
 }
 
-void BarnesHutPlummer::draw_sim() {
+void Galaxy::draw_sim() {
     if (!m_is_sim_visible) {
         return;
     }
 
-    impl::draw_bodies_monocolor(m_camera, m_scale_factor, m_sim.bodies(),
-                                WHITE);
+    // Draw the central supermassive black hole in a distinctive color
+    if (!m_sim.bodies().empty()) {
+        const Body& central_body = m_sim.bodies()[0];
+        const Vec2 center = m_camera.world_to_screen_vec(central_body.pos);
+
+        // Give black hole a fixed world-space size (in AU) independent of m_scale_factor
+        // This prevents it from scaling when user adjusts star sizes
+        Float world_radius = sim::scale_au::DISTANCE_AU * 2.0;  // 2 AU radius
+        const Vec2 edge_pos = {central_body.pos.x + world_radius, central_body.pos.y};
+        const Vec2 edge_screen = m_camera.world_to_screen_vec(edge_pos);
+        Float screen_radius = std::max(4.0, center.distance(edge_screen));
+
+        DrawCircleV({static_cast<float>(center.x), static_cast<float>(center.y)},
+                    static_cast<float>(screen_radius), gfx::ORANGE_WARM);
+        DrawCircleV({static_cast<float>(center.x), static_cast<float>(center.y)},
+                    static_cast<float>(screen_radius * 0.4), BLACK);
+    }
+
+    // Draw the rest of the galaxy bodies
+    if (m_sim.bodies().size() > 1) {
+        std::span<const Body> galaxy_bodies(m_sim.bodies().data() + 1, m_sim.bodies().size() - 1);
+        impl::draw_bodies_monocolor(m_camera, m_scale_factor, galaxy_bodies, WHITE);
+    }
 }
 
-void BarnesHutPlummer::draw_slingshot() {
+void Galaxy::draw_slingshot() {
     impl::draw_slingshot(m_slingshot_state, m_camera, m_scale_factor);
 }
 
-void BarnesHutPlummer::launch_slingshot_body() {
+void Galaxy::launch_slingshot_body() {
     Body new_body = impl::create_slingshot_body(m_slingshot_state, m_camera);
     m_sim.insert_body(std::move(new_body));
 }
 
-void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
+void Galaxy::draw_ui(const gfx::Window& window) {
     if (!m_is_ui_visible) {
         return;
     }
@@ -185,8 +221,8 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
     m_grid.width  = window.width;
     m_grid.height = window.height;
 
-    impl::draw_cross_center(m_camera, gfx::L, 2, gfx::YELLOW_WARM);
-    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, gfx::YELLOW_WARM);
+    impl::draw_cross_center(m_camera, gfx::L, 2, WHITE);
+    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, WHITE);
 
     gfx::Box general_info_box = m_grid.span(0, 2, 0, 2)
                                     .with_padding_left(gfx::S)
@@ -216,7 +252,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
 
     gfx::draw_text(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        gfx::Layout::TopLeft, gfx::L, "Barnes-Hut Plummer", gfx::YELLOW_WARM);
+        gfx::Layout::TopLeft, gfx::L, "Galaxy Simulation", WHITE);
 
     std::vector<std::pair<std::string, std::string>> general_info{
         {"Particles", std::to_string(m_sim.bodies().size())},
@@ -228,7 +264,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
     impl::draw_label_pairs(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::L +
                                                                     gfx::M * 2),
-        general_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
+        general_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
 
     std::vector<std::pair<std::string, std::string>> simulation_info{
         {"Time Factor",
@@ -241,8 +277,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        simulation_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE,
-        gfx::YELLOW_WARM);
+        simulation_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
 
     // --- Body Info ---
     if (m_is_tracking_body && m_tracked_body_index < m_sim.bodies().size()) {
@@ -257,7 +292,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
+            body_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
     } else {
         std::vector<std::pair<std::string, std::string>> body_info{
             {"Not tracking any body.", ""},
@@ -265,7 +300,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, gfx::YELLOW_PALE, gfx::YELLOW_WARM);
+            body_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
     }
 
     // --- Control Info ---
@@ -279,12 +314,12 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
         {"[[ / ]]",       "Scale Factor"        },
         {"[T]",           "Stop Tracking Body"  },
         {"[ESC]",         "Stop Tracking Body"  },
-        {"[Click]",       "Track Body"          }
+        {"[Click]",       "Track Body"          },
+        {"[Shift+Drag]",  "Launch Body"         }
     };
 
     impl::draw_label_pairs(
         control_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        control_info, gfx::M, gfx::XXS, -gfx::M, gfx::YELLOW_PALE,
-        gfx::YELLOW_WARM);
+        control_info, gfx::M, gfx::XXS, -gfx::M, LIGHTGRAY, WHITE);
 }
 }  // namespace nbody::scenario

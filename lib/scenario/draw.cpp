@@ -72,9 +72,9 @@ void draw_bodies_monocolor(
     for (const sim::BodyT<Float>& body : bodies) {
         const math::Vec2T<Float> center = camera.world_to_screen_vec(body.pos);
         const math::Vec2T<Float> edge = camera.world_to_screen_vec(
-            math::Vec2T<Float>{body.pos.x + std::cbrt(body.mass), body.pos.y});
+            math::Vec2T<Float>{body.pos.x + std::cbrt(body.mass * scale_factor), body.pos.y});
 
-        const Float radius = center.distance(edge) * scale_factor;
+        const Float radius = center.distance(edge);
 
         if (radius > 0.5 && center.x + radius >= 0 &&
             center.x - radius <= camera.screen_width &&

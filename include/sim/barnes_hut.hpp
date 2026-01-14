@@ -67,6 +67,7 @@ class BarnesHut : public SimInterface<Float> {
         Float                   softening{sim::scale_toy::SOFTENING};
         Float                   theta{0.5};
         bool                    parallel{false};
+        bool                    use_proper_verlet{false};
         IntegrateBodyFnT<Float> integrate_fn{integrate_body_euler<Float>};
     };
 
@@ -81,11 +82,13 @@ class BarnesHut : public SimInterface<Float> {
 
    private:
     std::vector<Body>       m_bodies;
+    std::vector<Vec2>       m_old_accelerations;
     QuadTree                m_quad_tree;
     Float                   m_g;
     Float                   m_softening;
     Float                   m_theta;
     bool                    m_parallel;
+    bool                    m_use_proper_verlet;
     IntegrateBodyFnT<Float> m_integrate_fn;
 };
 }  // namespace nbody::sim

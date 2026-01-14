@@ -16,27 +16,70 @@ Direct<Float>::Direct(const Config& config)
       m_g(config.g),
       m_softening(config.softening),
       m_parallel(config.parallel),
-      m_integrate_fn(config.integrate_fn) {}
+      m_use_proper_verlet(config.use_proper_verlet),
+      m_integrate_fn(config.integrate_fn) {
+    if (m_use_proper_verlet) {
+        m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
+    }
+}
 
 template <FloatT Float>
 void Direct<Float>::step(Float dt) {
-    if (m_parallel) {
-        parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                          [](Body& body) { body.acc = Vec2::make_zero(); });
-    } else {
+    if (m_use_proper_verlet) {
+        // Proper Velocity Verlet algorithm:
+        // 1. x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
+        // 2. Compute a(t+dt) from new positions
+        // 3. v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
+        
+        const Float half = 0.5;
+        const Float dt_sq = dt * dt;
+        
+        // Ensure old_accelerations is properly sized
+        if (m_old_accelerations.size() != m_bodies.size()) {
+            m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
+        }
+        
+        // Step 1: Update positions using current velocity and acceleration
+        for (USize i = 0; i < m_bodies.size(); ++i) {
+            Body& body = m_bodies[i];
+            // Save current acceleration as old
+            m_old_accelerations[i] = body.acc;
+            // Update position: x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
+            body.pos = body.pos.add(body.vel.scale(dt)).add(body.acc.scale(half * dt_sq));
+        }
+        
+        // Step 2: Clear and compute NEW accelerations from NEW positions
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
         }
-    }
-
-    impl_compute_acc();
-
-    if (m_parallel) {
-        parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                          [this, dt](Body& body) { m_integrate_fn(body, dt); });
+        impl_compute_acc();
+        
+        // Step 3: Update velocities using average of old and new accelerations
+        for (USize i = 0; i < m_bodies.size(); ++i) {
+            Body& body = m_bodies[i];
+            // v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
+            body.vel = body.vel.add(m_old_accelerations[i].add(body.acc).scale(half * dt));
+        }
     } else {
-        for (Body& body : m_bodies) {
-            m_integrate_fn(body, dt);
+        // Standard integration: compute accelerations first, then integrate
+        if (m_parallel) {
+            parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                              [](Body& body) { body.acc = Vec2::make_zero(); });
+        } else {
+            for (Body& body : m_bodies) {
+                body.acc = Vec2::make_zero();
+            }
+        }
+
+        impl_compute_acc();
+
+        if (m_parallel) {
+            parallel_for_each(m_bodies.begin(), m_bodies.end(),
+                              [this, dt](Body& body) { m_integrate_fn(body, dt); });
+        } else {
+            for (Body& body : m_bodies) {
+                m_integrate_fn(body, dt);
+            }
         }
     }
 }
@@ -44,6 +87,9 @@ void Direct<Float>::step(Float dt) {
 template <FloatT Float>
 void Direct<Float>::insert_body(Body&& body) {
     m_bodies.push_back(std::move(body));
+    if (m_use_proper_verlet) {
+        m_old_accelerations.push_back(Vec2::make_zero());
+    }
 }
 
 template <FloatT Float>
@@ -115,6 +161,17 @@ void Direct<Float>::impl_compute_acc_par() {
 
         body_i.acc = body_i.acc.add(acc);
     });
+}
+
+template <FloatT Float>
+void Direct<Float>::compute_initial_accelerations() {
+    // Clear accelerations
+    for (Body& body : m_bodies) {
+        body.acc = Vec2::make_zero();
+    }
+    
+    // Compute initial accelerations without integrating
+    impl_compute_acc();
 }
 
 template class Direct<F32>;
