@@ -1,5 +1,3 @@
-#include "scenario/barnes_hut_plummer.hpp"
-
 #include <raygui.h>
 #include <raylib.h>
 
@@ -11,6 +9,7 @@
 #include "gfx/const.hpp"
 #include "gfx/draw.hpp"
 #include "gfx/window.hpp"
+#include "scenario/barnes_hut_plummer.hpp"
 #include "scenario/draw.hpp"
 #include "scenario/impl.hpp"
 #include "sim/barnes_hut.hpp"
@@ -23,9 +22,9 @@ using namespace nbody::base::type;
 void BarnesHutPlummer::init(const gfx::Window& window) {
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
         .n           = 10000,
-        .min_mass    = sim::scale_au::MASS_HYGIEA,
+        .min_mass    = sim::scale_au::MASS_MARS,
         .max_mass    = sim::scale_au::MASS_SOL * 10,
-        .radius      = sim::scale_au::DISTANCE_AU * 10.0,
+        .radius      = sim::scale_au::DISTANCE_AU * 30.0,
         .position_fn = sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = sim::generate_mass_distribution_salpeter_imf<Float>,
     };
@@ -34,12 +33,11 @@ void BarnesHutPlummer::init(const gfx::Window& window) {
         sim::generate_distribution(generate_distribution_config);
 
     sim::BarnesHut<Float>::Config sim_config{
-        .bodies            = std::move(bodies),
-        .g                 = sim::scale_au::G,
-        .softening         = sim::scale_au::SOFTENING,
-        .parallel          = true,
-        .use_proper_verlet = true,
-        .integrate_fn      = sim::integrate_body_verlet<Float>,
+        .bodies       = std::move(bodies),
+        .g            = sim::scale_au::G,
+        .softening    = sim::scale_au::SOFTENING,
+        .parallel     = true,
+        .integrate_fn = sim::integrate_body_euler_semi_symplectic<Float>,
     };
 
     m_sim = sim::BarnesHut<Float>(sim_config);
@@ -58,6 +56,8 @@ void BarnesHutPlummer::init(const gfx::Window& window) {
         .cols   = 16,
         .rows   = 12,
     };
+
+    m_scale_factor = 10'000.0;
 }
 
 void BarnesHutPlummer::step(const gfx::Window& window) {
@@ -237,7 +237,7 @@ void BarnesHutPlummer::draw_ui(const gfx::Window& window) {
          sim::scale_au::TIME_MINUTE)},
         {"Scale Factor", std::format("{:.2f}", m_scale_factor)},
         {"FPS", std::to_string(GetFPS())},
-        {"Integrator", "Verlet"},
+        {"Integrator", "Euler Symplectic"},
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),

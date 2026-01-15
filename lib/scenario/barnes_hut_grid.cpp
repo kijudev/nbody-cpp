@@ -1,5 +1,3 @@
-#include "scenario/barnes_hut_grid.hpp"
-
 #include <raygui.h>
 #include <raylib.h>
 
@@ -11,6 +9,7 @@
 #include "gfx/const.hpp"
 #include "gfx/draw.hpp"
 #include "gfx/window.hpp"
+#include "scenario/barnes_hut_grid.hpp"
 #include "scenario/draw.hpp"
 #include "scenario/impl.hpp"
 #include "sim/barnes_hut.hpp"
@@ -21,7 +20,6 @@ namespace nbody::scenario {
 using namespace nbody::base::type;
 
 void BarnesHutGrid::init(const gfx::Window& window) {
-    // Generate a small number of bodies for clear grid visualization
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
         .n           = 100,
         .min_mass    = sim::scale_au::MASS_HYGIEA,
@@ -52,6 +50,8 @@ void BarnesHutGrid::init(const gfx::Window& window) {
         .movement_speed = sim::scale_au::DISTANCE_AU * 200.0,
         .scaling_speed  = 10.0,
     };
+
+    m_scale_factor = 100'000.0;
 
     m_grid = {
         .width  = window.width,
@@ -185,14 +185,14 @@ void BarnesHutGrid::draw_grid_visualization() {
     // Draw each quad as a rectangle
     for (const Quad& quad : quads) {
         // Calculate the corners of the quad in world space
-        Vec2 top_left = {quad.center.x - quad.size / 2.0, 
-                         quad.center.y + quad.size / 2.0};
-        Vec2 top_right = {quad.center.x + quad.size / 2.0, 
-                          quad.center.y + quad.size / 2.0};
-        Vec2 bottom_right = {quad.center.x + quad.size / 2.0, 
+        Vec2 top_left     = {quad.center.x - quad.size / 2.0,
+                             quad.center.y + quad.size / 2.0};
+        Vec2 top_right    = {quad.center.x + quad.size / 2.0,
+                             quad.center.y + quad.size / 2.0};
+        Vec2 bottom_right = {quad.center.x + quad.size / 2.0,
                              quad.center.y - quad.size / 2.0};
-        Vec2 bottom_left = {quad.center.x - quad.size / 2.0, 
-                            quad.center.y - quad.size / 2.0};
+        Vec2 bottom_left  = {quad.center.x - quad.size / 2.0,
+                             quad.center.y - quad.size / 2.0};
 
         // Convert to screen space
         Vec2 tl_screen = m_camera.world_to_screen_vec(top_left);
@@ -201,18 +201,22 @@ void BarnesHutGrid::draw_grid_visualization() {
         Vec2 bl_screen = m_camera.world_to_screen_vec(bottom_left);
 
         // Draw the quad boundaries
-        DrawLineV({static_cast<float>(tl_screen.x), static_cast<float>(tl_screen.y)},
-                  {static_cast<float>(tr_screen.x), static_cast<float>(tr_screen.y)},
-                  gfx::GREEN_PALE);
-        DrawLineV({static_cast<float>(tr_screen.x), static_cast<float>(tr_screen.y)},
-                  {static_cast<float>(br_screen.x), static_cast<float>(br_screen.y)},
-                  gfx::GREEN_PALE);
-        DrawLineV({static_cast<float>(br_screen.x), static_cast<float>(br_screen.y)},
-                  {static_cast<float>(bl_screen.x), static_cast<float>(bl_screen.y)},
-                  gfx::GREEN_PALE);
-        DrawLineV({static_cast<float>(bl_screen.x), static_cast<float>(bl_screen.y)},
-                  {static_cast<float>(tl_screen.x), static_cast<float>(tl_screen.y)},
-                  gfx::GREEN_PALE);
+        DrawLineV(
+            {static_cast<float>(tl_screen.x), static_cast<float>(tl_screen.y)},
+            {static_cast<float>(tr_screen.x), static_cast<float>(tr_screen.y)},
+            gfx::GREEN_PALE);
+        DrawLineV(
+            {static_cast<float>(tr_screen.x), static_cast<float>(tr_screen.y)},
+            {static_cast<float>(br_screen.x), static_cast<float>(br_screen.y)},
+            gfx::GREEN_PALE);
+        DrawLineV(
+            {static_cast<float>(br_screen.x), static_cast<float>(br_screen.y)},
+            {static_cast<float>(bl_screen.x), static_cast<float>(bl_screen.y)},
+            gfx::GREEN_PALE);
+        DrawLineV(
+            {static_cast<float>(bl_screen.x), static_cast<float>(bl_screen.y)},
+            {static_cast<float>(tl_screen.x), static_cast<float>(tl_screen.y)},
+            gfx::GREEN_PALE);
     }
 }
 
@@ -290,8 +294,7 @@ void BarnesHutGrid::draw_ui(const gfx::Window& window) {
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        simulation_info, gfx::M, gfx::XS, 0, gfx::GREEN_PALE,
-        gfx::GREEN_WARM);
+        simulation_info, gfx::M, gfx::XS, 0, gfx::GREEN_PALE, gfx::GREEN_WARM);
 
     // --- Body Info ---
     if (m_is_tracking_body && m_tracked_body_index < m_sim.bodies().size()) {

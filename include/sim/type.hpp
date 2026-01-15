@@ -31,7 +31,8 @@ class SimInterface {
 
     virtual void step(Float dt) = 0;
 
-    virtual std::span<const BodyT<Float>, std::dynamic_extent> bodies() const = 0;
+    virtual std::span<const BodyT<Float>, std::dynamic_extent> bodies()
+        const = 0;
 
     virtual void insert_body(BodyT<Float>&& body) = 0;
 };

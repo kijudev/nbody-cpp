@@ -1,5 +1,3 @@
-#include "scenario/barnes_hut_morton_plummer.hpp"
-
 #include <raygui.h>
 #include <raylib.h>
 
@@ -11,6 +9,7 @@
 #include "gfx/const.hpp"
 #include "gfx/draw.hpp"
 #include "gfx/window.hpp"
+#include "scenario/barnes_hut_morton_plummer.hpp"
 #include "scenario/draw.hpp"
 #include "scenario/impl.hpp"
 #include "sim/barnes_hut_morton.hpp"
@@ -34,13 +33,12 @@ void BarnesHutMortonPlummer::init(const gfx::Window& window) {
         sim::generate_distribution(generate_distribution_config);
 
     sim::BarnesHutMorton<Float>::Config sim_config{
-        .bodies            = std::move(bodies),
-        .g                 = sim::scale_au::G,
-        .softening         = sim::scale_au::SOFTENING,
-        .theta             = 0.5,
-        .parallel          = true,
-        .use_proper_verlet = true,
-        .integrate_fn      = sim::integrate_body_verlet<Float>,
+        .bodies       = std::move(bodies),
+        .g            = sim::scale_au::G,
+        .softening    = sim::scale_au::SOFTENING,
+        .theta        = 0.5,
+        .parallel     = true,
+        .integrate_fn = sim::integrate_body_euler_semi_symplectic<Float>,
     };
 
     m_sim = sim::BarnesHutMorton<Float>(sim_config);
@@ -59,6 +57,8 @@ void BarnesHutMortonPlummer::init(const gfx::Window& window) {
         .cols   = 16,
         .rows   = 12,
     };
+
+    m_scale_factor = 100'000.0;
 }
 
 void BarnesHutMortonPlummer::step(const gfx::Window& window) {
@@ -240,7 +240,7 @@ void BarnesHutMortonPlummer::draw_ui(const gfx::Window& window) {
          sim::scale_au::TIME_MINUTE)},
         {"Scale Factor", std::format("{:.2f}", m_scale_factor)},
         {"FPS", std::to_string(GetFPS())},
-        {"Integrator", "Verlet"},
+        {"Integrator", "Euler Symplectic"},
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),

@@ -61,7 +61,8 @@ int main() {
          .state = AppState::BarnesHutPlummer,
          },
         {
-         .name = "Barnes-Hut Morton model",
+         .name  = "Barnes-Hut Morton Plummer model",
+         .state = AppState::BarnesHutMortonPlummer,
          },
         {
          .name  = "Barnes-Hut Grid Visualization",

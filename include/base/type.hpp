@@ -1,5 +1,6 @@
 // This header contains some of basic utilities:
-// - Type aliases for basic data types conforming with the design principles of the project.
+// - Type aliases for basic data types conforming with the design principles of
+// the project.
 // - Macros for common operations.
 
 #pragma once
@@ -10,7 +11,8 @@
 #include <vector>
 
 namespace nbody::base::type {
-// NOTE: Type aliases for basic data types conforming with the design principles of the project.
+// NOTE: Type aliases for basic data types conforming with the design principles
+// of the project.
 // WHY: I am just being pedantic about the naming conventions :)
 using U8    = std::uint8_t;
 using U16   = std::uint16_t;
@@ -31,12 +33,12 @@ template <typename Float>
 concept FloatT = std::same_as<Float, float> || std::same_as<Float, double>;
 
 template <typename Uint>
-concept UintT = std::same_as<Uint, U8> || std::same_as<Uint, U16> || std::same_as<Uint, U32> ||
-                std::same_as<Uint, U64>;
+concept UintT = std::same_as<Uint, U8> || std::same_as<Uint, U16> ||
+                std::same_as<Uint, U32> || std::same_as<Uint, U64>;
 
 template <typename Int>
-concept IntT = std::same_as<Int, I8> || std::same_as<Int, I16> || std::same_as<Int, I32> ||
-               std::same_as<Int, I64>;
+concept IntT = std::same_as<Int, I8> || std::same_as<Int, I16> ||
+               std::same_as<Int, I32> || std::same_as<Int, I64>;
 
 template <typename Number>
 concept NumberT = FloatT<Number> || UintT<Number> || IntT<Number>;

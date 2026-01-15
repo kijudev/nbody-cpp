@@ -1,11 +1,10 @@
-#include "sim/barnes_hut.hpp"
-
 #include <algorithm>
 #include <array>
 #include <iostream>
 
 #include "base/parallel.hpp"
 #include "base/type.hpp"
+#include "sim/barnes_hut.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;
@@ -35,33 +34,29 @@ void BarnesHut<Float>::insert_body(Body&& body) {
 template <FloatT Float>
 void BarnesHut<Float>::step(Float dt) {
     if (m_use_proper_verlet) {
-        // Proper Velocity Verlet algorithm:
-        // 1. x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
-        // 2. Compute a(t+dt) from new positions
-        // 3. v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
-        
-        const Float half = 0.5;
+        // NOTE: Proper Velocity Verlet algorithm.
+        // (1) x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
+        // (2) Compute a(t+dt) from new positions
+        // (3) v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
+
+        const Float half  = 0.5;
         const Float dt_sq = dt * dt;
-        
-        // Ensure old_accelerations is properly sized
+
         if (m_old_accelerations.size() != m_bodies.size()) {
             m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
         }
-        
-        // Step 1: Update positions using current velocity and acceleration
+
         for (USize i = 0; i < m_bodies.size(); ++i) {
-            Body& body = m_bodies[i];
-            // Save current acceleration as old
+            Body& body             = m_bodies[i];
             m_old_accelerations[i] = body.acc;
-            // Update position: x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
-            body.pos = body.pos.add(body.vel.scale(dt)).add(body.acc.scale(half * dt_sq));
+            body.pos               = body.pos.add(body.vel.scale(dt))
+                           .add(body.acc.scale(half * dt_sq));
         }
-        
-        // Step 2: Clear and compute NEW accelerations from NEW positions
+
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
         }
-        
+
         Quad root_quad = Quad::make_containing_bodies(m_bodies);
         m_quad_tree.clear(root_quad);
 
@@ -76,15 +71,13 @@ void BarnesHut<Float>::step(Float dt) {
                                                       m_softening, m_theta);
             body.acc = body.acc.add(acc);
         }
-        
-        // Step 3: Update velocities using average of old and new accelerations
+
         for (USize i = 0; i < m_bodies.size(); ++i) {
             Body& body = m_bodies[i];
-            // v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
-            body.vel = body.vel.add(m_old_accelerations[i].add(body.acc).scale(half * dt));
+            body.vel   = body.vel.add(
+                m_old_accelerations[i].add(body.acc).scale(half * dt));
         }
     } else {
-        // Standard integration: compute accelerations first, then integrate
         if (m_parallel) {
             base::parallel_for_each(
                 m_bodies.begin(), m_bodies.end(),
@@ -105,12 +98,12 @@ void BarnesHut<Float>::step(Float dt) {
         m_quad_tree.propagate_up_pos_mass();
 
         if (m_parallel) {
-            base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                    [this](Body& body) {
-                                        Vec2 acc = m_quad_tree.propagate_down_acc(
-                                            body.pos, m_g, m_softening, m_theta);
-                                        body.acc = body.acc.add(acc);
-                                    });
+            base::parallel_for_each(
+                m_bodies.begin(), m_bodies.end(), [this](Body& body) {
+                    Vec2 acc = m_quad_tree.propagate_down_acc(
+                        body.pos, m_g, m_softening, m_theta);
+                    body.acc = body.acc.add(acc);
+                });
         } else {
             for (Body& body : m_bodies) {
                 Vec2 acc = m_quad_tree.propagate_down_acc(body.pos, m_g,
@@ -141,11 +134,11 @@ template <FloatT Float>
 std::vector<typename BarnesHut<Float>::Quad> BarnesHut<Float>::quads() const {
     std::vector<Quad> result;
     result.reserve(m_quad_tree.nodes.size());
-    
+
     for (const Node& node : m_quad_tree.nodes) {
         result.push_back(node.quad);
     }
-    
+
     return result;
 }
 

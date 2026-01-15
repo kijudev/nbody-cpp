@@ -1,5 +1,3 @@
-#include "scenario/galaxy.hpp"
-
 #include <raygui.h>
 #include <raylib.h>
 
@@ -12,6 +10,7 @@
 #include "gfx/draw.hpp"
 #include "gfx/window.hpp"
 #include "scenario/draw.hpp"
+#include "scenario/galaxy.hpp"
 #include "scenario/impl.hpp"
 #include "sim/barnes_hut.hpp"
 #include "sim/const.hpp"
@@ -21,15 +20,18 @@ namespace nbody::scenario {
 using namespace nbody::base::type;
 
 void Galaxy::init(const gfx::Window& window) {
-    // Generate a galaxy with Plummer distribution and circular orbital velocities
-    constexpr Float galaxy_radius = sim::scale_au::DISTANCE_AU * 100.0;  // 200 AU diameter
-    constexpr Float central_mass = sim::scale_au::MASS_SOL * 1e6;  // Central supermassive black hole
+    // Generate a galaxy with Plummer distribution and circular orbital
+    // velocities
+    constexpr Float galaxy_radius =
+        sim::scale_au::DISTANCE_AU * 100.0;  // 200 AU diameter
+    constexpr Float central_mass =
+        sim::scale_au::MASS_SOL * 1e6;  // Central supermassive black hole
 
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 15000,
-        .min_mass    = sim::scale_au::MASS_HYGIEA,
-        .max_mass    = sim::scale_au::MASS_SOL * 50.0,
-        .radius      = galaxy_radius,
+        .n               = 15000,
+        .min_mass        = sim::scale_au::MASS_HYGIEA,
+        .max_mass        = sim::scale_au::MASS_SOL * 50.0,
+        .radius          = galaxy_radius,
         .velocity_center = {0.0, 0.0},
         .central_mass    = central_mass,
         .position_fn = sim::generate_position_distribution_plummer_model<Float>,
@@ -49,12 +51,11 @@ void Galaxy::init(const gfx::Window& window) {
     bodies.insert(bodies.begin(), central_body);
 
     sim::BarnesHut<Float>::Config sim_config{
-        .bodies            = std::move(bodies),
-        .g                 = sim::scale_au::G,
-        .softening         = sim::scale_au::SOFTENING * 2.0,
-        .parallel          = true,
-        .use_proper_verlet = true,
-        .integrate_fn      = sim::integrate_body_verlet<Float>,
+        .bodies       = std::move(bodies),
+        .g            = sim::scale_au::G,
+        .softening    = sim::scale_au::SOFTENING * 2.0,
+        .parallel     = true,
+        .integrate_fn = sim::integrate_body_euler_semi_symplectic<Float>,
     };
 
     m_sim = sim::BarnesHut<Float>(sim_config);
@@ -73,6 +74,9 @@ void Galaxy::init(const gfx::Window& window) {
         .cols   = 16,
         .rows   = 12,
     };
+
+    m_scale_factor = 100'000.0;
+    m_time_factor  = 0.1;
 }
 
 void Galaxy::step(const gfx::Window& window) {
@@ -179,28 +183,30 @@ void Galaxy::draw_sim() {
         return;
     }
 
-    // Draw the central supermassive black hole in a distinctive color
     if (!m_sim.bodies().empty()) {
         const Body& central_body = m_sim.bodies()[0];
-        const Vec2 center = m_camera.world_to_screen_vec(central_body.pos);
+        const Vec2  center = m_camera.world_to_screen_vec(central_body.pos);
 
-        // Give black hole a fixed world-space size (in AU) independent of m_scale_factor
-        // This prevents it from scaling when user adjusts star sizes
-        Float world_radius = sim::scale_au::DISTANCE_AU * 2.0;  // 2 AU radius
-        const Vec2 edge_pos = {central_body.pos.x + world_radius, central_body.pos.y};
-        const Vec2 edge_screen = m_camera.world_to_screen_vec(edge_pos);
-        Float screen_radius = std::max(4.0, center.distance(edge_screen));
+        Float      world_radius  = sim::scale_au::DISTANCE_AU * 2.0;
+        const Vec2 edge_pos      = {central_body.pos.x + world_radius,
+                                    central_body.pos.y};
+        const Vec2 edge_screen   = m_camera.world_to_screen_vec(edge_pos);
+        Float      screen_radius = std::max(4.0, center.distance(edge_screen));
 
-        DrawCircleV({static_cast<float>(center.x), static_cast<float>(center.y)},
-                    static_cast<float>(screen_radius), gfx::ORANGE_WARM);
-        DrawCircleV({static_cast<float>(center.x), static_cast<float>(center.y)},
-                    static_cast<float>(screen_radius * 0.4), BLACK);
+        DrawCircleV(
+            {static_cast<float>(center.x), static_cast<float>(center.y)},
+            static_cast<float>(screen_radius), gfx::ORANGE_WARM);
+        DrawCircleV(
+            {static_cast<float>(center.x), static_cast<float>(center.y)},
+            static_cast<float>(screen_radius * 0.4), BLACK);
     }
 
     // Draw the rest of the galaxy bodies
     if (m_sim.bodies().size() > 1) {
-        std::span<const Body> galaxy_bodies(m_sim.bodies().data() + 1, m_sim.bodies().size() - 1);
-        impl::draw_bodies_monocolor(m_camera, m_scale_factor, galaxy_bodies, WHITE);
+        std::span<const Body> galaxy_bodies(m_sim.bodies().data() + 1,
+                                            m_sim.bodies().size() - 1);
+        impl::draw_bodies_monocolor(m_camera, m_scale_factor, galaxy_bodies,
+                                    WHITE);
     }
 }
 
@@ -221,8 +227,8 @@ void Galaxy::draw_ui(const gfx::Window& window) {
     m_grid.width  = window.width;
     m_grid.height = window.height;
 
-    impl::draw_cross_center(m_camera, gfx::L, 2, WHITE);
-    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, WHITE);
+    impl::draw_cross_center(m_camera, gfx::L, 2, gfx::BLUE_WARM);
+    impl::draw_ruler_au(m_camera, gfx::XL, gfx::XL, 0.5, gfx::BLUE_WARM);
 
     gfx::Box general_info_box = m_grid.span(0, 2, 0, 2)
                                     .with_padding_left(gfx::S)
@@ -252,7 +258,7 @@ void Galaxy::draw_ui(const gfx::Window& window) {
 
     gfx::draw_text(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        gfx::Layout::TopLeft, gfx::L, "Galaxy Simulation", WHITE);
+        gfx::Layout::TopLeft, gfx::L, "Galaxy Simulation", gfx::BLUE_WARM);
 
     std::vector<std::pair<std::string, std::string>> general_info{
         {"Particles", std::to_string(m_sim.bodies().size())},
@@ -264,7 +270,7 @@ void Galaxy::draw_ui(const gfx::Window& window) {
     impl::draw_label_pairs(
         general_info_box.with_padding_left(gfx::S).with_padding_top(gfx::L +
                                                                     gfx::M * 2),
-        general_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
+        general_info, gfx::M, gfx::XS, 0, gfx::BLUE_PALE, gfx::BLUE_WARM);
 
     std::vector<std::pair<std::string, std::string>> simulation_info{
         {"Time Factor",
@@ -273,11 +279,11 @@ void Galaxy::draw_ui(const gfx::Window& window) {
          sim::scale_au::TIME_MINUTE)},
         {"Scale Factor", std::format("{:.2f}", m_scale_factor)},
         {"FPS", std::to_string(GetFPS())},
-        {"Integrator", "Verlet"},
+        {"Integrator", "Euler Symplectic"},
     };
     impl::draw_label_pairs(
         simulation_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        simulation_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
+        simulation_info, gfx::M, gfx::XS, 0, gfx::BLUE_PALE, gfx::BLUE_WARM);
 
     // --- Body Info ---
     if (m_is_tracking_body && m_tracked_body_index < m_sim.bodies().size()) {
@@ -292,7 +298,7 @@ void Galaxy::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
+            body_info, gfx::M, gfx::XS, 0, gfx::BLUE_PALE, gfx::BLUE_WARM);
     } else {
         std::vector<std::pair<std::string, std::string>> body_info{
             {"Not tracking any body.", ""},
@@ -300,7 +306,7 @@ void Galaxy::draw_ui(const gfx::Window& window) {
         };
         impl::draw_label_pairs(
             body_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-            body_info, gfx::M, gfx::XS, 0, LIGHTGRAY, WHITE);
+            body_info, gfx::M, gfx::XS, 0, gfx::BLUE_PALE, gfx::BLUE_WARM);
     }
 
     // --- Control Info ---
@@ -320,6 +326,7 @@ void Galaxy::draw_ui(const gfx::Window& window) {
 
     impl::draw_label_pairs(
         control_info_box.with_padding_left(gfx::S).with_padding_top(gfx::M),
-        control_info, gfx::M, gfx::XXS, -gfx::M, LIGHTGRAY, WHITE);
+        control_info, gfx::M, gfx::XXS, -gfx::M, gfx::BLUE_PALE,
+        gfx::BLUE_WARM);
 }
 }  // namespace nbody::scenario

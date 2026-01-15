@@ -1,5 +1,3 @@
-#include "sim/barnes_hut_morton.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -8,6 +6,7 @@
 #include "base/parallel.hpp"
 #include "base/radix.hpp"
 #include "math/morton.hpp"
+#include "sim/barnes_hut_morton.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base::type;
@@ -33,48 +32,42 @@ BarnesHutMorton<Float, MortonCode>::BarnesHutMorton(const Config& config)
 template <FloatT Float, math::MortonCodeT MortonCode>
 void BarnesHutMorton<Float, MortonCode>::step(Float dt) {
     if (m_use_proper_verlet) {
-        // Proper Velocity Verlet algorithm:
-        // 1. x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
-        // 2. Compute a(t+dt) from new positions
-        // 3. v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
-        
-        const Float half = 0.5;
+        // NOTE: Proper Velocity Verlet algorithm.
+        // (1) x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2.
+        // (2) Compute a(t+dt) from new positions.
+        // (3) v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt.
+
+        const Float half  = 0.5;
         const Float dt_sq = dt * dt;
-        
-        // Ensure old_accelerations is properly sized
+
         if (m_old_accelerations.size() != m_bodies.size()) {
             m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
         }
-        
-        // Step 1: Update positions using current velocity and acceleration
+
         for (USize i = 0; i < m_bodies.size(); ++i) {
-            Body& body = m_bodies[i];
-            // Save current acceleration as old
+            Body& body             = m_bodies[i];
             m_old_accelerations[i] = body.acc;
-            // Update position: x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
-            body.pos = body.pos.add(body.vel.scale(dt)).add(body.acc.scale(half * dt_sq));
+            body.pos               = body.pos.add(body.vel.scale(dt))
+                           .add(body.acc.scale(half * dt_sq));
         }
-        
-        // Step 2: Clear and compute NEW accelerations from NEW positions
+
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
         }
-        
+
         build_tree();
-        
+
         for (const MortonBody& mb : m_morton_bodies) {
-            Vec2 acc = compute_acceleration(mb.body_idx);
+            Vec2 acc                  = compute_acceleration(mb.body_idx);
             m_bodies[mb.body_idx].acc = m_bodies[mb.body_idx].acc.add(acc);
         }
-        
-        // Step 3: Update velocities using average of old and new accelerations
+
         for (USize i = 0; i < m_bodies.size(); ++i) {
             Body& body = m_bodies[i];
-            // v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
-            body.vel = body.vel.add(m_old_accelerations[i].add(body.acc).scale(half * dt));
+            body.vel   = body.vel.add(
+                m_old_accelerations[i].add(body.acc).scale(half * dt));
         }
     } else {
-        // Standard integration: compute accelerations first, then integrate
         if (m_parallel) {
             base::parallel_for_each(
                 m_bodies.begin(), m_bodies.end(),
@@ -90,13 +83,14 @@ void BarnesHutMorton<Float, MortonCode>::step(Float dt) {
         if (m_parallel) {
             std::vector<Vec2> accelerations(m_bodies.size(), Vec2::make_zero());
 
-            // Note: bodies have been reordered to match m_morton_bodies order, so
-            // this access pattern is now linear in memory.
-            base::parallel_for_each(m_morton_bodies.begin(), m_morton_bodies.end(),
-                                    [this, &accelerations](const MortonBody& mb) {
-                                        accelerations[mb.body_idx] =
-                                            compute_acceleration(mb.body_idx);
-                                    });
+            // NOTE: bodies have been reordered to match m_morton_bodies order,
+            // so this access pattern is now linear in memory.
+            base::parallel_for_each(
+                m_morton_bodies.begin(), m_morton_bodies.end(),
+                [this, &accelerations](const MortonBody& mb) {
+                    accelerations[mb.body_idx] =
+                        compute_acceleration(mb.body_idx);
+                });
 
             for (USize i = 0; i < m_bodies.size(); ++i) {
                 m_bodies[i].acc = m_bodies[i].acc.add(accelerations[i]);
@@ -258,8 +252,6 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(
         quadrant_bounds[q + 1] =
             static_cast<USize>(it - m_morton_bodies.begin());
 
-        // Optimization: Advance current_pos to avoid searching already
-        // processed range
         current_pos = quadrant_bounds[q + 1];
     }
 

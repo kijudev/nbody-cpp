@@ -25,15 +25,15 @@ class BarnesHutMorton : public SimInterface<Float> {
     static constexpr USize MAX_DEPTH    = BITS_PER_DIM;
 
     struct Node {
-        MortonCode prefix;     // Morton code prefix identifying this node's
-                               // spatial region
-        U8    level;           // Tree level (0 = root, MAX_DEPTH = leaves)
-        Vec2  center_of_mass;  // Center of mass of all bodies in this subtree
-        Float total_mass;      // Total mass of all bodies in this subtree
-        Float size;       // Spatial extent (side length) of this node's region
-        USize first_idx;  // First body index (inclusive) in sorted array
-        USize last_idx;   // Last body index (exclusive) in sorted array
-        USize children[4];  // Indices of child nodes (NODE_EMPTY if no child)
+        MortonCode prefix;
+
+        U8    level;
+        Vec2  center_of_mass;
+        Float total_mass;
+        Float size;
+        USize first_idx;
+        USize last_idx;
+        USize children[4];
 
         static constexpr USize NODE_EMPTY = std::numeric_limits<USize>::max();
 

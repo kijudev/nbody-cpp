@@ -27,13 +27,6 @@ add_compile_options($<$<CONFIG:Production>:-DNLOG>)
 add_link_options($<$<CONFIG:Production>:-s>)
 
 find_package(raylib REQUIRED)
-
-find_path(raygui_SRC_DIR raygui.h PATH_SUFFIXES src)
-
-if(NOT raygui_SRC_DIR)
-    message(FATAL_ERROR "Could not find raygui.h in src")
-endif()
-
 include_directories(${raygui_SRC_DIR}/src)
 include_directories(${raygui_SRC_DIR}/styles)
 

@@ -21,27 +21,26 @@ std::optional<USize> get_body_at_mouse_position_au(
     gfx::Camera<Float>                                      camera,
     std::span<const sim::BodyT<Float>, std::dynamic_extent> bodies);
 
-// --- Slingshot System ---
-
 template <FloatT Float>
 struct SlingshotState {
-    bool                is_active{false};
-    math::Vec2T<Float>  start_pos{0.0, 0.0};
-    math::Vec2T<Float>  current_pos{0.0, 0.0};
-    Float               base_mass{1.0};
-    Float               radius_scale{0.5};       // Multiplier for radius calculation
-    Float               velocity_scale{1.0};     // Multiplier for velocity calculation
+    bool               is_active{false};
+    math::Vec2T<Float> start_pos{0.0, 0.0};
+    math::Vec2T<Float> current_pos{0.0, 0.0};
+    Float              base_mass{1.0};
+    Float              radius_scale{0.5};
+    Float              velocity_scale{1.0};
 };
 
 template <FloatT Float>
-void handle_slingshot_input(SlingshotState<Float>& state, const gfx::Camera<Float>& camera);
+void handle_slingshot_input(SlingshotState<Float>&    state,
+                            const gfx::Camera<Float>& camera);
 
 template <FloatT Float>
-void draw_slingshot(const SlingshotState<Float>& state, const gfx::Camera<Float>& camera, 
-                    Float scale_factor);
+void draw_slingshot(const SlingshotState<Float>& state,
+                    const gfx::Camera<Float>& camera, Float scale_factor);
 
 template <FloatT Float>
-sim::BodyT<Float> create_slingshot_body(const SlingshotState<Float>& state, 
-                                        const gfx::Camera<Float>& camera);
+sim::BodyT<Float> create_slingshot_body(const SlingshotState<Float>& state,
+                                        const gfx::Camera<Float>&    camera);
 
 }  // namespace nbody::scenario::impl

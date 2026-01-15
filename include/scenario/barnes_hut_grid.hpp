@@ -40,9 +40,9 @@ class BarnesHutGrid : public ScenarioInterface {
 
     // --- Simulation ---
     sim::BarnesHut<F64> m_sim{};
-    Float                          m_time_factor{sim::scale_au::TIME_YEAR};
-    Float                          m_scale_factor{50.0};
-    Float                          m_simulation_time{0.0};
+    Float               m_time_factor{sim::scale_au::TIME_YEAR};
+    Float               m_scale_factor{50.0};
+    Float               m_simulation_time{0.0};
 
     // --- Drawing ---
     gfx::Camera<Float> m_camera{};
@@ -58,8 +58,8 @@ class BarnesHutGrid : public ScenarioInterface {
 
     // --- Slingshot State ---
     impl::SlingshotState<Float> m_slingshot_state{
-        .base_mass = sim::scale_au::MASS_EARTH,
-        .radius_scale = 0.5,
+        .base_mass      = sim::scale_au::MASS_EARTH,
+        .radius_scale   = 0.5,
         .velocity_scale = 1.0,
     };
 };

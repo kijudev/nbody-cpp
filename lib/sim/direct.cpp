@@ -1,10 +1,9 @@
-#include "sim/direct.hpp"
-
 #include <algorithm>
 #include <cmath>
 
 #include "base/parallel.hpp"
 #include "base/type.hpp"
+#include "sim/direct.hpp"
 
 namespace nbody::sim {
 using namespace nbody::base;
@@ -26,42 +25,36 @@ Direct<Float>::Direct(const Config& config)
 template <FloatT Float>
 void Direct<Float>::step(Float dt) {
     if (m_use_proper_verlet) {
-        // Proper Velocity Verlet algorithm:
-        // 1. x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
-        // 2. Compute a(t+dt) from new positions
-        // 3. v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
-        
-        const Float half = 0.5;
+        // NOTE: Proper Velocity Verlet algorithm:
+        // (1) x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
+        // (2) Compute a(t+dt) from new positions
+        // (3) v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
+
+        const Float half  = 0.5;
         const Float dt_sq = dt * dt;
-        
-        // Ensure old_accelerations is properly sized
+
         if (m_old_accelerations.size() != m_bodies.size()) {
             m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
         }
-        
-        // Step 1: Update positions using current velocity and acceleration
+
         for (USize i = 0; i < m_bodies.size(); ++i) {
-            Body& body = m_bodies[i];
-            // Save current acceleration as old
+            Body& body             = m_bodies[i];
             m_old_accelerations[i] = body.acc;
-            // Update position: x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2
-            body.pos = body.pos.add(body.vel.scale(dt)).add(body.acc.scale(half * dt_sq));
+            body.pos               = body.pos.add(body.vel.scale(dt))
+                           .add(body.acc.scale(half * dt_sq));
         }
-        
-        // Step 2: Clear and compute NEW accelerations from NEW positions
+
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
         }
         impl_compute_acc();
-        
-        // Step 3: Update velocities using average of old and new accelerations
+
         for (USize i = 0; i < m_bodies.size(); ++i) {
             Body& body = m_bodies[i];
-            // v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt
-            body.vel = body.vel.add(m_old_accelerations[i].add(body.acc).scale(half * dt));
+            body.vel   = body.vel.add(
+                m_old_accelerations[i].add(body.acc).scale(half * dt));
         }
     } else {
-        // Standard integration: compute accelerations first, then integrate
         if (m_parallel) {
             parallel_for_each(m_bodies.begin(), m_bodies.end(),
                               [](Body& body) { body.acc = Vec2::make_zero(); });
@@ -74,8 +67,9 @@ void Direct<Float>::step(Float dt) {
         impl_compute_acc();
 
         if (m_parallel) {
-            parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                              [this, dt](Body& body) { m_integrate_fn(body, dt); });
+            parallel_for_each(
+                m_bodies.begin(), m_bodies.end(),
+                [this, dt](Body& body) { m_integrate_fn(body, dt); });
         } else {
             for (Body& body : m_bodies) {
                 m_integrate_fn(body, dt);
@@ -93,7 +87,8 @@ void Direct<Float>::insert_body(Body&& body) {
 }
 
 template <FloatT Float>
-std::span<const typename Direct<Float>::Body, std::dynamic_extent> Direct<Float>::bodies() const {
+std::span<const typename Direct<Float>::Body, std::dynamic_extent>
+Direct<Float>::bodies() const {
     return m_bodies;
 }
 
@@ -122,8 +117,9 @@ void Direct<Float>::impl_compute_acc_seq() {
             const Vec2  delta   = m_bodies[j].pos.sub(m_bodies[i].pos);
             const Float dist_sq = delta.length_sq();
 
-            const Float denominator = (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
-            const Float factor      = m_g * m_bodies[j].mass / denominator;
+            const Float denominator =
+                (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
+            const Float factor = m_g * m_bodies[j].mass / denominator;
 
             acc.x += factor * delta.x;
             acc.y += factor * delta.y;
@@ -138,39 +134,41 @@ void Direct<Float>::impl_compute_acc_par() {
     const Float softening_sq = m_softening * m_softening;
     const USize n            = m_bodies.size();
 
-    parallel_for_each(m_bodies.begin(), m_bodies.end(), [this, softening_sq, n](Body& body_i) {
-        Vec2 acc = Vec2::make_zero();
+    parallel_for_each(
+        m_bodies.begin(), m_bodies.end(),
+        [this, softening_sq, n](Body& body_i) {
+            Vec2 acc = Vec2::make_zero();
 
-        for (USize j = 0; j < n; ++j) {
-            const Body& body_j = m_bodies[j];
+            for (USize j = 0; j < n; ++j) {
+                const Body& body_j = m_bodies[j];
 
-            if (body_i.pos.is_approx_equal(body_j.pos) &&
-                std::abs(body_i.mass - body_j.mass) < static_cast<Float>(1e-10)) {
-                continue;
+                if (body_i.pos.is_approx_equal(body_j.pos) &&
+                    std::abs(body_i.mass - body_j.mass) <
+                        static_cast<Float>(1e-10)) {
+                    continue;
+                }
+
+                const Vec2  delta   = body_j.pos.sub(body_i.pos);
+                const Float dist_sq = delta.length_sq();
+
+                const Float denominator = (dist_sq + softening_sq) *
+                                          std::sqrt(dist_sq + softening_sq);
+                const Float factor = m_g * body_j.mass / denominator;
+
+                acc.x += factor * delta.x;
+                acc.y += factor * delta.y;
             }
 
-            const Vec2  delta   = body_j.pos.sub(body_i.pos);
-            const Float dist_sq = delta.length_sq();
-
-            const Float denominator = (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
-            const Float factor      = m_g * body_j.mass / denominator;
-
-            acc.x += factor * delta.x;
-            acc.y += factor * delta.y;
-        }
-
-        body_i.acc = body_i.acc.add(acc);
-    });
+            body_i.acc = body_i.acc.add(acc);
+        });
 }
 
 template <FloatT Float>
 void Direct<Float>::compute_initial_accelerations() {
-    // Clear accelerations
     for (Body& body : m_bodies) {
         body.acc = Vec2::make_zero();
     }
-    
-    // Compute initial accelerations without integrating
+
     impl_compute_acc();
 }
 

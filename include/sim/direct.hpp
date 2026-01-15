@@ -24,7 +24,7 @@ class Direct : public SimInterface<Float> {
         Float                   g{sim::scale_toy::G};
         Float                   softening{sim::scale_toy::SOFTENING};
         bool                    parallel{false};
-        bool                    use_proper_verlet{false};  // Use proper Velocity Verlet with stored old acc
+        bool                    use_proper_verlet{false};
         IntegrateBodyFnT<Float> integrate_fn{integrate_body_euler<Float>};
     };
 
@@ -35,7 +35,8 @@ class Direct : public SimInterface<Float> {
     void insert_body(Body&& body) override;
     void compute_initial_accelerations();
 
-    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const override;
+    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies()
+        const override;
 
    private:
     void impl_compute_acc();
@@ -43,7 +44,7 @@ class Direct : public SimInterface<Float> {
     void impl_compute_acc_seq();
 
     std::vector<Body>       m_bodies;
-    std::vector<Vec2>       m_old_accelerations;  // For proper Verlet
+    std::vector<Vec2>       m_old_accelerations;
     Float                   m_g;
     Float                   m_softening;
     bool                    m_parallel;
