@@ -1,3 +1,10 @@
+// ==============================================================================
+// collision.hpp
+// Collision detection helpers for geometric primitives (rectangles, circles).
+// Provides templated functions for point-rectangle and circle-rectangle
+// collision.
+// ==============================================================================
+
 #include "base/type.hpp"
 
 namespace nbody::math {

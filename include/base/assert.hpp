@@ -1,5 +1,8 @@
+// ==============================================================================
+// assert.hpp
 // Provides assertion and panic macros for runtime and compile-time checks.
 // Includes formatted error messages and logging integration.
+// ==============================================================================
 
 #pragma once
 

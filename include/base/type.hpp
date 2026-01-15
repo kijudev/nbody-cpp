@@ -1,6 +1,9 @@
+// ==============================================================================
+// type.hpp
 // Common typedefs and concepts for numeric types used throughout the project.
 // Includes type aliases for integer and floating-point types, and concepts for
 // constraining templates to specific numeric categories.
+// ==============================================================================
 
 #pragma once
 

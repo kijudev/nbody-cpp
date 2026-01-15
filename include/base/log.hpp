@@ -1,5 +1,8 @@
+// ==============================================================================
+// log.hpp
 // Logging utilities for the nbody project.
 // Provides log levels, logger interfaces, and macros for logging to console and file.
+// ==============================================================================
 
 #pragma once
 

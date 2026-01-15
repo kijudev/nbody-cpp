@@ -1,19 +1,11 @@
-// NOTE: Morton codes are a way to turn 2D or 3D coordinates into one number.
-// This number has a special property: it divides the space into what is
-// essencialy a nested quad tree in the following fashion:
-//       ^ Y
-//       |
-//       |   +-------+-------+
-//       |   |       |       |
-//       |   |   2   |   3   |
-//       |   |       |       |
-//       |   +-------+-------+
-//       |   |       |       |
-//       |   |   0   |   1   |
-//       |   |       |       |
-//       |   +-------+-------+
-//       +----------------------> X
-// This bit ordering is represented in the bit represention of the morton code.
+// ==============================================================================
+// morton.hpp
+// Flexible, templated 2D Morton encoder utilities for spatial indexing.
+// Provides functions to encode 2D/3D coordinates into Morton codes (Z-order
+// curve), which are useful for spatial partitioning (e.g., quadtrees). Includes
+// helpers for bit expansion, normalization, and encoding for both float and
+// integer types. See below for details on the bit layout and usage.
+// ==============================================================================
 
 #pragma once
 

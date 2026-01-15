@@ -1,5 +1,8 @@
+// ==============================================================================
+// parallel.hpp
 // Parallel iteration helpers and thread utilities for the nbody project.
 // Provides utilities for running loops in parallel using std::thread.
+// ==============================================================================
 
 #pragma once
 
