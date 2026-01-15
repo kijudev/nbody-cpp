@@ -296,11 +296,12 @@ namespace config {
 template <FloatT Float>
 typename Direct<Float>::Config direct_toy(std::vector<BodyT<Float>> bodies, bool parallel) {
     return typename Direct<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_toy::G),
-        .softening    = static_cast<Float>(scale_toy::SOFTENING),
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_euler<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_toy::G),
+        .softening         = static_cast<Float>(scale_toy::SOFTENING),
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -310,11 +311,12 @@ template Direct<F64>::Config direct_toy(std::vector<BodyF64>, bool);
 template <FloatT Float>
 typename Direct<Float>::Config direct_au(std::vector<BodyT<Float>> bodies, bool parallel) {
     return typename Direct<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING),
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING),
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -325,11 +327,12 @@ template <FloatT Float>
 typename Direct<Float>::Config direct_high_accuracy(std::vector<BodyT<Float>> bodies,
                                                     bool                      parallel) {
     return typename Direct<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING * 0.1),
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING * 0.1),
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -340,12 +343,13 @@ template <FloatT Float>
 typename BarnesHut<Float>::Config barnes_hut_toy(std::vector<BodyT<Float>> bodies, bool parallel,
                                                  Float theta) {
     return typename BarnesHut<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_toy::G),
-        .softening    = static_cast<Float>(scale_toy::SOFTENING),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_euler<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_toy::G),
+        .softening         = static_cast<Float>(scale_toy::SOFTENING),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -356,12 +360,13 @@ template <FloatT Float>
 typename BarnesHut<Float>::Config barnes_hut_au(std::vector<BodyT<Float>> bodies, bool parallel,
                                                 Float theta) {
     return typename BarnesHut<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -372,12 +377,13 @@ template <FloatT Float>
 typename BarnesHut<Float>::Config barnes_hut_high_accuracy(std::vector<BodyT<Float>> bodies,
                                                            bool parallel, Float theta) {
     return typename BarnesHut<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING * 0.1),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING * 0.1),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -388,12 +394,13 @@ template <FloatT Float>
 typename BarnesHut<Float>::Config barnes_hut_fast(std::vector<BodyT<Float>> bodies, bool parallel,
                                                   Float theta) {
     return typename BarnesHut<Float>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_euler<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -404,12 +411,13 @@ template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_toy(
     std::vector<BodyT<Float>> bodies, bool parallel, Float theta) {
     return typename BarnesHutMorton<Float, MortonCode>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_toy::G),
-        .softening    = static_cast<Float>(scale_toy::SOFTENING),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_euler<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_toy::G),
+        .softening         = static_cast<Float>(scale_toy::SOFTENING),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -426,12 +434,13 @@ template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_au(
     std::vector<BodyT<Float>> bodies, bool parallel, Float theta) {
     return typename BarnesHutMorton<Float, MortonCode>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -448,12 +457,13 @@ template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_high_accuracy(
     std::vector<BodyT<Float>> bodies, bool parallel, Float theta) {
     return typename BarnesHutMorton<Float, MortonCode>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING * 0.1),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_verlet<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING * 0.1),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 
@@ -470,12 +480,13 @@ template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_fast(
     std::vector<BodyT<Float>> bodies, bool parallel, Float theta) {
     return typename BarnesHutMorton<Float, MortonCode>::Config{
-        .bodies       = std::move(bodies),
-        .g            = static_cast<Float>(scale_au::G),
-        .softening    = static_cast<Float>(scale_au::SOFTENING),
-        .theta        = theta,
-        .parallel     = parallel,
-        .integrate_fn = integrate_body_euler<Float>,
+        .bodies            = std::move(bodies),
+        .g                 = static_cast<Float>(scale_au::G),
+        .softening         = static_cast<Float>(scale_au::SOFTENING),
+        .theta             = theta,
+        .parallel          = parallel,
+        .use_proper_verlet = true,
+        .integrate_fn      = integrate_body_verlet<Float>,
     };
 }
 

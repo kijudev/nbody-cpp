@@ -14,9 +14,10 @@ namespace nbody::scenario::impl {
 using namespace nbody::base::type;
 
 // TODO: Fix. Does not draw to scale.
+// NOTE: I have been here many times and still not fixed it.
 template <FloatT Float>
 void draw_ruler_au(const gfx::Camera<Float>& camera, I32 ruler_padding,
-                   I32 ruler_height, Float max_screen_fraction);
+                   I32 ruler_height, Float max_screen_fraction, Color color);
 
 template <FloatT Float>
 void draw_bodies_monocolor(

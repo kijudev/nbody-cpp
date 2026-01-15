@@ -41,11 +41,12 @@ class Kepler : public SimInterface<Float> {
     // --- Public Interface ---
     Kepler(const Config& config);
 
-    void step(Float dt);
+    void step(Float dt) override;
     void set_time(Float t);
+    void insert_body(Body&& body) override;
 
     [[nodiscard]] Float                                      time() const;
-    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const;
+    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const override;
     [[nodiscard]] const OrbitalElements&                     orbital_elements() const;
 
     [[nodiscard]] Float total_mass() const;

@@ -3,11 +3,14 @@
 namespace nbody::math {
 using namespace nbody::base::type;
 
+// NOTE: Check collision between rectangle and point.
 template <SignedNumberT Number>
-bool check_collision2_rect_point(Number rx, Number ry, Number rwidth, Number rheight, Number px,
-                                 Number py);
+bool check_collision_rect_point(Number rx, Number ry, Number rwidth,
+                                Number rheight, Number px, Number py);
 
+// NOTE: Check collision between rectangle and circle.
 template <SignedNumberT Number>
-bool check_collision2_rect_circle(Number rx, Number ry, Number rwidth, Number rheight, Number cx,
-                                  Number cy, Number cr);
+bool check_collision_rect_circle(Number rx, Number ry, Number rwidth,
+                                 Number rheight, Number cx, Number cy,
+                                 Number cr);
 }  // namespace nbody::math

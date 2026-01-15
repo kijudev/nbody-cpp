@@ -51,16 +51,14 @@ void bench_barnes_hut(USize n, USize steps, Float theta, bool parallel,
 }
 
 template <typename Float>
-void bench_barnes_hut_morton(USize n, USize steps, Float theta, bool parallel, bool radix,
+void bench_barnes_hut_morton(USize n, USize steps, Float theta, bool parallel,
                              ankerl::nanobench::Bench& bench) {
     std::vector<Body> bodies = preset::benchmark::medium<Float>(n);
     auto              cfg = preset::config::barnes_hut_morton_toy<Float>(bodies, parallel, theta);
-    cfg.radix             = radix;
     BarnesHutMorton<Float> sim(cfg);
 
     std::string name = "BarnesHutMorton N=" + std::to_string(n) +
-                       " theta=" + std::to_string(theta) + " parallel=" + bool_str(parallel) +
-                       " radix=" + bool_str(radix);
+                       " theta=" + std::to_string(theta) + " parallel=" + bool_str(parallel);
 
     bench.run(name, [&] {
         for (USize i = 0; i < steps; ++i) {
@@ -110,17 +108,14 @@ int main() {
 
         std::cout << "Barnes-Hut-Morton:\n";
         for (bool parallel : {false, true}) {
-            for (bool radix : {false, true}) {
-                for (Float theta : thetas) {
-                    std::ostringstream label;
-                    label << "BHM N=" << sizes[i] << " T=" << theta
-                          << " P=" << (parallel ? "1" : "0") << " R=" << (radix ? "1" : "0");
-                    std::cout << "  " << label.str() << "\n";
-                    bench.run(label.str(), [&] {
-                        bench_barnes_hut_morton<Float>(sizes[i], steps[i], theta, parallel, radix,
-                                                       bench);
-                    });
-                }
+            for (Float theta : thetas) {
+                std::ostringstream label;
+                label << "BHM N=" << sizes[i] << " T=" << theta
+                      << " P=" << (parallel ? "1" : "0");
+                std::cout << "  " << label.str() << "\n";
+                bench.run(label.str(), [&] {
+                    bench_barnes_hut_morton<Float>(sizes[i], steps[i], theta, parallel, bench);
+                });
             }
         }
         std::cout << "==============================\n";

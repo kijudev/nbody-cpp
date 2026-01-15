@@ -25,14 +25,15 @@ class BarnesHutMorton : public SimInterface<Float> {
     static constexpr USize MAX_DEPTH    = BITS_PER_DIM;
 
     struct Node {
-        MortonCode prefix;          // Morton code prefix identifying this node's spatial region
-        U8         level;           // Tree level (0 = root, MAX_DEPTH = leaves)
-        Vec2       center_of_mass;  // Center of mass of all bodies in this subtree
-        Float      total_mass;      // Total mass of all bodies in this subtree
-        Float      size;            // Spatial extent (side length) of this node's region
-        USize      first_idx;       // First body index (inclusive) in sorted array
-        USize      last_idx;        // Last body index (exclusive) in sorted array
-        USize      children[4];     // Indices of child nodes (NODE_EMPTY if no child)
+        MortonCode prefix;
+
+        U8    level;
+        Vec2  center_of_mass;
+        Float total_mass;
+        Float size;
+        USize first_idx;
+        USize last_idx;
+        USize children[4];
 
         static constexpr USize NODE_EMPTY = std::numeric_limits<USize>::max();
 
@@ -48,7 +49,9 @@ class BarnesHutMorton : public SimInterface<Float> {
         MortonCode morton;
         USize      body_idx;
 
-        bool operator<(const MortonBody& other) const { return morton < other.morton; }
+        bool operator<(const MortonBody& other) const {
+            return morton < other.morton;
+        }
     };
 
     // --- Config ---
@@ -59,6 +62,7 @@ class BarnesHutMorton : public SimInterface<Float> {
         Float                   theta{0.5};
         bool                    parallel{false};
         bool                    radix{false};
+        bool                    use_proper_verlet{false};
         IntegrateBodyFnT<Float> integrate_fn{integrate_body_euler<Float>};
     };
 
@@ -66,19 +70,23 @@ class BarnesHutMorton : public SimInterface<Float> {
     explicit BarnesHutMorton(const Config& config = Config{});
 
     void step(Float dt) override;
-    void insert(Body&& body);
+    void insert_body(Body&& body) override;
 
-    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies() const override;
-    [[nodiscard]] const std::vector<Node>&                   nodes() const { return m_nodes; }
-    [[nodiscard]] const std::vector<MortonBody>& morton_bodies() const { return m_morton_bodies; }
+    [[nodiscard]] std::span<const Body, std::dynamic_extent> bodies()
+        const override;
+    [[nodiscard]] const std::vector<Node>& nodes() const { return m_nodes; }
+    [[nodiscard]] const std::vector<MortonBody>& morton_bodies() const {
+        return m_morton_bodies;
+    }
 
    private:
     // --- Tree Construction ---
     void build_tree();
     void compute_morton_codes();
     void sort_by_morton();
-    void build_nodes_recursive(USize first, USize last, U8 level, MortonCode prefix,
-                               Float node_size, Vec2 node_center);
+    void build_nodes_recursive(USize first, USize last, U8 level,
+                               MortonCode prefix, Float node_size,
+                               Vec2 node_center);
     void compute_node_properties(USize node_idx);
 
     // --- Force Calculation ---
@@ -86,7 +94,8 @@ class BarnesHutMorton : public SimInterface<Float> {
     Vec2 compute_acceleration_from_node(USize node_idx, Vec2 pos) const;
 
     // --- Utility ---
-    [[nodiscard]] Vec2  get_node_center_from_prefix(MortonCode prefix, U8 level) const;
+    [[nodiscard]] Vec2  get_node_center_from_prefix(MortonCode prefix,
+                                                    U8         level) const;
     [[nodiscard]] Float get_node_size(U8 level) const;
     [[nodiscard]] U8    get_quadrant(MortonCode code, U8 level) const;
 
@@ -94,12 +103,14 @@ class BarnesHutMorton : public SimInterface<Float> {
     std::vector<Body>       m_bodies;
     std::vector<MortonBody> m_morton_bodies;
     std::vector<Node>       m_nodes;
+    std::vector<Vec2>       m_old_accelerations;
 
     Float m_g;
     Float m_softening;
     Float m_theta;
     bool  m_parallel;
     bool  m_radix;
+    bool  m_use_proper_verlet;
 
     Float m_bounds_min;
     Float m_bounds_max;

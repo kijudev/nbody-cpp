@@ -19,62 +19,112 @@ BarnesHutMorton<Float, MortonCode>::BarnesHutMorton(const Config& config)
       m_theta(config.theta),
       m_parallel(config.parallel),
       m_radix(config.radix),
+      m_use_proper_verlet(config.use_proper_verlet),
       m_bounds_min(0),
       m_bounds_max(1),
       m_integrate_fn(config.integrate_fn) {
     m_morton_bodies.reserve(m_bodies.size());
+    if (m_use_proper_verlet) {
+        m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
+    }
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
 void BarnesHutMorton<Float, MortonCode>::step(Float dt) {
-    if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                [](Body& body) { body.acc = Vec2::make_zero(); });
-    } else {
+    if (m_use_proper_verlet) {
+        // NOTE: Proper Velocity Verlet algorithm.
+        // (1) x(t+dt) = x(t) + v(t)*dt + 0.5*a(t)*dt^2.
+        // (2) Compute a(t+dt) from new positions.
+        // (3) v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt.
+
+        const Float half  = 0.5;
+        const Float dt_sq = dt * dt;
+
+        if (m_old_accelerations.size() != m_bodies.size()) {
+            m_old_accelerations.resize(m_bodies.size(), Vec2::make_zero());
+        }
+
+        for (USize i = 0; i < m_bodies.size(); ++i) {
+            Body& body             = m_bodies[i];
+            m_old_accelerations[i] = body.acc;
+            body.pos               = body.pos.add(body.vel.scale(dt))
+                           .add(body.acc.scale(half * dt_sq));
+        }
+
         for (Body& body : m_bodies) {
             body.acc = Vec2::make_zero();
         }
-    }
 
-    build_tree();
+        build_tree();
 
-    if (m_parallel) {
-        std::vector<Vec2> accelerations(m_bodies.size(), Vec2::make_zero());
-
-        // Note: bodies have been reordered to match m_morton_bodies order, so this access pattern
-        // is now linear in memory.
-        base::parallel_for_each(m_morton_bodies.begin(), m_morton_bodies.end(),
-                                [this, &accelerations](const MortonBody& mb) {
-                                    accelerations[mb.body_idx] = compute_acceleration(mb.body_idx);
-                                });
-
-        for (USize i = 0; i < m_bodies.size(); ++i) {
-            m_bodies[i].acc = m_bodies[i].acc.add(accelerations[i]);
-        }
-    } else {
         for (const MortonBody& mb : m_morton_bodies) {
             Vec2 acc                  = compute_acceleration(mb.body_idx);
             m_bodies[mb.body_idx].acc = m_bodies[mb.body_idx].acc.add(acc);
         }
-    }
 
-    if (m_parallel) {
-        base::parallel_for_each(m_bodies.begin(), m_bodies.end(),
-                                [this, dt](Body& body) { m_integrate_fn(body, dt); });
+        for (USize i = 0; i < m_bodies.size(); ++i) {
+            Body& body = m_bodies[i];
+            body.vel   = body.vel.add(
+                m_old_accelerations[i].add(body.acc).scale(half * dt));
+        }
     } else {
-        for (Body& body : m_bodies) {
-            m_integrate_fn(body, dt);
+        if (m_parallel) {
+            base::parallel_for_each(
+                m_bodies.begin(), m_bodies.end(),
+                [](Body& body) { body.acc = Vec2::make_zero(); });
+        } else {
+            for (Body& body : m_bodies) {
+                body.acc = Vec2::make_zero();
+            }
+        }
+
+        build_tree();
+
+        if (m_parallel) {
+            std::vector<Vec2> accelerations(m_bodies.size(), Vec2::make_zero());
+
+            // NOTE: bodies have been reordered to match m_morton_bodies order,
+            // so this access pattern is now linear in memory.
+            base::parallel_for_each(
+                m_morton_bodies.begin(), m_morton_bodies.end(),
+                [this, &accelerations](const MortonBody& mb) {
+                    accelerations[mb.body_idx] =
+                        compute_acceleration(mb.body_idx);
+                });
+
+            for (USize i = 0; i < m_bodies.size(); ++i) {
+                m_bodies[i].acc = m_bodies[i].acc.add(accelerations[i]);
+            }
+        } else {
+            for (const MortonBody& mb : m_morton_bodies) {
+                Vec2 acc                  = compute_acceleration(mb.body_idx);
+                m_bodies[mb.body_idx].acc = m_bodies[mb.body_idx].acc.add(acc);
+            }
+        }
+
+        if (m_parallel) {
+            base::parallel_for_each(
+                m_bodies.begin(), m_bodies.end(),
+                [this, dt](Body& body) { m_integrate_fn(body, dt); });
+        } else {
+            for (Body& body : m_bodies) {
+                m_integrate_fn(body, dt);
+            }
         }
     }
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::insert(Body&& body) {
+void BarnesHutMorton<Float, MortonCode>::insert_body(Body&& body) {
     m_bodies.push_back(std::move(body));
+    if (m_use_proper_verlet) {
+        m_old_accelerations.push_back(Vec2::make_zero());
+    }
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-std::span<const typename BarnesHutMorton<Float, MortonCode>::Body, std::dynamic_extent>
+std::span<const typename BarnesHutMorton<Float, MortonCode>::Body,
+          std::dynamic_extent>
 BarnesHutMorton<Float, MortonCode>::bodies() const {
     return m_bodies;
 }
@@ -112,7 +162,8 @@ void BarnesHutMorton<Float, MortonCode>::build_tree() {
     };
     Float root_size = static_cast<Float>(m_bounds_max - m_bounds_min);
 
-    build_nodes_recursive(0, m_morton_bodies.size(), 0, 0, root_size, root_center);
+    build_nodes_recursive(0, m_morton_bodies.size(), 0, 0, root_size,
+                          root_center);
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
@@ -129,7 +180,8 @@ void BarnesHutMorton<Float, MortonCode>::compute_morton_codes() {
         y_max = std::max(y_max, body.pos.y);
     }
 
-    Float padding = std::max(static_cast<Float>(1e-6), (x_max - x_min + y_max - y_min) * 0.01f);
+    Float padding = std::max(static_cast<Float>(1e-6),
+                             (x_max - x_min + y_max - y_min) * 0.01f);
     m_bounds_min  = std::min(x_min, y_min) - padding;
     m_bounds_max  = std::max(x_max, y_max) + padding;
 
@@ -137,7 +189,7 @@ void BarnesHutMorton<Float, MortonCode>::compute_morton_codes() {
     m_morton_bodies.reserve(m_bodies.size());
 
     for (USize i = 0; i < m_bodies.size(); ++i) {
-        MortonCode code = math::morton_encode2<Float, MortonCode>(
+        MortonCode code = math::encode_to_morton<Float, MortonCode>(
             m_bodies[i].pos.x, m_bodies[i].pos.y, m_bounds_min, m_bounds_max);
         m_morton_bodies.push_back(MortonBody{.morton = code, .body_idx = i});
     }
@@ -154,9 +206,9 @@ void BarnesHutMorton<Float, MortonCode>::sort_by_morton() {
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USize last, U8 level,
-                                                               MortonCode prefix, Float node_size,
-                                                               Vec2 node_center) {
+void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(
+    USize first, USize last, U8 level, MortonCode prefix, Float node_size,
+    Vec2 node_center) {
     if (first >= last) {
         return;
     }
@@ -170,7 +222,8 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
         .size           = node_size,
         .first_idx      = first,
         .last_idx       = last,
-        .children       = {Node::NODE_EMPTY, Node::NODE_EMPTY, Node::NODE_EMPTY, Node::NODE_EMPTY},
+        .children       = {Node::NODE_EMPTY, Node::NODE_EMPTY, Node::NODE_EMPTY,
+                           Node::NODE_EMPTY},
     });
 
     if (last - first <= 1 || level >= MAX_DEPTH) {
@@ -183,18 +236,22 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
 
     USize current_pos = first;
     for (U8 q = 0; q < 4; ++q) {
-        MortonCode quadrant_prefix = prefix | (static_cast<MortonCode>(q) << bits_to_shift);
+        MortonCode quadrant_prefix =
+            prefix | (static_cast<MortonCode>(q) << bits_to_shift);
         MortonCode quadrant_max =
-            quadrant_prefix | ((static_cast<MortonCode>(1) << bits_to_shift) - 1);
+            quadrant_prefix |
+            ((static_cast<MortonCode>(1) << bits_to_shift) - 1);
 
         auto it = std::upper_bound(
             m_morton_bodies.begin() + static_cast<std::ptrdiff_t>(current_pos),
-            m_morton_bodies.begin() + static_cast<std::ptrdiff_t>(last), quadrant_max,
-            [](MortonCode val, const MortonBody& mb) { return val < mb.morton; });
+            m_morton_bodies.begin() + static_cast<std::ptrdiff_t>(last),
+            quadrant_max, [](MortonCode val, const MortonBody& mb) {
+                return val < mb.morton;
+            });
 
-        quadrant_bounds[q + 1] = static_cast<USize>(it - m_morton_bodies.begin());
+        quadrant_bounds[q + 1] =
+            static_cast<USize>(it - m_morton_bodies.begin());
 
-        // Optimization: Advance current_pos to avoid searching already processed range
         current_pos = quadrant_bounds[q + 1];
     }
 
@@ -202,10 +259,14 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
     Float quarter_offset = node_size / 4;
 
     std::array<Vec2, 4> child_centers = {
-        Vec2{node_center.x - quarter_offset, node_center.y - quarter_offset}, // SW (00)
-        Vec2{node_center.x + quarter_offset, node_center.y - quarter_offset}, // SE (01)
-        Vec2{node_center.x - quarter_offset, node_center.y + quarter_offset}, // NW (10)
-        Vec2{node_center.x + quarter_offset, node_center.y + quarter_offset}, // NE (11)
+        Vec2{node_center.x - quarter_offset,
+             node_center.y - quarter_offset}, // SW (00)
+        Vec2{node_center.x + quarter_offset,
+             node_center.y - quarter_offset}, // SE (01)
+        Vec2{node_center.x - quarter_offset,
+             node_center.y + quarter_offset}, // NW (10)
+        Vec2{node_center.x + quarter_offset,
+             node_center.y + quarter_offset}, // NE (11)
     };
 
     for (U8 q = 0; q < 4; ++q) {
@@ -213,10 +274,11 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
         USize q_last  = quadrant_bounds[q + 1];
 
         if (q_first < q_last) {
-            MortonCode child_prefix       = prefix | (static_cast<MortonCode>(q) << bits_to_shift);
+            MortonCode child_prefix =
+                prefix | (static_cast<MortonCode>(q) << bits_to_shift);
             m_nodes[node_idx].children[q] = m_nodes.size();
-            build_nodes_recursive(q_first, q_last, level + 1, child_prefix, child_size,
-                                  child_centers[q]);
+            build_nodes_recursive(q_first, q_last, level + 1, child_prefix,
+                                  child_size, child_centers[q]);
         }
     }
 
@@ -224,7 +286,8 @@ void BarnesHutMorton<Float, MortonCode>::build_nodes_recursive(USize first, USiz
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-void BarnesHutMorton<Float, MortonCode>::compute_node_properties(USize node_idx) {
+void BarnesHutMorton<Float, MortonCode>::compute_node_properties(
+    USize node_idx) {
     Node& node = m_nodes[node_idx];
 
     if (node.is_leaf()) {
@@ -251,7 +314,8 @@ void BarnesHutMorton<Float, MortonCode>::compute_node_properties(USize node_idx)
             if (node.children[i] != Node::NODE_EMPTY) {
                 const Node& child = m_nodes[node.children[i]];
                 total_mass += child.total_mass;
-                weighted_pos = weighted_pos.add(child.center_of_mass.scale(child.total_mass));
+                weighted_pos = weighted_pos.add(
+                    child.center_of_mass.scale(child.total_mass));
             }
         }
 
@@ -276,8 +340,8 @@ BarnesHutMorton<Float, MortonCode>::compute_acceleration(USize body_idx) const {
 
 template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Vec2
-BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize root_node_idx,
-                                                                   Vec2  pos) const {
+BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(
+    USize root_node_idx, Vec2 pos) const {
     // WHY: Use an explicit stack to avoid recursion overhead.
     std::array<USize, 256> stack{0};
     USize                  stack_top      = 0;
@@ -310,8 +374,9 @@ BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize root_no
         const bool  is_far_enough = size_sq < theta_sq * dist_sq;
 
         if (current_node.is_leaf() || is_far_enough) {
-            const Float dist_norm = (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
-            const Float factor    = m_g * current_node.total_mass / dist_norm;
+            const Float dist_norm =
+                (dist_sq + softening_sq) * std::sqrt(dist_sq + softening_sq);
+            const Float factor = m_g * current_node.total_mass / dist_norm;
 
             acc.x += factor * delta.x;
             acc.y += factor * delta.y;
@@ -333,7 +398,8 @@ BarnesHutMorton<Float, MortonCode>::compute_acceleration_from_node(USize root_no
 
 template <FloatT Float, math::MortonCodeT MortonCode>
 typename BarnesHutMorton<Float, MortonCode>::Vec2
-BarnesHutMorton<Float, MortonCode>::get_node_center_from_prefix(MortonCode prefix, U8 level) const {
+BarnesHutMorton<Float, MortonCode>::get_node_center_from_prefix(
+    MortonCode prefix, U8 level) const {
     Float size   = static_cast<Float>(m_bounds_max - m_bounds_min);
     Vec2  center = Vec2{
         static_cast<Float>((m_bounds_min + m_bounds_max) / 2.0),
@@ -372,7 +438,8 @@ Float BarnesHutMorton<Float, MortonCode>::get_node_size(U8 level) const {
 }
 
 template <FloatT Float, math::MortonCodeT MortonCode>
-U8 BarnesHutMorton<Float, MortonCode>::get_quadrant(MortonCode code, U8 level) const {
+U8 BarnesHutMorton<Float, MortonCode>::get_quadrant(MortonCode code,
+                                                    U8         level) const {
     USize shift = MORTON_BITS - 2 * (level + 1);
     return static_cast<U8>((code >> shift) & 0x3);
 }
