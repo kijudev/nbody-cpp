@@ -1,3 +1,10 @@
+// ==============================================================================
+// preset.hpp
+// Preset generators and configuration helpers for n-body simulations.
+// Includes body distributions, generator configs, simulation configs, test
+// cases, and benchmarks.
+// ==============================================================================
+
 #pragma once
 
 #include <vector>
@@ -13,41 +20,57 @@
 namespace nbody::sim::preset {
 using namespace nbody::base::type;
 
+// ==============================================================================
+// Body Distribution Presets
+// ==============================================================================
+// Functions for generating common body distributions (two-body, uniform,
+// Plummer, grid, ring, solar system).
+
 namespace body {
 
 template <FloatT Float>
-std::vector<BodyT<Float>> two_body_circular(Float central_mass = 1.0, Float orbiter_mass = 1e-6,
-                                            Float orbital_radius = 1.0, Float g = scale_au::G);
+std::vector<BodyT<Float>> two_body_circular(Float central_mass   = 1.0,
+                                            Float orbiter_mass   = 1e-6,
+                                            Float orbital_radius = 1.0,
+                                            Float g              = scale_au::G);
 
 template <FloatT Float>
-std::vector<BodyT<Float>> uniform_box(USize n, Float radius = 10.0, Float min_mass = 1.0,
+std::vector<BodyT<Float>> uniform_box(USize n, Float radius = 10.0,
+                                      Float min_mass = 1.0,
                                       Float max_mass = 1.0);
 
 template <FloatT Float>
-std::vector<BodyT<Float>> uniform_disk(USize n, Float radius = 10.0, Float min_mass = 1.0,
+std::vector<BodyT<Float>> uniform_disk(USize n, Float radius = 10.0,
+                                       Float min_mass = 1.0,
                                        Float max_mass = 1.0);
 
 template <FloatT Float>
-std::vector<BodyT<Float>> plummer(USize n, Float radius = 10.0, Float min_mass = 1.0,
-                                  Float max_mass = 1.0);
+std::vector<BodyT<Float>> plummer(USize n, Float radius = 10.0,
+                                  Float min_mass = 1.0, Float max_mass = 1.0);
 
 template <FloatT Float>
-std::vector<BodyT<Float>> plummer_salpeter(USize n, Float radius = 10.0,
-                                           Float min_mass = scale_au::MASS_HYGIEA,
-                                           Float max_mass = scale_au::MASS_SOL * 10.0);
+std::vector<BodyT<Float>> plummer_salpeter(
+    USize n, Float radius = 10.0, Float min_mass = scale_au::MASS_HYGIEA,
+    Float max_mass = scale_au::MASS_SOL * 10.0);
 template <FloatT Float>
-std::vector<BodyT<Float>> grid(USize nx, USize ny, Float spacing = 1.0, Float mass = 1.0);
+std::vector<BodyT<Float>> grid(USize nx, USize ny, Float spacing = 1.0,
+                               Float mass = 1.0);
 
 template <FloatT Float>
 std::vector<BodyT<Float>> ring(USize n, Float radius = 10.0, Float mass = 1.0);
 
 template <FloatT Float>
-std::vector<BodyT<Float>> solar_system_like(USize n_orbiters, Float central_mass = 1.0,
-                                            Float min_radius = 0.5, Float max_radius = 10.0,
-                                            Float orbiter_mass = 1e-6, Float g = scale_au::G);
+std::vector<BodyT<Float>> solar_system_like(
+    USize n_orbiters, Float central_mass = 1.0, Float min_radius = 0.5,
+    Float max_radius = 10.0, Float orbiter_mass = 1e-6, Float g = scale_au::G);
 
 }  // namespace body
 
+// ==============================================================================
+// Generator Config Presets
+// ==============================================================================
+// Functions for generating pre-configured distribution configs for toy and AU
+// scales.
 namespace generator {
 
 template <FloatT Float>
@@ -64,34 +87,40 @@ GenerateDistributionConfig<Float> au_uniform_disk(USize n = 1000);
 
 }  // namespace generator
 
+// ==============================================================================
+// Simulation Config Presets
+// ==============================================================================
+// Functions for generating simulation configs for Direct, Barnes-Hut, and
+// Barnes-Hut Morton variants.
 namespace config {
 
 template <FloatT Float>
-typename Direct<Float>::Config direct_toy(std::vector<BodyT<Float>> bodies, bool parallel = false);
+typename Direct<Float>::Config direct_toy(std::vector<BodyT<Float>> bodies,
+                                          bool parallel = false);
 
 template <FloatT Float>
-typename Direct<Float>::Config direct_au(std::vector<BodyT<Float>> bodies, bool parallel = false);
+typename Direct<Float>::Config direct_au(std::vector<BodyT<Float>> bodies,
+                                         bool parallel = false);
 
 template <FloatT Float>
-typename Direct<Float>::Config direct_high_accuracy(std::vector<BodyT<Float>> bodies,
-                                                    bool                      parallel = false);
+typename Direct<Float>::Config direct_high_accuracy(
+    std::vector<BodyT<Float>> bodies, bool parallel = false);
 
 template <FloatT Float>
-typename BarnesHut<Float>::Config barnes_hut_toy(std::vector<BodyT<Float>> bodies,
-                                                 bool parallel = false, Float theta = 0.5);
+typename BarnesHut<Float>::Config barnes_hut_toy(
+    std::vector<BodyT<Float>> bodies, bool parallel = false, Float theta = 0.5);
 
 template <FloatT Float>
-typename BarnesHut<Float>::Config barnes_hut_au(std::vector<BodyT<Float>> bodies,
-                                                bool parallel = false, Float theta = 0.5);
+typename BarnesHut<Float>::Config barnes_hut_au(
+    std::vector<BodyT<Float>> bodies, bool parallel = false, Float theta = 0.5);
 
 template <FloatT Float>
-typename BarnesHut<Float>::Config barnes_hut_high_accuracy(std::vector<BodyT<Float>> bodies,
-                                                           bool  parallel = false,
-                                                           Float theta    = 0.3);
+typename BarnesHut<Float>::Config barnes_hut_high_accuracy(
+    std::vector<BodyT<Float>> bodies, bool parallel = false, Float theta = 0.3);
 
 template <FloatT Float>
-typename BarnesHut<Float>::Config barnes_hut_fast(std::vector<BodyT<Float>> bodies,
-                                                  bool parallel = false, Float theta = 1.0);
+typename BarnesHut<Float>::Config barnes_hut_fast(
+    std::vector<BodyT<Float>> bodies, bool parallel = false, Float theta = 1.0);
 
 template <FloatT Float, math::MortonCodeT MortonCode = U64>
 typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_toy(
@@ -102,8 +131,9 @@ typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_au(
     std::vector<BodyT<Float>> bodies, bool parallel = false, Float theta = 0.5);
 
 template <FloatT Float, math::MortonCodeT MortonCode = U64>
-typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_high_accuracy(
-    std::vector<BodyT<Float>> bodies, bool parallel = false, Float theta = 0.3);
+typename BarnesHutMorton<Float, MortonCode>::Config
+barnes_hut_morton_high_accuracy(std::vector<BodyT<Float>> bodies,
+                                bool parallel = false, Float theta = 0.3);
 
 template <FloatT Float, math::MortonCodeT MortonCode = U64>
 typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_fast(
@@ -111,6 +141,11 @@ typename BarnesHutMorton<Float, MortonCode>::Config barnes_hut_morton_fast(
 
 }  // namespace config
 
+// ==============================================================================
+// Test Case Presets
+// ==============================================================================
+// Functions for generating test cases (simple, symmetric, two-body, close
+// encounter, stress test).
 namespace test {
 
 template <FloatT Float>
@@ -120,8 +155,8 @@ template <FloatT Float>
 std::vector<BodyT<Float>> symmetric_square(Float size = 1.0, Float mass = 1.0);
 
 template <FloatT Float>
-std::vector<BodyT<Float>> two_body_test(Float separation = 1.0, Float mass1 = 1.0,
-                                        Float mass2 = 1.0);
+std::vector<BodyT<Float>> two_body_test(Float separation = 1.0,
+                                        Float mass1 = 1.0, Float mass2 = 1.0);
 
 template <FloatT Float>
 std::vector<BodyT<Float>> close_encounter(Float min_separation = 0.01);
@@ -131,6 +166,10 @@ std::vector<BodyT<Float>> stress_test(USize n = 10000);
 
 }  // namespace test
 
+// ==============================================================================
+// Benchmark Presets
+// ==============================================================================
+// Functions for generating benchmark body sets of various sizes.
 namespace benchmark {
 
 template <FloatT Float>
@@ -146,4 +185,9 @@ template <FloatT Float>
 std::vector<BodyT<Float>> xlarge(USize n = 100000);
 
 }  // namespace benchmark
+
+// ==============================================================================
+// End of Presets
+// ==============================================================================
+
 }  // namespace nbody::sim::preset
