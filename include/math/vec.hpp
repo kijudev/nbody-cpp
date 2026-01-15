@@ -87,6 +87,7 @@ struct Vec2T {
         return static_cast<Float>(std::sqrt(length_sq()));
     }
     // Normalized vector (returns zero vector if length is zero)
+    // Returns zero vector when input length is zero.
     [[nodiscard]] Vec2T normalized() const noexcept {
         const Float l = length();
         if (l == 0.0) return Vec2T::make_zero();
@@ -102,6 +103,7 @@ struct Vec2T {
         return static_cast<Float>(std::sqrt(distance_sq(other)));
     }
     // Approximate equality using epsilon
+    // Approximate equality using an epsilon.
     [[nodiscard]] constexpr bool is_approx_equal(
         Vec2T other,
         Float eps = impl::default_epsilon<Float>()) const noexcept {
@@ -163,6 +165,7 @@ struct Vec3T {
         return x * other.x + y * other.y + z * other.z;
     }
     // Cross product (returns vector perpendicular to both)
+    // Cross product (returns vector perpendicular to both)
     [[nodiscard]] constexpr Vec3T cross(Vec3T other) const noexcept {
         return Vec3T{y * other.z - z * other.y, z * other.x - x * other.z,
                      x * other.y - y * other.x};
@@ -185,6 +188,7 @@ struct Vec3T {
     [[nodiscard]] Float distance(Vec3T other) const noexcept {
         return static_cast<Float>(std::sqrt(distance_sq(other)));
     }
+    // Approximate equality using an epsilon.
     [[nodiscard]] constexpr bool is_approx_equal(
         Vec3T other,
         Float eps = impl::default_epsilon<Float>()) const noexcept {
@@ -268,6 +272,7 @@ struct Vec4T {
     [[nodiscard]] Float distance(Vec4T other) const noexcept {
         return static_cast<Float>(std::sqrt(distance_sq(other)));
     }
+    // Approximate equality using an epsilon.
     [[nodiscard]] constexpr bool is_approx_equal(
         Vec4T other,
         Float eps = impl::default_epsilon<Float>()) const noexcept {

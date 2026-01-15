@@ -21,7 +21,7 @@ using namespace nbody::base::type;
 
 namespace impl {
 
-// NOTE: Key by which radix sort sorts elements.
+// Key by which radix sort sorts elements.
 template <typename T>
 concept RadixKey = IntT<T> || UintT<T>;
 
@@ -29,7 +29,7 @@ template <typename Iterator, typename KeyExtractor>
 using RadixKeyType = std::decay_t<std::invoke_result_t<
     KeyExtractor, typename std::iterator_traits<Iterator>::value_type>>;
 
-// NOTE: One pass of the radix sort; byte size.
+// Performs one pass of the radix sort for a specific byte.
 template <typename Iterator, typename OutIterator, typename KeyExtractor>
 void radix_sort_pass_byte(Iterator source_begin, Iterator source_end,
                           OutIterator dest_begin, USize byte_shift,
@@ -69,8 +69,7 @@ void radix_sort_pass_byte(Iterator source_begin, Iterator source_end,
 
 }  // namespace impl
 
-// NOTE: Stable radix sort. Sorts elements by key in ascending order. one byte
-// chunks.
+// Stable radix sort. Sorts elements by key in ascending order, one byte at a time.
 template <typename Iterator, typename KeyExtractor>
 void radix_sort(Iterator first, Iterator last, KeyExtractor key_fn) {
     using T   = typename std::iterator_traits<Iterator>::value_type;
@@ -111,8 +110,7 @@ void radix_sort(Iterator first, Iterator last, KeyExtractor key_fn) {
     }
 }
 
-// NOTE: Stable radix sort. Sorts elements by key in ascending order. one byte
-// chunks.
+// Stable radix sort. Sorts elements by key in ascending order, one byte at a time.
 template <typename Iterator>
 void radix_sort(Iterator first, Iterator last) {
     radix_sort(first, last, [](const auto& val) { return val; });

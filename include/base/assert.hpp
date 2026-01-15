@@ -17,14 +17,14 @@ namespace nbody::base {
 using namespace nbody::base::type;
 
 namespace impl {
-// NOTE: Creates a formatted string representation of the assert message.
+// Creates a formatted string representation of the assert message.
 std::string format_assert_message(std::string_view message, const char* file,
                                   int line);
 }  // namespace impl
 }  // namespace nbody::base
 
 #if !defined(NDEBUG)
-// NOTE: Runtime assert.
+// Runtime assert.
 #define ASSERT(condition, message)                                             \
     do {                                                                       \
         if (!(condition)) {                                                    \
@@ -36,10 +36,10 @@ std::string format_assert_message(std::string_view message, const char* file,
         }                                                                      \
     } while (false)
 
-// NOTE: Static assert.
+// Static assert.
 #define STATIC_ASSERT(condition, message) static_assert((condition))
 
-// NOTE: Runtime assert that always fails.
+// Runtime assert that always fails.
 #define PANIC(message)                                                        \
     do {                                                                      \
         std::string _nbody_panic_msg =                                        \

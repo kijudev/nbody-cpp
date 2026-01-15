@@ -1,7 +1,8 @@
 // ==============================================================================
 // log.hpp
 // Logging utilities for the nbody project.
-// Provides log levels, logger interfaces, and macros for logging to console and file.
+// Provides log levels, logger interfaces, and macros for logging to console and
+// file.
 // ==============================================================================
 
 #pragma once
@@ -31,10 +32,7 @@ enum class LogColor {
     LOG_COLOR_WHITE,
 };
 
-// NOTE: Returns an ANSI code based on the log color.
-std::string log_color_to_ansi_code(LogColor color);
-
-// NOTE: Layers correspond to the different components of the application.
+// Layers correspond to the different components of the application.
 enum class LogLayer : U16 {
     LIB    = 1,
     GFX    = 1 << 1,
@@ -42,11 +40,11 @@ enum class LogLayer : U16 {
     ASSERT = 1 << 3
 };
 
-// NOTE: Returns a string representation of the log layer; to be used in
-// printing and debugging.
+// Returns a string representation of the log layer; to be used in printing and
+// debugging.
 std::string log_layer_to_string(LogLayer layer);
 
-// NOTE: Severities correspond to the different levels of logging.
+// Severities correspond to the different levels of logging.
 enum class LogSeverity : U16 {
     DEBUG   = 1,
     INFO    = 1 << 1,
@@ -55,8 +53,8 @@ enum class LogSeverity : U16 {
     FATAL   = 1 << 4
 };
 
-// NOTE: Returns a string representation of the severity; to be used in printing
-// and debugging.
+// Returns a string representation of the severity; to be used in printing and
+// debugging.
 std::string log_severity_to_string(LogSeverity severity);
 
 // NOTE: Choose color based on severity.
@@ -66,7 +64,7 @@ LogColor log_severity_to_color(LogSeverity severity);
 // Logger Interfaces
 // ==============================================================================
 
-// NOTE: LoggerInterface is an abstract base class for logging implementations.
+// LoggerInterface is an abstract base class for logging implementations.
 // NOTE: Thread-safe.
 class LoggerInterface {
    public:

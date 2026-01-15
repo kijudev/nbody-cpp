@@ -15,8 +15,9 @@
 namespace nbody::math::impl {
 using namespace nbody::base::type;
 
-// NOTE: Returns a reasonable default epsilon for approximate floating-point
-// comparisons. F32 uses 1e-6, F64 uses 1e-12.
+// Returns a reasonable default epsilon for approximate floating-point
+// comparisons.
+// NOTE: F32 uses 1e-6, F64 uses 1e-12.
 template <FloatT Float>
 constexpr Float default_epsilon() noexcept {
     if constexpr (std::is_same_v<Float, F32>) {
