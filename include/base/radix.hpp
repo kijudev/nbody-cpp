@@ -1,3 +1,6 @@
+// Simple radix sort implementation and helpers for sorting integer keys.
+// Provides stable, byte-wise radix sort for random access containers.
+
 #pragma once
 
 #include <algorithm>

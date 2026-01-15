@@ -1,3 +1,6 @@
+// Parallel iteration helpers and thread utilities for the nbody project.
+// Provides utilities for running loops in parallel using std::thread.
+
 #pragma once
 
 #include <algorithm>
@@ -6,6 +9,7 @@
 
 #include "type.hpp"
 
+// NOTE: Base utilities for parallel iteration and threading.
 namespace nbody::base {
 using namespace nbody::base::type;
 

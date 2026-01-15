@@ -1,3 +1,6 @@
+// Logging utilities for the nbody project.
+// Provides log levels, logger interfaces, and macros for logging to console and file.
+
 #pragma once
 
 #include <fstream>
@@ -10,6 +13,10 @@
 
 namespace nbody::base {
 using namespace nbody::base::type;
+
+// ==============================================================================
+// Log Color & Severity Enums
+// ==============================================================================
 
 enum class LogColor {
     LOG_COLOR_RED,
@@ -52,10 +59,13 @@ std::string log_severity_to_string(LogSeverity severity);
 // NOTE: Choose color based on severity.
 LogColor log_severity_to_color(LogSeverity severity);
 
+// ==============================================================================
+// Logger Interfaces
+// ==============================================================================
+
 // NOTE: LoggerInterface is an abstract base class for logging implementations.
 // NOTE: Thread-safe.
 class LoggerInterface {
-   public:
    public:
     virtual ~LoggerInterface()                   = default;
     virtual void log(LogLayer layer, LogSeverity severity,
@@ -176,7 +186,10 @@ class Logger {
 
 }  // namespace nbody::base
 
-// NOTE: Macros utilizing the global Logger singleton instance.
+// ==============================================================================
+// Logging Macros
+// ==============================================================================
+
 #if !defined(NDEBUG)
 #define LOG_INIT_DEFAULT()             nbody::base::Logger::init()
 #define LOG_INIT_WITH_LOGGERS(loggers) nbody::base::Logger::init(loggers)

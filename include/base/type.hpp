@@ -1,16 +1,17 @@
-// This header contains some of basic utilities:
-// - Type aliases for basic data types conforming with the design principles of
-// the project.
-// - Macros for common operations.
+// Common typedefs and concepts for numeric types used throughout the project.
+// Includes type aliases for integer and floating-point types, and concepts for
+// constraining templates to specific numeric categories.
 
 #pragma once
 
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <vector>
 
 namespace nbody::base::type {
+// ==============================================================================
+// Type Aliases
+// ==============================================================================
 // NOTE: Type aliases for basic data types conforming with the design principles
 // of the project.
 // WHY: I am just being pedantic about the naming conventions :)
@@ -25,6 +26,10 @@ using I32   = std::int32_t;
 using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
+
+// ==============================================================================
+// Concepts
+// ==============================================================================
 
 // NOTE: Single and double precision floats (F32, F64).
 template <typename Float>
