@@ -10,17 +10,27 @@ namespace nbody::base {
 using namespace nbody::base::type;
 
 namespace impl {
-USize get_hardware_concurrency();
-bool  should_parallelize(USize length, USize min_per_thread, USize num_threads);
+// NOTE: Returns the number of available hardware threads.
+USize get_number_of_threads();
+
+// NOTE: Decides if the loop should be parallelized based on the size of the
+// container.
+bool should_parallelize(USize length, USize min_per_thread, USize num_threads);
+
+// NOTE: Returns the optimal number of threads that should be used in the loop
+// paralallization.
 USize calculate_thread_count(USize length, USize min_per_thread,
                              USize num_threads);
 }  // namespace impl
 
+// NOTE: Parallel iterator helper. Runs the callback function on the provided
+// iterator in pararell.
+// WARNING: The operation will not always be run in parallel.
 template <typename Iterator, typename Func>
 void parallel_for_each(Iterator first, Iterator last, Func func,
                        USize min_per_thread = 1000) {
     const USize length      = static_cast<USize>(std::distance(first, last));
-    const USize num_threads = impl::get_hardware_concurrency();
+    const USize num_threads = impl::get_number_of_threads();
 
     if (!impl::should_parallelize(length, min_per_thread, num_threads)) {
         std::for_each(first, last, func);

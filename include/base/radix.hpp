@@ -15,16 +15,19 @@ using namespace nbody::base::type;
 
 namespace impl {
 
+// NOTE: Key by which radix sort sorts elements.
 template <typename T>
 concept RadixKey = IntT<T> || UintT<T>;
 
 template <typename Iterator, typename KeyExtractor>
-using RadixKeyType = std::decay_t<
-    std::invoke_result_t<KeyExtractor, typename std::iterator_traits<Iterator>::value_type>>;
+using RadixKeyType = std::decay_t<std::invoke_result_t<
+    KeyExtractor, typename std::iterator_traits<Iterator>::value_type>>;
 
+// NOTE: One pass of the radix sort; byte size.
 template <typename Iterator, typename OutIterator, typename KeyExtractor>
-void radix_sort_pass(Iterator source_begin, Iterator source_end, OutIterator dest_begin,
-                     USize byte_shift, KeyExtractor key_fn) {
+void radix_sort_pass_byte(Iterator source_begin, Iterator source_end,
+                          OutIterator dest_begin, USize byte_shift,
+                          KeyExtractor key_fn) {
     using Key  = RadixKeyType<Iterator, KeyExtractor>;
     using UKey = std::make_unsigned_t<Key>;
 
@@ -60,15 +63,20 @@ void radix_sort_pass(Iterator source_begin, Iterator source_end, OutIterator des
 
 }  // namespace impl
 
+// NOTE: Stable radix sort. Sorts elements by key in ascending order. one byte
+// chunks.
 template <typename Iterator, typename KeyExtractor>
 void radix_sort(Iterator first, Iterator last, KeyExtractor key_fn) {
     using T   = typename std::iterator_traits<Iterator>::value_type;
     using Key = impl::RadixKeyType<Iterator, KeyExtractor>;
 
-    STATIC_ASSERT(impl::RadixKey<Key>, "Radix sort key must be an integer type");
-    STATIC_ASSERT((std::is_base_of_v<std::random_access_iterator_tag,
-                                     typename std::iterator_traits<Iterator>::iterator_category>),
-                  "Radix sort requires random access iterators");
+    STATIC_ASSERT(impl::RadixKey<Key>,
+                  "Radix sort key must be an integer type");
+    STATIC_ASSERT(
+        (std::is_base_of_v<
+            std::random_access_iterator_tag,
+            typename std::iterator_traits<Iterator>::iterator_category>),
+        "Radix sort requires random access iterators");
 
     const USize length = static_cast<USize>(std::distance(first, last));
     if (length < 2) {
@@ -76,25 +84,29 @@ void radix_sort(Iterator first, Iterator last, KeyExtractor key_fn) {
     }
 
     std::vector<T> buffer(length);
-    bool           is_from_original = true;
+    bool           is_original = true;
 
     for (USize i = 0; i < sizeof(Key); ++i) {
         USize bit_shift = i * 8;
 
-        if (is_from_original) {
-            impl::radix_sort_pass(first, last, buffer.begin(), bit_shift, key_fn);
+        if (is_original) {
+            impl::radix_sort_pass_byte(first, last, buffer.begin(), bit_shift,
+                                       key_fn);
         } else {
-            impl::radix_sort_pass(buffer.begin(), buffer.end(), first, bit_shift, key_fn);
+            impl::radix_sort_pass_byte(buffer.begin(), buffer.end(), first,
+                                       bit_shift, key_fn);
         }
 
-        is_from_original = !is_from_original;
+        is_original = !is_original;
     }
 
-    if (!is_from_original) {
+    if (!is_original) {
         std::move(buffer.begin(), buffer.end(), first);
     }
 }
 
+// NOTE: Stable radix sort. Sorts elements by key in ascending order. one byte
+// chunks.
 template <typename Iterator>
 void radix_sort(Iterator first, Iterator last) {
     radix_sort(first, last, [](const auto& val) { return val; });

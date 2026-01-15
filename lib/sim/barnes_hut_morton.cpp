@@ -189,7 +189,7 @@ void BarnesHutMorton<Float, MortonCode>::compute_morton_codes() {
     m_morton_bodies.reserve(m_bodies.size());
 
     for (USize i = 0; i < m_bodies.size(); ++i) {
-        MortonCode code = math::morton_encode2<Float, MortonCode>(
+        MortonCode code = math::encode_to_morton<Float, MortonCode>(
             m_bodies[i].pos.x, m_bodies[i].pos.y, m_bounds_min, m_bounds_max);
         m_morton_bodies.push_back(MortonBody{.morton = code, .body_idx = i});
     }

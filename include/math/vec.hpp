@@ -11,6 +11,7 @@
 namespace nbody::math {
 using namespace nbody::base::type;
 
+// NOTE: 2D vector of templated float values.
 template <FloatT Float>
 struct Vec2T {
     Float x = 0.0;
@@ -97,6 +98,7 @@ struct Vec2T {
     }
 };
 
+// NOTE: 3D vector of templated float values.
 template <FloatT Float>
 struct Vec3T {
     Float x = 0.0;
@@ -193,6 +195,7 @@ struct Vec3T {
     }
 };
 
+// NOTE: 4D vector of templated float values.
 template <FloatT Float>
 struct Vec4T {
     Float x = 0.0;

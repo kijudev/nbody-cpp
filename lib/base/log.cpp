@@ -1,7 +1,3 @@
-// A minimal but sufficient logging library.
-
-#include "base/log.hpp"
-
 #include <cstring>
 #include <ctime>
 #include <iostream>
@@ -9,6 +5,7 @@
 #include <mutex>
 #include <string>
 
+#include "base/log.hpp"
 #include "base/type.hpp"
 
 // WHY: Windows compile-time optimizations. Includes only necessary headers.
@@ -25,7 +22,7 @@
 namespace nbody::base {
 using namespace nbody::base::type;
 
-std::string log_color_ansi_code(LogColor color) {
+std::string log_color_to_ansi_code(LogColor color) {
     switch (color) {
         case LogColor::LOG_COLOR_RED:
             return "\x1b[31m";
@@ -108,7 +105,8 @@ void LoggerInterface::set_layers(const std::vector<LogLayer>& enabled_layers) {
     }
 }
 
-void LoggerInterface::set_severities(const std::vector<LogSeverity>& enabled_severities) {
+void LoggerInterface::set_severities(
+    const std::vector<LogSeverity>& enabled_severities) {
     std::lock_guard<std::mutex> lk(m_mutex);
 
     m_severity_mask = 0;
@@ -143,18 +141,18 @@ std::vector<LogSeverity> LoggerInterface::severities() {
     return severities;
 }
 
-std::string LoggerInterface::impl_format_console_color_text(LogColor           color,
-                                                            const std::string& text) {
+std::string LoggerInterface::s_format_console_color_text(
+    LogColor color, const std::string& text) {
 // NOTE: Windows; initialize VT mode if supported.
 #if defined(_WIN32)
     static bool vt_inited = false;
     static bool vt_ok     = false;
     if (!vt_inited) {
-        vt_inited   = true;
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        vt_inited    = true;
+        HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
         if (hOut != INVALID_HANDLE_VALUE) {
             DWORD mode = 0;
-            if (GetConsoleMode(hOut, &mode)) {
+            if (GetConsoleMode(h_out, &mode)) {
                 const DWORD vt_flag = ENABLE_VIRTUAL_TERMINAL_PROCESSING;
                 if ((mode & vt_flag) == 0) {
                     vt_ok = (SetConsoleMode(hOut, mode | vt_flag) != 0);
@@ -172,13 +170,13 @@ std::string LoggerInterface::impl_format_console_color_text(LogColor           c
     // NOTE: Fallback to non-colored output if VT mode is not supported.
     if (!use_ansi) return text;
 
-    const std::string code  = log_color_ansi_code(color);
+    const std::string code  = log_color_to_ansi_code(color);
     const std::string reset = "\x1b[0m";
 
     return code + text + reset;
 }
 
-std::string LoggerInterface::impl_get_current_timestamp() {
+std::string LoggerInterface::s_get_current_timestamp() {
     std::time_t t = std::time(nullptr);
     std::tm     tm{};
 #if defined(_WIN32)
@@ -194,17 +192,21 @@ std::string LoggerInterface::impl_get_current_timestamp() {
 ConsoleLogger::ConsoleLogger(bool is_color_enabled)
     : LoggerInterface(), m_is_color_enabled(is_color_enabled) {}
 
-void ConsoleLogger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
+void ConsoleLogger::log(LogLayer layer, LogSeverity severity,
+                        const std::string& message) {
     std::lock_guard<std::mutex> lk(m_mutex);
 
     if (!m_is_color_enabled) {
-        std::cout << "[" << impl_get_current_timestamp() << "] [" << log_layer_to_string(layer)
-                  << "] [" << log_severity_to_string(severity) << "]: " << message << ";\n";
+        std::cout << "[" << s_get_current_timestamp() << "] ["
+                  << log_layer_to_string(layer) << "] ["
+                  << log_severity_to_string(severity) << "]: " << message
+                  << ";\n";
     } else {
-        std::cout << "[" << impl_get_current_timestamp() << "] "
-                  << impl_format_console_color_text(log_severity_to_color(severity),
-                                                    "[" + log_layer_to_string(layer) + "] [" +
-                                                        log_severity_to_string(severity) + "]: ")
+        std::cout << "[" << s_get_current_timestamp() << "] "
+                  << s_format_console_color_text(
+                         log_severity_to_color(severity),
+                         "[" + log_layer_to_string(layer) + "] [" +
+                             log_severity_to_string(severity) + "]: ")
                   << message << ";\n";
     }
 }
@@ -226,16 +228,19 @@ FileLogger::FileLogger() : LoggerInterface() {
     m_file.open(m_filename, std::ios::out | std::ios::app);
 }
 
-FileLogger::FileLogger(const std::string& filename) : LoggerInterface(), m_filename(filename) {
+FileLogger::FileLogger(const std::string& filename)
+    : LoggerInterface(), m_filename(filename) {
     m_file.open(m_filename, std::ios::out | std::ios::app);
 }
 
 FileLogger::~FileLogger() { m_file.close(); }
 
-void FileLogger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
+void FileLogger::log(LogLayer layer, LogSeverity severity,
+                     const std::string& message) {
     std::lock_guard<std::mutex> lk(m_mutex);
 
-    m_file << "[" << impl_get_current_timestamp() << "] [" << log_layer_to_string(layer) << "] ["
+    m_file << "[" << s_get_current_timestamp() << "] ["
+           << log_layer_to_string(layer) << "] ["
            << log_severity_to_string(severity) << "]: " << message << ";\n";
 }
 
@@ -258,7 +263,8 @@ void Logger::init(std::vector<std::unique_ptr<LoggerInterface>>&& loggers) {
     m_is_initialized = true;
 }
 
-void Logger::log(LogLayer layer, LogSeverity severity, const std::string& message) {
+void Logger::log(LogLayer layer, LogSeverity severity,
+                 const std::string& message) {
     std::lock_guard<std::mutex> lk(m_mutex);
 
     if (!m_is_initialized) {

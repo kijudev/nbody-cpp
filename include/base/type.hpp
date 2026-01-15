@@ -26,23 +26,25 @@ using I64   = std::int64_t;
 using F32   = float;
 using F64   = double;
 
-using Bytecode = std::vector<U8>;
-
-// NOTE: Aliased floating point types.
+// NOTE: Single and double precision floats (F32, F64).
 template <typename Float>
 concept FloatT = std::same_as<Float, float> || std::same_as<Float, double>;
 
+// NOTE: Unsigned integer types (U8, U16, U32, U64).
 template <typename Uint>
 concept UintT = std::same_as<Uint, U8> || std::same_as<Uint, U16> ||
                 std::same_as<Uint, U32> || std::same_as<Uint, U64>;
 
+// NOTE: Signed ineger types (I8, I16, I32, I64).
 template <typename Int>
 concept IntT = std::same_as<Int, I8> || std::same_as<Int, I16> ||
                std::same_as<Int, I32> || std::same_as<Int, I64>;
 
+// NOTE: Just a number, give me any number.
 template <typename Number>
 concept NumberT = FloatT<Number> || UintT<Number> || IntT<Number>;
 
+// NOTE: Signed number.
 template <typename Number>
 concept SignedNumberT = FloatT<Number> || IntT<Number>;
 }  // namespace nbody::base::type

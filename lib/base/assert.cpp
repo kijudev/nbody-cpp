@@ -1,14 +1,14 @@
-#include "base/assert.hpp"
-
 #include <string>
 #include <string_view>
 
+#include "base/assert.hpp"
 #include "base/type.hpp"
 
 namespace nbody::base::impl {
 using namespace nbody::base::type;
 
-std::string assert_format_message(std::string_view message, const char* file, I32 line) {
+std::string format_assert_message(std::string_view message, const char* file,
+                                  I32 line) {
     std::string out;
     out.reserve(message.size() + 64);
     out.append(message);
