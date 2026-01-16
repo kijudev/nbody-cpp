@@ -4,9 +4,9 @@
 
 Projekt **"nbody-cpp"** to zaawansowany symulator fizyczny układu wielu ciał (N-body) w przestrzeni dwuwymiarowej. Aplikacja została napisana w nowoczesnym języku C++ (standard C++20/23) z wykorzystaniem biblioteki **Raylib** do wizualizacji w czasie rzeczywistym.
 
-Głównym problemem rozwiązywanym w projekcie jest symulacja ewolucji grawitacyjnej układu składającego się z dużej liczby cząstek (gwiazd, planet, asteroid). W klasycznym podejściu bezpośrednim (Direct Method), obliczenie sił działających między każdą parą ciał wiąże się ze złożonością obliczeniową . Przy dużej liczbie obiektów (rzędu - ) podejście to staje się nieefektywne.
+Głównym problemem rozwiązywanym w projekcie jest symulacja ewolucji grawitacyjnej układu składającego się z dużej liczby cząstek (gwiazd, planet, asteroid). W klasycznym podejściu bezpośrednim (Direct Method), obliczenie sił działających między każdą parą ciał wiąże się ze złożonością obliczeniową O(n^2). Przy dużej liczbie obiektów (rzędu - 10^3 - 10^5) podejście to staje się nieefektywne.
 
-Celem projektu było zaimplementowanie i porównanie wydajności algorytmu **Barnes-Hut**, który redukuje złożoność do poprzez aproksymację oddziaływań odległych grup ciał. Projekt pełni funkcję zarówno narzędzia badawczego (analiza wydajności, wizualizacja struktur galaktycznych), jak i edukacyjnego (demonstracja praw Keplera i dynamiki nieliniowej).
+Celem projektu było zaimplementowanie i porównanie wydajności algorytmu **Barnes-Hut**, który redukuje złożoność do O(n log n) poprzez aproksymację oddziaływań odległych grup ciał. Projekt pełni funkcję zarówno narzędzia badawczego (analiza wydajności, wizualizacja struktur galaktycznych), jak i edukacyjnego (demonstracja praw Keplera i dynamiki nieliniowej).
 
 ## 2. Funkcjonalności
 
@@ -76,7 +76,7 @@ Kod źródłowy został podzielony na następujące katalogi logiczne:
 
 Algorytm Barnesa-Huta jest kluczowym elementem projektu. Pozwala on na efektywne symulowanie oddziaływań grawitacyjnych poprzez grupowanie ciał znajdujących się blisko siebie i traktowanie ich jako jednego "super-ciała" (monopole approximation) z punktu widzenia ciał odległych.
 
-#### A. Budowa Drzewa Czwórkowego (QuadTree)
+#### Budowa Drzewa Czwórkowego (QuadTree)
 
 W każdym kroku symulacji budowane jest nowe drzewo czwórkowe.
 
@@ -88,7 +88,7 @@ W każdym kroku symulacji budowane jest nowe drzewo czwórkowe.
 - – sumaryczną masę wszystkich ciał w jego poddrzewie.
 - – współrzędne środka masy (Center of Mass), obliczane wzorem:
 
-#### B. Kryterium Akceptacji (MAC - Multipole Acceptance Criterion)
+#### Kryterium Akceptacji (MAC - Multipole Acceptance Criterion)
 
 Podczas obliczania siły dla konkretnego ciała , algorytm przemierza drzewo od korzenia. Decyzja o tym, czy zejść głębiej do dzieci węzła, czy użyć aproksymacji, zależy od parametru (theta) oraz stosunku rozmiaru węzła do odległości od ciała .
 
@@ -96,7 +96,7 @@ Warunek aproksymacji:
 
 Jeśli warunek jest spełniony, węzeł traktowany jest jako punkt materialny o masie w pozycji . Typowa wartość to .
 
-#### C. Pseudokod
+#### Pseudokod
 
 **1. Struktura Węzła:**
 
@@ -104,63 +104,64 @@ Jeśli warunek jest spełniony, węzeł traktowany jest jako punkt materialny o 
 struct Node {
     Vec2 center_of_mass;
     float total_mass;
-    float size;        // Szerokość obszaru
-    Node* children[4]; // Wskaźniki na ćwiartki
-    Body* body;        // Jeśli liść, wskaźnik na ciało
+    float size;        // Szerokość regionu
+    Node* children[4]; // Wskaźniki do czterech dzieci
+    Body* body;        // Jeśli liść, wskaźnik do ciała
     bool is_leaf;
 };
-
 ```
 
 **2. Wstawianie ciała do drzewa (Insert):**
 
-```text
-FUNCTION Insert(node, body):
-    IF node.is_leaf AND node.body is NULL:
-        node.body = body
-        RETURN
+```cpp
+void Insert(Node* node, Body* body) {
+    if (node->is_leaf && node->body == nullptr) {
+        node->body = body;
+        return;
+    }
 
-    IF node.is_leaf AND node.body is NOT NULL:
-        // Węzeł był liściem z ciałem, musimy go podzielić
-        oldBody = node.body
-        node.body = NULL
-        node.is_leaf = FALSE
-        Subdivide(node) // Tworzy 4 dzieci
-        Insert(node, oldBody) // Wstawiamy stare ciało do odpowiedniego dziecka
-        Insert(node, body)    // Wstawiamy nowe ciało
-        RETURN
+    if (node->is_leaf && node->body != nullptr) {
+        // Węzeł był liściem z ciałem, trzeba go podzielić.
+        Body* oldBody = node->body;
+        node->body = nullptr;
+        node->is_leaf = false;
+        Subdivide(node);       // Tworzy cztery dzieci
+        Insert(node, oldBody); // Umieszcza stare ciało w odpowiednim dziecku
+        Insert(node, body);    // Umieszcza nowe ciało w odpowiednim dziecku
+        return;
+    }
 
-    // Węzeł jest wewnętrzny (gałąź)
-    UpdateCenterOfMass(node, body)
-    quadrant = GetQuadrant(node, body.position)
-    Insert(node.children[quadrant], body)
-END FUNCTION
-
+    // Węzeł jest wewnętrzny (gałąź).
+    UpdateCenterOfMass(node, body);
+    int quadrant = GetQuadrant(node, body->position);
+    Insert(node->children[quadrant], body);
+}
 ```
 
 **3. Obliczanie siły (Force Calculation):**
 
-```text
-FUNCTION ComputeForce(body, node, theta):
-    d = Distance(body.pos, node.center_of_mass)
+```cpp
+void ComputeForce(Body* body, Node* node, float theta, float G, float epsilon) {
+    float d = distance(body->pos, node->center_of_mass);
 
-    // Unikamy liczenia siły ciała na samo siebie
-    IF d == 0: RETURN
+    // Unikniecię samoprzyciągania.
+    if (d == 0.0f) return;
 
-    // Sprawdzenie kryterium MAC
-    IF node.is_leaf OR (node.size / d < theta):
-        // Aproksymacja: traktujemy węzeł jako jedno ciało
-        dir = Normalize(node.center_of_mass - body.pos)
-        // Wzór z 'softening' dla stabilności numerycznej
-        force_magnitude = (G * body.mass * node.total_mass) / (d*d + epsilon*epsilon)
-        body.force += dir * force_magnitude
-    ELSE:
-        // Musimy zejść głębiej
-        FOR each child in node.children:
-            IF child is not empty:
-                ComputeForce(body, child, theta)
-END FUNCTION
-
+    // MAC
+    if (node->is_leaf || (node->size / d < theta)) {
+        // Traktujemy węzeł jako pojedynczy ciało. Przybliżenie.
+        Vec2 dir = Normalize(node->center_of_mass - body->pos);
+        float force_magnitude = (G * body->mass * node->total_mass) / (d * d + epsilon * epsilon);
+        body->force += dir * force_magnitude;
+    } else {
+        // Przechodzimy do kolejnych dzieci.
+        for (int i = 0; i < 4; ++i) {
+            if (node->children[i] != nullptr) {
+                ComputeForce(body, node->children[i], theta, G, epsilon);
+            }
+        }
+    }
+}
 ```
 
 ### 3.3 Biblioteki zewnętrzne
@@ -179,9 +180,25 @@ END FUNCTION
 
 Do zbudowania projektu wymagany jest kompilator wspierający C++23 (np. GCC 11+, Clang 13+, MSVC 2022) oraz system budowania CMake.
 
-### 4.2 Kroki instalacji (Linux/macOS):\*\*
+### 4.2 Kroki instalacji (Linux/macOS/Windows):
 
-TODO
+#### Budowanie wersji debug (domyślna):
+
+```bash
+cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/debug
+./build/debug/nbody
+```
+
+#### Budowanie wersji produkcyjnej (Production, zoptymalizowana):
+
+```bash
+cmake -B build/prod -DCMAKE_BUILD_TYPE=Production
+cmake --build build/prod
+./build/prod/nbody
+```
+
+Wersja produkcyjna jest zoptymalizowana pod kątem wydajności i wyłączone są w niej dodatkowe logi oraz asercje. Zalecana do uruchamiania dużych symulacji lub benchmarków.
 
 ### 4.3 Obsługa programu
 
