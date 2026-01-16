@@ -22,37 +22,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ==============================================================================
-# Compiler flags for MSVC, GCC, and Clang
-# ==============================================================================
-
-if(MSVC)
-    # MSVC: warnings, standard mode, debug/release
-    add_compile_options(/W4 /permissive- /Zc:__cplusplus)
-    add_compile_options($<$<CONFIG:Debug>:/Od /Zi>)
-    add_compile_options($<$<CONFIG:Release>:/O2 /DNDEBUG>)
-else()
-    # GCC/Clang: warnings, disable some warnings, debug/production modes.
-    add_compile_options(-Wall -Wextra -Wpedantic -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
-
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-Wno-missing-designated-field-initializers)
-    endif()
-
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        add_compile_options(-Wno-missing-field-initializers)
-    endif()
-
-    add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
-    add_compile_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
-    add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
-    add_compile_options($<$<CONFIG:Production>:-O3>)
-    add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
-    add_compile_options($<$<CONFIG:Production>:-DNLOG>)
-    add_link_options($<$<CONFIG:Production>:-s>)
-endif()
-
-# ==============================================================================
-# Raylib and Raygui: use system packages if available, otherwise fetch via FetchContent
+# 1. Fetch Dependencies FIRST (so global flags don't mess them up)
 # ==============================================================================
 
 include(FetchContent)
@@ -89,15 +59,50 @@ else()
     set(raygui_SRC_DIR ${raygui_SOURCE_DIR})
 endif()
 
-# Add Raygui include directories (for styles and src)
 include_directories(${raygui_SRC_DIR}/src)
 include_directories(${raygui_SRC_DIR}/styles)
 
 # ==============================================================================
-# Add subprojects
+# 2. Define Your Subprojects
 # ==============================================================================
 
 add_subdirectory(lib)
 add_subdirectory(apps)
 add_subdirectory(tests)
 add_subdirectory(benchmarks)
+
+# ==============================================================================
+# 3. Apply Compiler Flags (Use target_compile_options generally, 
+#    but if you stick to add_compile_options, do it HERE, after includes)
+# ==============================================================================
+
+if(MSVC)
+    # Only apply these to C++ targets if possible, or handle carefully
+    add_compile_options(/W4 /permissive- /Zc:__cplusplus)
+    
+    # Split flags to avoid the "space in generator expression" error
+    add_compile_options($<$<CONFIG:Debug>:/Od>)
+    add_compile_options($<$<CONFIG:Debug>:/Zi>)
+    
+    add_compile_options($<$<CONFIG:Release>:/O2>)
+    add_compile_options($<$<CONFIG:Release>:/DNDEBUG>)
+else()
+    # GCC/Clang options...
+    add_compile_options(-Wall -Wextra -Wpedantic -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+    
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-Wno-missing-designated-field-initializers)
+    endif()
+    
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        add_compile_options(-Wno-missing-field-initializers)
+    endif()
+
+    add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
+    add_compile_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+    add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+    add_compile_options($<$<CONFIG:Production>:-O3>)
+    add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
+    add_compile_options($<$<CONFIG:Production>:-DNLOG>)
+    add_link_options($<$<CONFIG:Production>:-s>)
+endif()

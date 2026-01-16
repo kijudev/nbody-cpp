@@ -1,6 +1,7 @@
 #include "sim/kepler.hpp"
 
 #include <cmath>
+#include <numbers>
 
 #include "base/assert.hpp"
 #include "base/type.hpp"
@@ -15,7 +16,8 @@ Kepler<Float>::Kepler(const Config& config)
     m_bodies.push_back(config.body2);
 
     ASSERT(m_bodies.size() == 2, "Kepler solution requires exactly 2 bodies");
-    ASSERT(m_bodies[0].mass > 0.0 && m_bodies[1].mass > 0.0, "Body masses must be positive");
+    ASSERT(m_bodies[0].mass > 0.0 && m_bodies[1].mass > 0.0,
+           "Body masses must be positive");
 
     m_total_mass   = m_bodies[0].mass + m_bodies[1].mass;
     m_reduced_mass = (m_bodies[0].mass * m_bodies[1].mass) / m_total_mass;
@@ -42,7 +44,9 @@ void Kepler<Float>::set_time(Float t) {
 template <FloatT Float>
 void Kepler<Float>::insert_body(Body&& body) {
     (void)body;
-    ASSERT(false, "Kepler solution only supports exactly 2 bodies - cannot insert additional bodies");
+    ASSERT(false,
+           "Kepler solution only supports exactly 2 bodies - cannot insert "
+           "additional bodies");
 }
 
 template <FloatT Float>
@@ -51,12 +55,14 @@ Float Kepler<Float>::time() const {
 }
 
 template <FloatT Float>
-std::span<const typename Kepler<Float>::Body, std::dynamic_extent> Kepler<Float>::bodies() const {
+std::span<const typename Kepler<Float>::Body, std::dynamic_extent>
+Kepler<Float>::bodies() const {
     return m_bodies;
 }
 
 template <FloatT Float>
-const typename Kepler<Float>::OrbitalElements& Kepler<Float>::orbital_elements() const {
+const typename Kepler<Float>::OrbitalElements& Kepler<Float>::orbital_elements()
+    const {
     return m_orbital_elements;
 }
 
@@ -101,13 +107,14 @@ void Kepler<Float>::compute_orbital_elements_from_state() {
     m_angular_momentum           = angular_momentum;
 
     // NOTE: Compute semi-major axis: a = -u / (2*E).
-    ASSERT(specific_energy < 0.0, "Orbit must be bound (negative energy) for Kepler solution");
+    ASSERT(specific_energy < 0.0,
+           "Orbit must be bound (negative energy) for Kepler solution");
     m_orbital_elements.semi_major_axis = -mu / (2.0 * specific_energy);
 
     // NOTE: Compute eccentricity vector and magnitude.
     // e_vec = (v × L) / u - r / |r|
-    const Float e_x                 = (v.y * angular_momentum) / mu - r.x / r_mag;
-    const Float e_y                 = (-v.x * angular_momentum) / mu - r.y / r_mag;
+    const Float e_x = (v.y * angular_momentum) / mu - r.x / r_mag;
+    const Float e_y = (-v.x * angular_momentum) / mu - r.y / r_mag;
     m_orbital_elements.eccentricity = std::sqrt(e_x * e_x + e_y * e_y);
 
     ASSERT(m_orbital_elements.eccentricity < 1.0,
@@ -117,29 +124,35 @@ void Kepler<Float>::compute_orbital_elements_from_state() {
     m_orbital_elements.argument_periapsis = std::atan2(e_y, e_x);
 
     // NOTE: Compute orbital period: T = 2*PI * sqrt(a^3 / u).
-    const Float a_cubed = m_orbital_elements.semi_major_axis * m_orbital_elements.semi_major_axis *
+    const Float a_cubed = m_orbital_elements.semi_major_axis *
+                          m_orbital_elements.semi_major_axis *
                           m_orbital_elements.semi_major_axis;
-    m_orbital_elements.orbital_period = 2.0 * M_PI * std::sqrt(a_cubed / mu);
+    m_orbital_elements.orbital_period =
+        2.0 * std::numbers::pi_v<Float> * std::sqrt(a_cubed / mu);
 
     // NOTE: Compute mean motion: n = 2*PI / T
-    m_orbital_elements.mean_motion = 2.0 * M_PI / m_orbital_elements.orbital_period;
+    m_orbital_elements.mean_motion =
+        2.0 * std::numbers::pi_v<Float> / m_orbital_elements.orbital_period;
 
     // NOTE: Compute true anomaly at epoch (angle from periapsis).
     // cos(ν) = (e_vec · r) / (e * r)
-    const Float cos_nu       = (e_x * r.x + e_y * r.y) / (m_orbital_elements.eccentricity * r_mag);
-    const Float sin_nu       = (e_x * r.y - e_y * r.x) / (m_orbital_elements.eccentricity * r_mag);
+    const Float cos_nu =
+        (e_x * r.x + e_y * r.y) / (m_orbital_elements.eccentricity * r_mag);
+    const Float sin_nu =
+        (e_x * r.y - e_y * r.x) / (m_orbital_elements.eccentricity * r_mag);
     const Float true_anomaly = std::atan2(sin_nu, cos_nu);
 
     // NOTE: Compute eccentric anomaly from true anomaly.
     // tan(E/2) = sqrt((1-e)/(1+e)) * tan(ν/2)
     const Float e           = m_orbital_elements.eccentricity;
     const Float sqrt_factor = std::sqrt((1.0 - e) / (1.0 + e));
-    const Float E           = 2.0 * std::atan(sqrt_factor * std::tan(true_anomaly / 2.0));
+    const Float E = 2.0 * std::atan(sqrt_factor * std::tan(true_anomaly / 2.0));
 
     // NOTE: Compute mean anomaly at epoch: M = E - e * sin(E).
     m_orbital_elements.mean_anomaly_epoch = E - e * std::sin(E);
 
-    // NOTE: For a 2D orbit the inclination and longitude of ascending node are zero.
+    // NOTE: For a 2D orbit the inclination and longitude of ascending node are
+    // zero.
     m_orbital_elements.inclination         = 0.0;
     m_orbital_elements.longitude_ascending = 0.0;
 
@@ -152,7 +165,8 @@ void Kepler<Float>::update_bodies_from_orbital_elements() {
     const Float dt = m_current_time - m_epoch;
 
     // NOTE: Compute mean anomaly at current time.
-    const Float M = m_orbital_elements.mean_anomaly_epoch + m_orbital_elements.mean_motion * dt;
+    const Float M = m_orbital_elements.mean_anomaly_epoch +
+                    m_orbital_elements.mean_motion * dt;
 
     // NOTE: Solve Kepler's equation for eccentric anomaly.
     const Float E = solve_keplers_equation(M, m_orbital_elements.eccentricity);
@@ -182,7 +196,8 @@ void Kepler<Float>::update_bodies_from_orbital_elements() {
     // NOTE: Compute velocity in orbital plane.
     // v = sqrt(u/a) / sqrt(1 - e^2)
     const Float mu = m_g * m_total_mass;
-    const Float h  = std::sqrt(mu * a * (1.0 - e * e));  // Angular momentum magnitude
+    const Float h =
+        std::sqrt(mu * a * (1.0 - e * e));  // Angular momentum magnitude
 
     const Float vx_orb = -h * std::sin(nu) / r;
     const Float vy_orb = h * (e + std::cos(nu)) / r;
@@ -191,7 +206,8 @@ void Kepler<Float>::update_bodies_from_orbital_elements() {
     const Float vx_rot = vx_orb * cos_omega - vy_orb * sin_omega;
     const Float vy_rot = vx_orb * sin_omega + vy_orb * cos_omega;
 
-    // NOTE: Convert from relative coordinates to individual body coordinates using center of mass.
+    // NOTE: Convert from relative coordinates to individual body coordinates
+    // using center of mass.
     const Float m1 = m_bodies[0].mass;
     const Float m2 = m_bodies[1].mass;
 
@@ -207,7 +223,8 @@ void Kepler<Float>::update_bodies_from_orbital_elements() {
     m_bodies[1].vel.x = m_com_velocity.x + m1 / m_total_mass * vx_rot;
     m_bodies[1].vel.y = m_com_velocity.y + m1 / m_total_mass * vy_rot;
 
-    // NOTE: Compute accelerations; for completeness sake; not used in the analytical solution.
+    // NOTE: Compute accelerations; for completeness sake; not used in the
+    // analytical solution.
     const Vec2  r12       = m_bodies[1].pos.sub(m_bodies[0].pos);
     const Float r12_mag   = r12.length();
     const Float r12_cubed = r12_mag * r12_mag * r12_mag;
@@ -223,15 +240,16 @@ Float Kepler<Float>::solve_keplers_equation(Float M, Float e) const {
     // EXPLANATION: Solve M = E - e * sin(E) using Newton-Raphson iteration.
 
     // NOTE: Normalize mean anomaly to [0, 2*PI]
-    Float M_norm = std::fmod(M, 2.0 * M_PI);
+    Float M_norm = std::fmod(M, 2.0 * std::numbers::pi_v<Float>);
     if (M_norm < 0.0) {
-        M_norm += 2.0 * M_PI;
+        M_norm += 2.0 * std::numbers::pi_v<Float>;
     }
 
     // NOTE: Initial guess for eccentric anomaly.
     Float E = M_norm;
     if (e > 0.8) {
-        E = M_PI;  // WHY: Better initial guess for high eccentricity.
+        E = std::numbers::pi_v<Float>;  // WHY: Better initial guess for high
+                                        // eccentricity.
     }
 
     // NOTE: Newton-Raphson iteration.
@@ -266,13 +284,16 @@ typename Kepler<Float>::Vec2 Kepler<Float>::compute_center_of_mass() const {
 }
 
 template <FloatT Float>
-typename Kepler<Float>::Vec2 Kepler<Float>::compute_center_of_mass_velocity() const {
+typename Kepler<Float>::Vec2 Kepler<Float>::compute_center_of_mass_velocity()
+    const {
     const Float m1 = m_bodies[0].mass;
     const Float m2 = m_bodies[1].mass;
 
     Vec2 com_vel;
-    com_vel.x = (m1 * m_bodies[0].vel.x + m2 * m_bodies[1].vel.x) / m_total_mass;
-    com_vel.y = (m1 * m_bodies[0].vel.y + m2 * m_bodies[1].vel.y) / m_total_mass;
+    com_vel.x =
+        (m1 * m_bodies[0].vel.x + m2 * m_bodies[1].vel.x) / m_total_mass;
+    com_vel.y =
+        (m1 * m_bodies[0].vel.y + m2 * m_bodies[1].vel.y) / m_total_mass;
 
     return com_vel;
 }

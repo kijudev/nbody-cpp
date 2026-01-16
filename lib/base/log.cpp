@@ -1,3 +1,5 @@
+#include "base/log.hpp"
+
 #include <cstring>
 #include <ctime>
 #include <iostream>
@@ -5,7 +7,6 @@
 #include <mutex>
 #include <string>
 
-#include "base/log.hpp"
 #include "base/type.hpp"
 
 // WHY: Windows compile-time optimizations. Includes only necessary headers.
@@ -64,10 +65,10 @@ std::string log_severity_to_string(LogSeverity severity) {
             return "INFO";
         case LogSeverity::WARNING:
             return "WARNING";
-        case LogSeverity::ERROR:
-            return "ERROR";
         case LogSeverity::FATAL:
             return "FATAL";
+        default:
+            return "ERROR";
     }
 }
 
@@ -79,10 +80,10 @@ LogColor log_severity_to_color(LogSeverity severity) {
             return LogColor::LOG_COLOR_GREEN;
         case LogSeverity::WARNING:
             return LogColor::LOG_COLOR_YELLOW;
-        case LogSeverity::ERROR:
-            return LogColor::LOG_COLOR_RED;
         case LogSeverity::FATAL:
             return LogColor::LOG_COLOR_PURPLE;
+        default:
+            return LogColor::LOG_COLOR_RED;
     }
 }
 
@@ -150,12 +151,12 @@ std::string LoggerInterface::s_format_console_color_text(
     if (!vt_inited) {
         vt_inited    = true;
         HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (hOut != INVALID_HANDLE_VALUE) {
+        if (h_out != INVALID_HANDLE_VALUE) {
             DWORD mode = 0;
             if (GetConsoleMode(h_out, &mode)) {
                 const DWORD vt_flag = ENABLE_VIRTUAL_TERMINAL_PROCESSING;
                 if ((mode & vt_flag) == 0) {
-                    vt_ok = (SetConsoleMode(hOut, mode | vt_flag) != 0);
+                    vt_ok = (SetConsoleMode(h_out, mode | vt_flag) != 0);
                 } else {
                     vt_ok = true;
                 }
