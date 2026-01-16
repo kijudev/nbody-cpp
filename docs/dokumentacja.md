@@ -20,11 +20,11 @@ Projekt oferuje szeroki wachlarz funkcjonalności podzielonych na logikę symula
 - **Barnes-Hut (O(n log n)):** Implementacja oparta na drzewie czwórkowym (QuadTree).
 - **Barnes-Hut z sortowaniem Morton (O(n log n)):** Eksperymentalna wersja optymalizująca lokalność pamięci podręcznej (cache locality).
 
-#### Integratory numeryczne:
+#### Metody całkowania numerycznego:
 
-- **Euler:** Prosty integrator, ale nie zapewnia symplektyczności.
+- **Euler:** Prosty algorytm; nie zapewnia symplektyczności.
 - **Semi-symplectic Euler:** Zapewnia zachowanie energii (symplektyczność) przy niskim koszcie obliczeniowym.
-- **Verlet integration:** Alternatywny integrator o wyższej stabilności.
+- **Verlet:** Alternatywny integrator o wyższej stabilności.
 
 #### Parametry fizyczne:
 
@@ -36,7 +36,7 @@ Projekt oferuje szeroki wachlarz funkcjonalności podzielonych na logikę symula
 
 #### **Renderowanie:**
 
-Wykorzystanie instancjonowania (instancing) do renderowania dziesiątek tysięcy cząstek przy wysokiej liczbie klatek na sekundę (FPS).
+Ciała renderowane są jako koła o określonym rozmiarze (postrzegany rozmiar ciał można dostosowywać).
 
 #### **Interaktywna kamera:**
 
@@ -59,16 +59,9 @@ Projekt został zrealizowany w podejściu modułowym, co ułatwia testowanie i d
 Kod źródłowy został podzielony na następujące katalogi logiczne:
 
 - **`base/`**: Fundamenty systemu.
-- TODO
-
 - **`math/`**: Biblioteka matematyczna.
-- TODO
-
-- **`sim/`**: Serce symulacji.
-- TODO
-
+- **`sim/`**: Symulacja.
 - **`gfx/`**: Warstwa prezentacji.
-- TODO
 
 - **`apps/nbody/`**: Główna pętla aplikacji i punkt wejścia (`main.cpp`).
 
