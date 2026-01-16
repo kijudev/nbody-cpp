@@ -1,7 +1,17 @@
+# ==============================================================================
+#
+# CMakeLists.txt - Main configuration file for the nbody-cpp project
+#
+# This file supports automatic fetching of Raylib/Raygui (FetchContent); fallbacks to using
+# system-installed versions, and sets appropriate compiler flags for MSVC, GCC, and Clang.
+#
+# ==============================================================================
+
 cmake_minimum_required(VERSION 3.13)
 
 project(nbody LANGUAGES CXX)
 
+# Default build type
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
@@ -11,24 +21,81 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# TODO: Implement flags for other compilers.
-add_compile_options(
-    -Wall -Wextra -Wpedantic -Wno-missing-designated-field-initializers
-    -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-)
+# ==============================================================================
+# Compiler flags for MSVC, GCC, and Clang
+# ==============================================================================
 
-add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
-add_compile_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
-add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+if(MSVC)
+    # MSVC: warnings, standard mode, debug/release
+    add_compile_options(/W4 /permissive- /Zc:__cplusplus)
+    add_compile_options($<$<CONFIG:Debug>:/Od /Zi>)
+    add_compile_options($<$<CONFIG:Release>:/O2 /DNDEBUG>)
+else()
+    # GCC/Clang: warnings, disable some warnings, debug/production modes.
+    add_compile_options(-Wall -Wextra -Wpedantic -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
-add_compile_options($<$<CONFIG:Production>:-O3>)
-add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
-add_compile_options($<$<CONFIG:Production>:-DNLOG>)
-add_link_options($<$<CONFIG:Production>:-s>)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-Wno-missing-designated-field-initializers)
+    endif()
 
-find_package(raylib REQUIRED)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        add_compile_options(-Wno-missing-field-initializers)
+    endif()
+
+    add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
+    add_compile_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+    add_link_options($<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+    add_compile_options($<$<CONFIG:Production>:-O3>)
+    add_compile_options($<$<CONFIG:Production>:-DNDEBUG>)
+    add_compile_options($<$<CONFIG:Production>:-DNLOG>)
+    add_link_options($<$<CONFIG:Production>:-s>)
+endif()
+
+# ==============================================================================
+# Raylib and Raygui: use system packages if available, otherwise fetch via FetchContent
+# ==============================================================================
+
+include(FetchContent)
+
+# Raylib
+set(RAYLIB_FOUND FALSE)
+find_package(raylib QUIET)
+if(raylib_FOUND)
+    message(STATUS "Using system raylib")
+else()
+    message(STATUS "Fetching raylib via FetchContent")
+    FetchContent_Declare(
+        raylib
+        GIT_REPOSITORY https://github.com/raysan5/raylib.git
+        GIT_TAG        4.5.0
+    )
+    FetchContent_MakeAvailable(raylib)
+endif()
+
+# Raygui
+set(RAYGUI_FOUND FALSE)
+find_package(raygui QUIET)
+if(raygui_FOUND)
+    message(STATUS "Using system raygui")
+    set(raygui_SRC_DIR ${raygui_DIR})
+else()
+    message(STATUS "Fetching raygui via FetchContent")
+    FetchContent_Declare(
+        raygui
+        GIT_REPOSITORY https://github.com/raysan5/raygui.git
+        GIT_TAG        master
+    )
+    FetchContent_MakeAvailable(raygui)
+    set(raygui_SRC_DIR ${raygui_SOURCE_DIR})
+endif()
+
+# Add Raygui include directories (for styles and src)
 include_directories(${raygui_SRC_DIR}/src)
 include_directories(${raygui_SRC_DIR}/styles)
+
+# ==============================================================================
+# Add subprojects
+# ==============================================================================
 
 add_subdirectory(lib)
 add_subdirectory(apps)
