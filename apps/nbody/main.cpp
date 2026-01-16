@@ -86,6 +86,11 @@ int main() {
     };
 
     while (!WindowShouldClose()) {
+        if (IsKeyPressed(KEY_F11)) {
+            window.width  = 800;
+            window.height = 600;
+        }
+
         window.handle_resize();
         main_grid.width  = window.width;
         main_grid.height = window.height;
