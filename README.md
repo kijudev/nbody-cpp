@@ -45,7 +45,7 @@ cmake --build build
 For more details, see the Polish documentation:
 [`docs/dokumentacja.md`](docs/dokumentacja.md)
 
-# Galery
+# Gallery
 
 ![galaxy simulation](./docs/ndboy-galaxy.png)
 ![galaxy simulation](./docs/nbody-barnes-hut-grid.png)
