@@ -38,8 +38,8 @@ int main() {
     constexpr I32 TARGET_FPS = 60;
 
     gfx::Window window{
-        .width  = 1920,
-        .height = 1080,
+        .width  = 1400,
+        .height = 700,
         .title  = "N-Body Simulation",
     };
 

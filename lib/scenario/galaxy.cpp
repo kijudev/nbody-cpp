@@ -23,14 +23,14 @@ void Galaxy::init(const gfx::Window& window) {
     // Generate a galaxy with Plummer distribution and circular orbital
     // velocities
     constexpr Float galaxy_radius =
-        sim::scale_au::DISTANCE_AU * 100.0;  // 200 AU diameter
+        sim::scale_au::DISTANCE_AU * 30.0;  // 60 AU diameter
     constexpr Float central_mass =
         sim::scale_au::MASS_SOL * 1e6;  // Central supermassive black hole
 
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n               = 15000,
+        .n               = 6000,
         .min_mass        = sim::scale_au::MASS_HYGIEA,
-        .max_mass        = sim::scale_au::MASS_SOL * 50.0,
+        .max_mass        = sim::scale_au::MASS_SOL * 30.0,
         .radius          = galaxy_radius,
         .velocity_center = {0.0, 0.0},
         .central_mass    = central_mass,

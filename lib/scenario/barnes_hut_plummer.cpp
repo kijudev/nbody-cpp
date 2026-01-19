@@ -21,10 +21,10 @@ using namespace nbody::base::type;
 
 void BarnesHutPlummer::init(const gfx::Window& window) {
     sim::GenerateDistributionConfig<Float> generate_distribution_config{
-        .n           = 10000,
+        .n           = 3000,
         .min_mass    = sim::scale_au::MASS_MARS,
         .max_mass    = sim::scale_au::MASS_SOL * 10,
-        .radius      = sim::scale_au::DISTANCE_AU * 30.0,
+        .radius      = sim::scale_au::DISTANCE_AU * 10.0,
         .position_fn = sim::generate_position_distribution_plummer_model<Float>,
         .mass_fn     = sim::generate_mass_distribution_salpeter_imf<Float>,
     };
