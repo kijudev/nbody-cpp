@@ -45,6 +45,17 @@ cmake --build build
 For more details, see the Polish documentation:
 [`docs/dokumentacja.md`](docs/dokumentacja.md)
 
+# Sources and References
+1. https://arborjs.org/docs/barnes-hut
+2. https://ned.ipac.caltech.edu/level5/Sept13/Silk/Silk2.html
+3. https://ics.uci.edu/~ihler/papers/ihler_area.pdf
+4. https://andyljones.com/pybbfmm/
+5. https://ui.adsabs.harvard.edu/abs/1986Natur.324..446B/abstract
+6. https://developer.nvidia.com/gpugems/gpugems3/part-v-physics-simulation/chapter-31-fast-n-body-simulation-cuda
+7. https://www.youtube.com/watch?v=nCg3aXn5F3M
+8. https://www.algorithm-archive.org/contents/verlet_integration/verlet_integration.html
+9. https://www.gorillasun.de/blog/euler-and-verlet-integration-for-particle-physics/
+
 # Gallery
 
 ![galaxy simulation](./docs/ndboy-galaxy.png)
