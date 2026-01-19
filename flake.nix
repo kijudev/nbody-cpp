@@ -41,10 +41,7 @@
               valgrind
               clang-tools
               cppcheck
-
-              # Raylib bullshit
               raylib
-              raygui
             ];
 
             shellHook = ''

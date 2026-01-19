@@ -37,7 +37,7 @@ else()
     FetchContent_Declare(
         raylib
         GIT_REPOSITORY https://github.com/raysan5/raylib.git
-        GIT_TAG        4.5.0
+        GIT_TAG        master
     )
     FetchContent_MakeAvailable(raylib)
 endif()
@@ -72,28 +72,28 @@ add_subdirectory(tests)
 add_subdirectory(benchmarks)
 
 # ==============================================================================
-# 3. Apply Compiler Flags (Use target_compile_options generally, 
+# 3. Apply Compiler Flags (Use target_compile_options generally,
 #    but if you stick to add_compile_options, do it HERE, after includes)
 # ==============================================================================
 
 if(MSVC)
     # Only apply these to C++ targets if possible, or handle carefully
     add_compile_options(/W4 /permissive- /Zc:__cplusplus)
-    
+
     # Split flags to avoid the "space in generator expression" error
     add_compile_options($<$<CONFIG:Debug>:/Od>)
     add_compile_options($<$<CONFIG:Debug>:/Zi>)
-    
+
     add_compile_options($<$<CONFIG:Release>:/O2>)
     add_compile_options($<$<CONFIG:Release>:/DNDEBUG>)
 else()
     # GCC/Clang options...
     add_compile_options(-Wall -Wextra -Wpedantic -DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
-    
+
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         add_compile_options(-Wno-missing-designated-field-initializers)
     endif()
-    
+
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         add_compile_options(-Wno-missing-field-initializers)
     endif()
