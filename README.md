@@ -1,7 +1,9 @@
 # NBody
+**WARNING: Although the project is fully functional, many optimizations are still missing. Cross-compilation for Windows and macOS needs to be implemented. Currently, the performance of the Windows executable is horrendous, so please take this project with a grain of salt :)**
+---
+**NBody-cpp** is an interactive 2D N-body simulation written in modern C++ as a university project.
+It features multiple algorithms for gravitational dynamics, including the Barnes-Hut algorithm, and provides real-time visualization using Raylib.
 
-**NBody-cpp** is a fast, interactive 2D n-body simulation written in modern C++.
-It features multiple algorithms for gravitational dynamics, including Barnes-Hut implementation, and provides real-time visualization using Raylib.
 
 ![galaxy simulation](./docs/ndboy-galaxy.png)
 
