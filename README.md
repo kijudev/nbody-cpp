@@ -1,7 +1,5 @@
 # NBody
-**WARNING: Although the project is fully functional, many optimizations are still missing. Cross-compilation for Windows and macOS needs to be implemented. Currently, the performance of the Windows executable is horrendous, so please take this project with a grain of salt :)**
----
-**NBody-cpp** is an interactive 2D N-body simulation written in modern C++ as a university project.
+Realtime 2D N-body simulation written in modern C++ as a university project.
 It features multiple algorithms for gravitational dynamics, including the Barnes-Hut algorithm, and provides real-time visualization using Raylib.
 
 
@@ -36,7 +34,7 @@ cmake --build build
 ./build/apps/nbody
 ```
 
-**Production build (optimized):**
+**Production build (Optimized):**
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Production
